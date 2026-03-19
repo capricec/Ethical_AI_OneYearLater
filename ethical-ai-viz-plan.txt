@@ -1,0 +1,212 @@
+---
+name: ethical-ai-viz-architecture
+overview: High-level architecture for a SvelteKit + D3 multi-page data visualization site for Ethical_AI_OneYearLater, focusing on layout shell, routing, state, and data organization before implementing specific charts.
+todos:
+  - id: setup-sveltekit
+    content: Define SvelteKit-based multi-page structure and top-level routes for the Ethical_AI_OneYearLater project
+    status: pending
+  - id: layout-trays
+    content: Design shared layout shell with left/right trays and a central visualization outlet
+    status: pending
+    dependencies:
+      - setup-sveltekit
+  - id: state-stores
+    content: Specify global UI and per-view state using Svelte stores for models, statements, and view modes
+    status: pending
+    dependencies:
+      - layout-trays
+  - id: data-organization
+    content: Plan static data directory structure and loader utilities for models, statements, and dimension scores
+    status: pending
+    dependencies:
+      - state-stores
+  - id: viz-components
+    content: Define D3/SVG visualization component API and utilities for scales, layouts, and colors
+    status: pending
+    dependencies:
+      - data-organization
+  - id: interaction-routing
+    content: Outline interactions between trays, visualizations, and routes including model and statement selection
+    status: pending
+    dependencies:
+      - viz-components
+  - id: styling-theming
+    content: Specify Tailwind-based styling system and consistent color scheme across all views
+    status: pending
+    dependencies:
+      - interaction-routing
+isProject: false
+---
+
+## Architecture plan for `Ethical_AI_OneYearLater` data viz site
+
+### 1. Overall app structure (SvelteKit)
+
+- **Use SvelteKit app router**: Initialize a SvelteKit app in `Ethical_AI_OneYearLater` so each major "page" in your mockups is a route (`routes/` directory).
+  - **Top-level routes** (examples):
+    - `/` – landing + overview, loads the main political preferences view by default.
+    - `/political-preferences` – statement-level views (first 3 screenshots: dots, time-series, flows).
+    - `/dimensions` – hex/radar-style summary view (last screenshot: Political Preferences, Social Values, etc.).
+    - Optional: `/about` or `/methodology` for textual explanation.
+  - **Shared layout**: Create a `src/routes/+layout.svelte` to define the persistent 3-column shell (left tray, central visualization area, right tray) and a `+layout.ts` if you later need global data loading.
+
+```mermaid
+flowchart LR
+  user[User] --> browser[Browser]
+  browser --> svelteKitRouter[SvelteKitRouter]
+  svelteKitRouter --> layout[AppLayout]
+  layout --> leftTray[LeftTray]
+  layout --> vizOutlet[PageVisualization]
+  layout --> rightTray[RightTray]
+```
+
+
+
+- **Component-driven structure**: Place reusable components in `src/lib/`:
+  - `src/lib/layout/` – `Shell.svelte`, `LeftTray.svelte`, `RightTray.svelte`, `TopNav.svelte`.
+  - `src/lib/viz/` – D3/SVG components for each chart (e.g., `StatementDots.svelte`, `StatementTimeline.svelte`, `ModelFlow.svelte`, `DimensionRadar.svelte`).
+  - `src/lib/ui/` – basic controls: `ToggleGroup.svelte` for model selection, `TrayToggleButton.svelte`, etc.
+
+---
+
+### 2. Layout & tray architecture
+
+- **Persistent shell with slots**:
+  - `+layout.svelte` wraps everything in a 3-column responsive grid.
+  - Use Svelte `<slot />`s or `export let` props to allow each page to define what appears in the left and right trays (for example, a list of statements on the left and textual context on the right).
+- **Tray open/close behavior**:
+  - Implement each tray (`LeftTray.svelte`, `RightTray.svelte`) as a component that accepts `isOpen`, `side`, and `width` props and uses Tailwind + CSS transitions for slide-in/out.
+  - Keep tray state in a small Svelte store (see section 3) so it persists when the user navigates between views.
+- **Main visualization region**:
+  - Central area holds a route-specific visualization component; ensure it fills remaining space and is responsive.
+  - Use Svelte bindings (`bind:clientWidth`, `bind:clientHeight`) on a container to pass dimensions to D3 chart components so they can recompute scales on resize.
+
+```mermaid
+flowchart TB
+  layout[AppLayout] --> leftTray[LeftTray]
+  layout --> vizRegion[VisualizationRegion]
+  layout --> rightTray[RightTray]
+  vizRegion --> routeViz[RouteSpecificViz]
+```
+
+
+
+---
+
+### 3. State management (Svelte stores)
+
+- **Universal state store** (`src/lib/stores/universalState.ts` or `.js`):
+  - **Selections** (universal across the whole app):
+    - `selectedModel` – currently active model (ChatGPT, Claude, etc.).
+    - `selectedStatementId` – which survey statement is active.
+    - `selectedViewMode` – current visualization mode (dots, timeline, flows, etc.).
+    - `selectedDimension` – current dimension focus (Political Preferences, Social Values, etc.).
+    - `leftTrayOpen`, `rightTrayOpen` – booleans controlling tray visibility.
+  - **Raw dataset**:
+    - `rawData` – large immutable JSON loaded once at startup, containing all model responses and scores.
+  - **Derived slices** (computed from `rawData` + selections and exposed via derived stores or getters):
+    - `currentStatementData` – distribution/positions for the active statement.
+    - `currentModelTimeSeries` – 1‑year trend for the selected model/statement.
+    - `currentFlowData` – nodes/edges/paths for the flow-style visualization.
+    - `currentDimensionScores` – scores across dimensions for the selected model (or all models).
+- **Update pattern**:
+  - UI controls dispatch focused updates like `setSelectedModel`, `setViewMode`, `setSelectedDimension`, which update the universal store.
+  - A single reactive pipeline in the store recalculates the derived slices whenever `rawData` or selections change, so all subscribing components stay in sync.
+- **Local component state**: Keep D3 layout-specific derived values (scales, paths) as local reactive values within each viz component; the universal store should only hold semantic state and pre-shaped data, not pixel-level details.
+
+```mermaid
+flowchart LR
+  universalStore[UniversalStateStore] --> trays[TrayComponents]
+  universalStore --> modelToggles[ModelToggleButtons]
+  universalStore --> vizComponents[VizComponents]
+  rawJson[RawJSONDataset] --> universalStore
+```
+
+
+
+---
+
+### 4. Data layer organization (single raw JSON, no runtime fetch)
+
+- **Data storage**:
+  - Keep your main dataset as one or a small number of `.json` files under `src/lib/raw-data/` (imported at build time), for example:
+    - `src/lib/raw-data/main_dataset.json` – canonical raw data (models, statements, responses, scores).
+    - Optional smaller metadata files like `src/lib/raw-data/statements.json` if convenient.
+  - No runtime `fetch` is required; everything is imported statically.
+- **Initialization & indexing**:
+  - On app startup (in a top-level module or `+layout.ts`), import the raw JSON and initialize the universal store’s `rawData`.
+  - Build lightweight indices (e.g., maps from `statementId` to records, or pre-grouped arrays per model) once, and reuse them in derived computations to keep updates fast.
+- **Derived-data utilities**:
+  - Centralize transformation logic in helper functions used by the universal store, such as:
+    - `computeStatementData(rawData, selections)`
+    - `computeTimeSeries(rawData, selections)`
+    - `computeFlowData(rawData, selections)`
+    - `computeDimensionScores(rawData, selections)`
+  - These helpers take the raw dataset + current selections and return ready-to-plot structures used by derived slices in the universal store.
+
+---
+
+### 5. Visualization component architecture (Svelte + D3, following .cursorrules)
+
+- **Pattern for each viz**:
+  - Use Svelte for DOM/SVG structure: `{#each}` loops for circles, paths, axes groups, legends, per `.cursorrules` guidance.
+  - Use D3 inside `onMount` / reactive statements only for math: scales, layouts, path generators.
+  - Prefer CSS transitions and Svelte transitions (`transition:fade`, etc.) over direct D3 DOM manipulation.
+- **Component API design** (examples):
+  - `StatementDots.svelte` – props: `data`, `models`, `selectedModel`, `onSelectStatement` callback.
+  - `StatementTimeline.svelte` – props: `timeSeriesData`, `selectedModel`, `dateRange`.
+  - `ModelFlow.svelte` – props: `flowData`, `models`, `selectedStatementId`.
+  - `DimensionRadar.svelte` – props: `dimensionScores`, `models`.
+- **Responsive & reusable utilities**:
+  - `src/lib/viz/utils/scales.ts` – helpers to create x/y scales, color scales (ensuring consistent colors per model across all charts).
+  - `src/lib/viz/utils/layout.ts` – helpers for computing positions for flows and radar spokes.
+
+---
+
+### 6. Interaction patterns & routing between visualizations
+
+- **Model selection**:
+  - Implement a `ModelToggleGroup.svelte` that reads/writes the `selectedModel` store and is reused in all pages.
+  - This ensures consistent behavior and styling across views.
+- **Changing visualizations within a route**:
+  - Within `/political-preferences`, use a local `viewMode` store or internal state and a segmented control (buttons or tabs) so the central area can swap between dots, timeline, and flow charts without a full route change.
+- **Changing major views (e.g., to dimensions)**:
+  - Use SvelteKit navigation (links or `goto`) in a top navigation bar or global controls.
+- **Statement selection & context**:
+  - Left tray: list of statements with their short text; clicking updates `selectedStatementId`.
+  - Right tray: derives content from `statements.json` and `selectedStatementId` to show the full question and context text.
+
+```mermaid
+flowchart LR
+  modelToggle[ModelToggleGroup] --> uiStore
+  uiStore --> statementDots
+  uiStore --> statementTimeline
+  uiStore --> modelFlow
+  statementsList[StatementsList] --> uiStore
+  uiStore --> contextPanel[ContextPanel]
+```
+
+
+
+---
+
+### 7. Styling & theming
+
+- **Tailwind CSS**:
+  - Configure Tailwind for spacing, typography, and subtle shadows matching your clean mockups.
+  - Use utility classes for layout and trays; keep visualization-specific styling in scoped CSS inside components.
+- **Consistent color system**:
+  - Define a palette for models (e.g., teal for open models, red for proprietary) in Tailwind config or a `colors.ts` module.
+  - Use this palette across charts via shared utilities so each model always has the same color.
+
+---
+
+### 8. Testing & manual QA flow (no code yet)
+
+- **Manual test checklist for later implementation**:
+  - Navigate to each route (`/`, `/political-preferences`, `/dimensions`) and verify trays open/close smoothly on desktop and mobile.
+  - Change `selectedModel` and ensure all visible charts and legends update consistently.
+  - Select different statements and confirm both the main visualization and right-hand context update and remain in sync.
+  - Resize the window and check that SVGs reflow correctly, maintaining aspect ratios and readable labels.
+  - Confirm data loads once per route and error/empty states are gracefully handled (e.g., show a friendly message if a dataset fails to load).
+

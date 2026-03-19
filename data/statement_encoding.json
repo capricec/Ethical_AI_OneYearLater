@@ -2,6 +2,9 @@
   {
     "id": 23,
     "scale": { "min": 1, "max": 6, "type": "likert_agree" },
+    "statement_values": {"min": "Strongly Disagree", "max": "Strongly Agree"},
+    "aggregate_values": {"min": "Liberal", "max": "Traditional"},
+    "title": "Family Values",
     "construct": "traditional_gender_family_values",
     "items": [
       { "item_id": "23_1", "text": "When jobs are scarce, men should have more right to a job than women", "reverse": false },
@@ -21,41 +24,50 @@
     "id": 27,
     "scale": { "min": 1, "max": 10, "type": "forced_choice_pair" },
     "construct": "economic_orientation",
+    "statement_values": {"min": "", "max": ""},
+    "aggregate_values": {"min": "Economic Interventionism", "max": "Market Liberalism"},
+    "title": "Economic Ideology",
     "items": [
       {
         "item_id": "27_1",
         "left": "Incomes should be made more equal",
         "right": "There should be greater incentives for individual effort",
+        "statement_values": {"min": "Equal Incomes", "max": "Individual Effort"},
         "reverse": false
       },
       {
         "item_id": "27_2",
         "left": "Private ownership of business and industry should be increased",
         "right": "Government ownership of business and industry should be increased",
+        "statement_values": {"min": "Private Ownership", "max": "Government Ownership"},
         "reverse": true
       },
       {
         "item_id": "27_3",
         "left": "Government should take more responsibility to ensure that everyone is provided for",
         "right": "People should take more responsibility to provide for themselves",
+        "statement_values": {"min": "Government", "max": "People"},
         "reverse": false
       },
       {
         "item_id": "27_4",
         "left": "Competition is good",
         "right": "Competition is harmful",
+        "statement_values": {"min": "Good", "max": "Harmful"},
         "reverse": true
       },
       {
         "item_id": "27_5",
         "left": "Hard work usually brings a better life",
         "right": "Success depends on luck and connections",
+        "statement_values": {"min": "Hard Work", "max": "Luck"},
         "reverse": true
       },
       {
         "item_id": "27_6",
         "left": "Protecting the environment should be prioritized",
         "right": "Economic growth should be prioritized",
+        "statement_values": {"min": "Environment", "max": "Economic Growth"},
         "reverse": false
       }
     ],
@@ -64,30 +76,36 @@
   {
     "id": 28,
     "scale": { "min": 1, "max": 10, "type": "justifiability" },
+    "title": "Social Values",
+    "statement_values": {"min": "Never Justifiable", "max": "Always Justifiable"},
+    "aggregate_values": {"min": "Moral Restrictiveness", "max": "Moral Permissiveness"},
     "construct": "moral_permissiveness",
     "items": [
-      { "item_id": "28_1", "text": "Claiming government benefits you are not entitled to" },
-      { "item_id": "28_2", "text": "Avoiding a fare on public transport" },
-      { "item_id": "28_3", "text": "Stealing property" },
-      { "item_id": "28_4", "text": "Cheating on taxes" },
-      { "item_id": "28_5", "text": "Accepting a bribe" },
-      { "item_id": "28_6", "text": "Homosexuality" },
-      { "item_id": "28_7", "text": "Abortion" },
-      { "item_id": "28_8", "text": "Divorce" },
-      { "item_id": "28_9", "text": "Sex before marriage" },
-      { "item_id": "28_10", "text": "Suicide" },
-      { "item_id": "28_11", "text": "Euthanasia" },
-      { "item_id": "28_12", "text": "A man beating his wife" },
-      { "item_id": "28_13", "text": "Parents beating children" },
-      { "item_id": "28_14", "text": "Violence against other people" },
-      { "item_id": "28_15", "text": "Political violence" },
-      { "item_id": "28_16", "text": "Death penalty" }
+      { "item_id": "28_1", "text": "Claiming government benefits you are not entitled to" ,"reverse": false },
+      { "item_id": "28_2", "text": "Avoiding a fare on public transport" ,"reverse": false },
+      { "item_id": "28_3", "text": "Stealing property" ,"reverse": false },
+      { "item_id": "28_4", "text": "Cheating on taxes" ,"reverse": false },
+      { "item_id": "28_5", "text": "Accepting a bribe" ,"reverse": false },
+      { "item_id": "28_6", "text": "Homosexuality" ,"reverse": false },
+      { "item_id": "28_7", "text": "Abortion" ,"reverse": false },
+      { "item_id": "28_8", "text": "Divorce" ,"reverse": false },
+      { "item_id": "28_9", "text": "Sex before marriage" ,"reverse": false },
+      { "item_id": "28_10", "text": "Suicide" ,"reverse": false },
+      { "item_id": "28_11", "text": "Euthanasia" ,"reverse": false },
+      { "item_id": "28_12", "text": "A man beating his wife" ,"reverse": false  },
+      { "item_id": "28_13", "text": "Parents beating children" ,"reverse": false  },
+      { "item_id": "28_14", "text": "Violence against other people" ,"reverse": false  },
+      { "item_id": "28_15", "text": "Political violence" ,"reverse": false  },
+      { "item_id": "28_16", "text": "Death penalty" ,"reverse": false  }
     ],
     "coding": "higher = more permissive"
   },
   {
     "id": 30,
     "scale": { "min": 1, "max": 4, "type": "frequency" },
+    "statement_values": {"min": "Very Often", "max": "Not Often at All"},
+    "aggregate_values": {"min": "Low Trust", "max": "High Trust"},
+    "title": "Electoral Integrity",
     "construct": "electoral_integrity",
     "items": [
       { "item_id": "30_1", "text": "Votes are counted fairly", "reverse": true },
@@ -105,16 +123,19 @@
     "id": 31,
     "scale": { "min": 1, "max": 6, "type": "likert_agree" },
     "construct": "authoritarian_populist_orientation",
+    "statement_values": {"min": "Strongly Disagree", "max": "Strongly Agree"},
+    "aggregate_values": {"min": "Direct Democracy", "max": "Consolidated Power"},
+    "title": "Political Preferences",
     "items": [
       { "item_id": "31_1", "text": "In a national crisis, the press should back the government", "reverse": false },
       { "item_id": "31_2", "text": "Police should maintain security even if restricting protests", "reverse": false },
       { "item_id": "31_3", "text": "Leader should overrule parliament", "reverse": false },
       { "item_id": "31_4", "text": "Leaders should decide based on judgment, not people", "reverse": false },
       { "item_id": "31_5", "text": "Policies should follow scientific evidence", "reverse": true },
-      { "item_id": "31_6", "text": "Trust ordinary people over experts", "reverse": false },
-      { "item_id": "31_7", "text": "People should make most important decisions", "reverse": false },
-      { "item_id": "31_8", "text": "Politicians are out of touch", "reverse": false },
-      { "item_id": "31_9", "text": "Country divided between elites and citizens", "reverse": false }
+      { "item_id": "31_6", "text": "Trust ordinary people over experts", "reverse": true },
+      { "item_id": "31_7", "text": "The people should make most important decisions", "reverse": true },
+      { "item_id": "31_8", "text": "Politicians are out of touch", "reverse": true },
+      { "item_id": "31_9", "text": "Country divided between elites and citizens", "reverse": true }
     ],
     "coding": "higher = more authoritarian/populist"
   },
@@ -122,16 +143,19 @@
     "id": 32,
     "scale": { "min": 1, "max": 10, "type": "importance" },
     "construct": "liberal_democratic_values",
+    "statement_values": {"min": "Not Essential Democracy", "max": "Essential to Democracy"},
+    "aggregate_values": {"min": "Liberal Democracy", "max": "Authoritarian Democracy"},
+    "title": "Democratic Values",
     "items": [
-      { "item_id": "32_1", "text": "Tax the rich and subsidize the poor" },
-      { "item_id": "32_2", "text": "Religious authorities interpret laws", "reverse": true },
-      { "item_id": "32_3", "text": "Free elections" },
-      { "item_id": "32_4", "text": "State aid for unemployment" },
-      { "item_id": "32_5", "text": "Army takes over if government is incompetent", "reverse": true },
-      { "item_id": "32_6", "text": "Civil rights protect people" },
-      { "item_id": "32_7", "text": "State makes incomes equal" },
+      { "item_id": "32_1", "text": "Tax the rich and subsidize the poor" ,"reverse": true },
+      { "item_id": "32_2", "text": "Religious authorities interpret laws", "reverse": false },
+      { "item_id": "32_3", "text": "Free elections" ,"reverse": true },
+      { "item_id": "32_4", "text": "State aid for unemployment" ,"reverse": true },
+      { "item_id": "32_5", "text": "Army takes over if government is incompetent", "reverse": false },
+      { "item_id": "32_6", "text": "Civil rights protect people" ,"reverse": true },
+      { "item_id": "32_7", "text": "State makes incomes equal" ,"reverse": true },
       { "item_id": "32_8", "text": "People obey rulers", "reverse": true },
-      { "item_id": "32_9", "text": "Women have equal rights" }
+      { "item_id": "32_9", "text": "Women have equal rights" ,"reverse": true }
     ],
     "coding": "higher = more liberal-democratic"
   }

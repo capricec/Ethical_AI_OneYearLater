@@ -29,7 +29,7 @@ Reference documents:
   - `src/routes/+layout.svelte` and related files implementing a persistent 3-column shell:
     - Left tray, central visualization region, right tray.
   - Top-level routes such as `/`, `/political-preferences`, `/dimensions`, plus optional info pages.
-- **Universal Store** at `src/lib/stores/universalState.(ts|js)`:
+- **Universal Store** at `src/lib/stores/universalState.js` (JavaScript; no TypeScript requirement):
   - `rawData` – large immutable JSON loaded once at startup.
   - Selections (universal):
     - `selectedModel`, `selectedStatementId`, `selectedViewMode`, `selectedDimension`.
@@ -46,7 +46,7 @@ Reference documents:
 ## Responsibilities
 
 - Follow `.cursorrules.md`:
-  - Use Svelte 5 components and stores for state.
+  - Use Svelte 5 components and stores for state; **JavaScript** (`.js` / `.svelte`), not TypeScript.
   - Let D3 handle math; keep DOM/SVG rendering in Svelte.
 - Implement the **update pattern** in the architecture plan:
   - Focused actions: `setSelectedModel`, `setViewMode`, `setSelectedDimension`, etc.
