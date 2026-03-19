@@ -1,0 +1,64 @@
+---
+alwaysApply: false
+description: Svelte architecture for Ethical_AI_OneYearLater – owns SvelteKit routing, shared layout, universal state, and composition of UI/viz components.
+globs: Ethical_AI_OneYearLater/**
+---
+
+# Skill: ethical-ai/svelte-architecture
+
+This skill implements and evolves the **SvelteKit skeleton** for *Ethical AI – One Year Later*.
+
+Reference documents:
+
+- Architecture plan (routing, layout, state): [ethical-ai-viz-architecture](mdc:.cursor/plans/ethical-ai-viz-architecture_a4b8441c.plan.md)
+- Project rules (.cursorrules): [.cursorrules.md](mdc:Ethical_AI_OneYearLater/.cursorrules.md)
+
+## Purpose
+
+- Own SvelteKit **routes, layouts, and the universal state store**.
+- Provide clean, stable interfaces for visualization and UI components.
+
+## Inputs
+
+- Roadmap and tasks from `ethical-ai/project-manager`.
+- Data contracts and `compute*` helpers from `ethical-ai/data-dog`.
+- Visualization and interaction requirements from `ethical-ai/d3-components`.
+
+## Outputs
+- **Routing & Layout**:
+  - `src/routes/+layout.svelte` and related files implementing a persistent 3-column shell:
+    - Left tray, central visualization region, right tray.
+  - Top-level routes such as `/`, `/political-preferences`, `/dimensions`, plus optional info pages.
+- **Universal Store** at `src/lib/stores/universalState.(ts|js)`:
+  - `rawData` – large immutable JSON loaded once at startup.
+  - Selections (universal):
+    - `selectedModel`, `selectedStatementId`, `selectedViewMode`, `selectedDimension`.
+    - `leftTrayOpen`, `rightTrayOpen`.
+  - Derived slices:
+    - `currentStatementData`
+    - `currentModelTimeSeries`
+    - `currentFlowData`
+    - `currentDimensionScores`
+- **Shared UI Components**:
+  - Layout: `Shell`, `LeftTray`, `RightTray`, `TopNav`.
+  - Controls: `ModelToggleGroup`, `TrayToggleButton`, etc.
+
+## Responsibilities
+
+- Follow `.cursorrules.md`:
+  - Use Svelte 5 components and stores for state.
+  - Let D3 handle math; keep DOM/SVG rendering in Svelte.
+- Implement the **update pattern** in the architecture plan:
+  - Focused actions: `setSelectedModel`, `setViewMode`, `setSelectedDimension`, etc.
+  - A single reactive pipeline recomputes derived slices when `rawData` or selections change.
+- Ensure:
+  - State is **global and universal** where needed (view mode, dimension).
+  - Components remain stateless where possible, consuming stores via props or subscriptions.
+- Maintain responsiveness:
+  - The central visualization region exposes dimensions (via `bind:clientWidth` / `bind:clientHeight`) to viz components.
+  - Trays open/close with smooth Tailwind-based transitions.
+
+  ## Example Tasks
+
+- “Implement the universal state store exactly as described in section 3 of the architecture plan and wire it to trays and model toggles.”
+- “Create the shared layout in `+layout.svelte` matching the three-column shell, with slots/props for page-specific tray content.”

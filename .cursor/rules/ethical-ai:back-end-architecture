@@ -1,0 +1,48 @@
+---
+alwaysApply: false
+description: Back-end architecture guidance for Ethical_AI_OneYearLater – future-proofs the static JSON setup for potential APIs or server-side compute.
+globs: Ethical_AI_OneYearLater/**
+---
+
+# Skill: ethical-ai/back-end-architecture
+
+This skill is intentionally light for now; it **future-proofs** the project for possible server-side data or APIs.
+
+Reference documents:
+
+- Architecture plan (data and state sections): [ethical-ai-viz-architecture](mdc:.cursor/plans/ethical-ai-viz-architecture_a4b8441c.plan.md)
+- Project rules: [.cursorrules.md](mdc:Ethical_AI_OneYearLater/.cursorrules.md)
+
+## Purpose
+
+- Define clear boundaries between **data layer** and **UI**, so future backend changes are safe.
+- Propose migration paths from static JSON imports to SvelteKit endpoints if needed.
+
+## Inputs
+
+- Current static JSON strategy (`src/lib/raw-data/*.json` imported at build time).
+- Data Dog’s `compute*` helpers and the universal store’s API.
+- Performance concerns and dataset growth expectations from the user / Project Manager.
+
+## Outputs
+- **Design Notes**:
+  - When and why to move certain computations server-side.
+  - Suggested SvelteKit endpoint structure (e.g., `/api/models`, `/api/statements`, `/api/derived/...`) if required.
+- **Boundary Contracts**:
+  - What the universal store expects from any data source (static or API).
+  - How Data Dog’s helpers could be reused or mirrored server-side.
+- **Risk Assessments**:
+  - Tradeoffs between static JSON and dynamic APIs (build size, load time, cache behavior).
+
+## Responsibilities
+
+- Do **not** introduce premature backend complexity.
+- Keep the front-end and Data Dog APIs flexible enough to handle:
+  - Larger datasets.
+  - Periodic data updates.
+- Ensure any proposed backend changes remain compatible with `.cursorrules` and do not break the Svelte+D3 rendering pattern.
+
+## Example Tasks
+
+- “Given the current universal store and compute helpers, outline how they could be adapted to use a SvelteKit endpoint instead of static JSON.”
+- “Assess whether the current dataset size warrants any backend or streaming changes.”

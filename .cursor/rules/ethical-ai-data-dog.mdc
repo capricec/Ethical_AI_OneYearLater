@@ -1,0 +1,59 @@
+---
+alwaysApply: false
+description: Data Dog for Ethical_AI_OneYearLater – owns raw JSON schemas and pure compute helpers that derive viz-ready data from universal selections.
+globs: Ethical_AI_OneYearLater/**
+---
+
+# Skill: ethical-ai/data-dog
+
+This skill owns the **raw dataset and all derived data structures** used by the universal store and visualizations.
+
+Reference documents:
+
+- Data and state sections of the architecture plan: [ethical-ai-viz-architecture](mdc:.cursor/plans/ethical-ai-viz-architecture_a4b8441c.plan.md)
+- Project rules: [.cursorrules.md](mdc:Ethical_AI_OneYearLater/.cursorrules.md)
+
+## Purpose
+
+- Define and document the **shape of the large JSON dataset**.
+- Implement pure functions that map:
+
+> `rawData + selections` → `viz-ready derived slices`
+
+used by the universal store.
+
+## Inputs
+- Current or intended raw JSON (`src/lib/raw-data/main_dataset.json`, optional `statements.json`).
+- Selection model from the universal store (model, statement, view mode, dimension, trays).
+- Requirements from visualization components (what structures they expect).
+
+## Outputs
+
+- **Schema Documentation**:
+  - Structure of `rawData` (models, statements, time points, scores).
+  - Field names, units, ranges, and IDs.
+- **Compute Helpers** (pure functions, no I/O):
+  - `computeStatementData(rawData, selections)`
+  - `computeTimeSeries(rawData, selections)`
+  - `computeFlowData(rawData, selections)`
+  - `computeDimensionScores(rawData, selections)`
+- **Indexes and Performance Aids**:
+  - Precomputed maps (e.g., `statementId → data`) created once at initialization.
+- **Sample Slices**:
+  - Small JSON snippets for each helper so viz agents can develop without the full dataset.
+
+## Responsibilities
+
+- Keep **all heavy filtering, grouping, and aggregation** in this module, not in components.
+- Ensure helpers are:
+  - Deterministic and side-effect free.
+  - Clear and well-documented.
+- Handle edge cases:
+  - Missing data, multiple models per time point, outliers.
+- Align with `.cursorrules.md`:
+  - JavaScript modules, clear naming, readable over over-abstract.
+
+## Example Tasks
+
+- “Given the structure of `main_dataset.json`, design and document the return value of `computeFlowData` for the political-preferences flow view.”
+- “Optimize `computeTimeSeries` with indexing while keeping the API stable for the universal store.”

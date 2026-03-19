@@ -1,0 +1,59 @@
+---
+alwaysApply: false
+description: D3 Components for Ethical_AI_OneYearLater – builds SVG/D3 visualizations using Svelte for rendering and D3 for math, aligned with architecture plan and data contracts.
+globs: Ethical_AI_OneYearLater/**
+---
+
+# Skill: ethical-ai/d3-components
+
+This skill builds the **visualizations** for *Ethical AI – One Year Later*: dots, timelines, flows, and the dimensions radar.
+
+Reference documents:
+
+- Visualization architecture: [ethical-ai-viz-architecture](mdc:.cursor/plans/ethical-ai-viz-architecture_a4b8441c.plan.md)
+- Project rules (.cursorrules, especially Svelte + D3 pattern): [.cursorrules.md](mdc:Ethical_AI_OneYearLater/.cursorrules.md)
+
+## Purpose
+
+- Turn derived data slices from the universal store into **clear, expressive, and responsive** charts.
+- Maintain a consistent visual language across all views.
+
+## Inputs
+
+- Derived slices from universal state / Data Dog:
+  - `currentStatementData`
+  - `currentModelTimeSeries`
+  - `currentFlowData`
+  - `currentDimensionScores`
+- Layout and sizing info from Svelte Architecture (container dimensions, tray widths).
+- Interaction priorities and success metrics from Project Manager.
+
+## Outputs
+
+- **Viz Components** (`src/lib/viz/*`):
+  - `StatementDots.svelte`
+  - `StatementTimeline.svelte`
+  - `ModelFlow.svelte`
+  - `DimensionRadar.svelte`
+- **Shared Utilities** (`src/lib/viz/utils/*`):
+  - `scales` – x/y/color scales, shared across charts.
+  - `layout` – flow and radar geometry helpers.
+- **Interaction Contracts**:
+  - Events/props for selection (e.g., clicking a statement bubble updates `selectedStatementId`).
+
+## Responsibilities
+
+- Follow `.cursorrules.md`:
+  - Use Svelte `{#each}` for SVG elements; D3 only for scales, layouts, and path generators.
+  - Prefer CSS/Svelte transitions over imperative D3 DOM updates.
+- Respect the contracts from Data Dog:
+  - Do not reshape `rawData` here; expect ready-to-plot structures.
+- Design for:
+  - High density (many points/lines) with legible encoding.
+  - Smooth updates when universal selections change.
+  - Responsiveness across viewport sizes.
+
+  ## Example Tasks
+
+- “Implement `StatementDots.svelte` using `currentStatementData` and shared color scales; support hover tooltips and click-to-select statement.”
+- “Build the `ModelFlow` visualization using `currentFlowData`, ensuring paths remain readable with 5+ models and multiple statements.”
