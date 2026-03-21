@@ -51,6 +51,8 @@ export function computeDimensionViz(encoding, compiled, dimensionId) {
 
 	const scaleMin = Number(dim.scale?.min);
 	const scaleMax = Number(dim.scale?.max);
+	const scaleRange =
+		Number.isFinite(scaleMin) && Number.isFinite(scaleMax) ? scaleMax - scaleMin : NaN;
 
 	/** @type {{ aggregate: { left: string, right: string }, item: { left: string, right: string } }} */
 	let labels = {
@@ -117,17 +119,20 @@ export function computeDimensionViz(encoding, compiled, dimensionId) {
 
 	if (!modelSeries.length) return null;
 
-	// Rank statements by dispersion across model means (highest -> lowest).
-	// Dispersion = max(modelMeans) - min(modelMeans), tie-break by original index.
+	// Rank by normalized divergence (highest -> lowest): fraction of the scale spanned
+	// between max and min model means. divergence = rawSpread / (scaleMax - scaleMin).
+	// If scale range is invalid, fall back to raw spread for ordering.
 	const statementDispersion = dim.items.map((item, idx) => {
 		const vals = modelSeries
 			.map((m) => m.itemMeans[idx])
 			.filter((v) => typeof v === 'number' && !Number.isNaN(v));
-		const dispersion = vals.length > 1 ? Math.max(...vals) - Math.min(...vals) : 0;
-		return { idx, item, dispersion };
+		const rawSpread = vals.length > 1 ? Math.max(...vals) - Math.min(...vals) : 0;
+		const divergence =
+			Number.isFinite(scaleRange) && scaleRange > 0 ? rawSpread / scaleRange : rawSpread;
+		return { idx, item, divergence, rawSpread };
 	});
 	statementDispersion.sort((a, b) => {
-		if (b.dispersion !== a.dispersion) return b.dispersion - a.dispersion;
+		if (b.divergence !== a.divergence) return b.divergence - a.divergence;
 		return a.idx - b.idx;
 	});
 	const orderedIndices = statementDispersion.map((d) => d.idx);
@@ -156,9 +161,10 @@ export function computeDimensionViz(encoding, compiled, dimensionId) {
 		aggregateExtent,
 		itemExtents,
 		labels,
-		statementDispersion: statementDispersion.map(({ item, dispersion }) => ({
+		statementDispersion: statementDispersion.map(({ item, divergence, rawSpread }) => ({
 			item_id: item.item_id,
-			dispersion
+			divergence,
+			rawSpread
 		}))
 	};
 }

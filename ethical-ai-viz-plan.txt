@@ -100,7 +100,7 @@ flowchart TB
     - `selectedModel` – currently active model (ChatGPT, Claude, etc.).
     - `selectedStatementId` – which survey statement is active.
     - `selectedViewMode` – current visualization mode (dots, timeline, flows, etc.).
-    - `selectedDimension` – current dimension focus (Political Preferences, Social Values, etc.).
+    - `selectedDimensionFilter` – `null` for all statements, or a dimension id to filter the list.
     - `leftTrayOpen`, `rightTrayOpen` – booleans controlling tray visibility.
   - **Raw dataset**:
     - `rawData` – large immutable JSON loaded once at startup, containing all model responses and scores.

@@ -4,15 +4,10 @@
 		CHART_MARGIN_TOP,
 		CHART_MARGIN_BOTTOM,
 		CHART_SIDE_GUTTER,
-		ROW_AGG_HEIGHT,
 		ROW_ITEM_HEIGHT
 	} from '$lib/viz/dimensionChartLayout.js';
 
 	const PANEL_BG = '#ebebeb';
-
-	/** Dark grey pill (overall row) */
-	const AGG_TRACK_FILL = '#cecece';
-	const AGG_TRACK_STROKE = '#3f3f46';
 
 	const ITEM_LINE_STROKE = '#cfcfcf';
 	const NON_SELECTED_PATH_STROKE = '#9ca3af';
@@ -34,9 +29,8 @@
 
 	/**
 	 * @typedef {object} Viz
-	 * @property {{ items: { item_id: string, text?: string }[], construct?: string }} dim
-	 * @property {{ fundModel: string, itemMeans: (number|null)[], aggregate: number }[]} modelSeries
-	 * @property {[number, number]} aggregateExtent
+	 * @property {{ items: object[] }} dim
+	 * @property {{ fundModel: string, itemMeans: (number|null)[] }[]} modelSeries
 	 * @property {[number, number][]} itemExtents
 	 * @property {{ aggregate: { left: string, right: string }, item: { left: string, right: string } }} labels
 	 */
@@ -55,10 +49,7 @@
 
 	const height = $derived(
 		viz
-			? CHART_MARGIN_TOP +
-				CHART_MARGIN_BOTTOM +
-				ROW_AGG_HEIGHT +
-				viz.dim.items.length * ROW_ITEM_HEIGHT
+			? CHART_MARGIN_TOP + CHART_MARGIN_BOTTOM + viz.dim.items.length * ROW_ITEM_HEIGHT
 			: 120
 	);
 
@@ -67,9 +58,9 @@
 
 	const rowCentersY = $derived.by(() => {
 		if (!viz) return [];
-		const ys = [margin.top + ROW_AGG_HEIGHT / 2];
+		const ys = [];
 		for (let i = 0; i < viz.dim.items.length; i++) {
-			ys.push(margin.top + ROW_AGG_HEIGHT + (i + 0.5) * ROW_ITEM_HEIGHT);
+			ys.push(margin.top + (i + 0.5) * ROW_ITEM_HEIGHT);
 		}
 		return ys;
 	});
@@ -78,36 +69,27 @@
 		return value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
 	}
 
-	// Keep endpoint labels short and consistent with the mock.
 	function truncateFirstTwoWords(text) {
 		if (isBlank(text)) return '';
 		const words = String(text).trim().split(/\s+/).filter(Boolean);
 		return words.slice(0, 2).join(' ');
 	}
 
+	/** @param {object} item */
 	function endpointTextForSide(item, side) {
-		// Endpoint labels should reflect the underlying numeric reversal logic in `computeDimensionViz`,
-		// but only swap text when `item.reverse === true`.
-		const dimId = viz?.dim?.id;
+		const dimId = item?.dimensionId;
 
-		// 1) If the item has statement_values (id 27), use those min/max.
 		const itemSv = item?.statement_values;
-		let raw =
-			!isBlank(itemSv?.[side]) ? itemSv?.[side] : !isBlank(viz?.dim?.statement_values?.[side]) ? viz?.dim?.statement_values?.[side] : undefined;
+		let raw = !isBlank(itemSv?.[side])
+			? itemSv?.[side]
+			: !isBlank(item?.dimStatementValues?.[side])
+				? item?.dimStatementValues?.[side]
+				: undefined;
 
-		// 2) Fallback: use whatever dimension-level labels were computed.
 		if (isBlank(raw)) raw = side === 'min' ? viz?.labels?.item?.left : viz?.labels?.item?.right;
 
 		const str = isBlank(raw) ? '' : String(raw);
-		// Truncate endpoints ONLY for dimension id 27.
 		return dimId === 27 ? truncateFirstTwoWords(str) : str;
-	}
-
-	function aggregateScaleLabels() {
-		return {
-			min: String(viz?.labels?.aggregate?.left ?? ''),
-			max: String(viz?.labels?.aggregate?.right ?? '')
-		};
 	}
 
 	function scaleTextForValue(value, scaleTexts, min, max, reverse = false) {
@@ -122,35 +104,28 @@
 		return String(scaleTexts[idx] ?? '');
 	}
 
-	/** Pill fills aggregate row (no inset so it stays visually filled). */
-	/**
-	 * Keep the pill visually filled across the whole row height.
-	 */
-	const aggBarStrokePadY = 0.5;
-	const aggBarStrokeTop = $derived(margin.top + aggBarStrokePadY);
-	const aggBarStrokeHeight = $derived(ROW_AGG_HEIGHT - 2 * aggBarStrokePadY);
-
 	const xScales = $derived.by(() => {
 		if (!viz) return [];
-		const scales = [
-			d3.scaleLinear().domain(viz.aggregateExtent).range([0, innerWidth])
-		];
+		const scales = [];
 		for (let i = 0; i < viz.dim.items.length; i++) {
-			scales.push(d3.scaleLinear().domain(viz.itemExtents[i]).range([0, innerWidth]));
+			const ext = viz.itemExtents[i] ?? [0, 1];
+			scales.push(d3.scaleLinear().domain(ext).range([0, innerWidth]));
 		}
 		return scales;
 	});
 
-	const valueColorScale = $derived.by(() => {
-		const minRaw = viz?.dim?.scale?.min;
-		const maxRaw = viz?.dim?.scale?.max;
+	/**
+	 * @param {object} item
+	 * @param {number} value
+	 */
+	function fillColorForItem(item, value) {
+		const minRaw = item?.scaleMin;
+		const maxRaw = item?.scaleMax;
 		const min = Number.isFinite(minRaw) ? Math.floor(minRaw) : 1;
 		const max = Number.isFinite(maxRaw) ? Math.floor(maxRaw) : 6;
 		const span = Math.max(1, max - min + 1);
 		let palette;
 
-		// Special mapping requested for 1-4 scales:
-		// take colors from 1-10 palette bins [2, 4, 7, 9].
 		if (min === 1 && max === 4) {
 			palette = [
 				VALUE_PALETTE_1_TO_10[1],
@@ -164,35 +139,29 @@
 		}
 		const fallback = palette[0] ?? VALUE_PALETTE_1_TO_6[0];
 
-		return (value) => {
-			if (!Number.isFinite(value)) return fallback;
-			const clamped = Math.max(min, Math.min(max, value));
-			const binned = Math.floor(clamped);
-			const index = Math.max(0, Math.min(span - 1, binned - min));
-			return palette[index] ?? fallback;
-		};
-	});
+		if (!Number.isFinite(value)) return fallback;
+		const clamped = Math.max(min, Math.min(max, value));
+		const binned = Math.floor(clamped);
+		const index = Math.max(0, Math.min(span - 1, binned - min));
+		return palette[index] ?? fallback;
+	}
 
-	/** Radius: fill pill height (vertically, like the reference mock). */
-	const aggDotR = $derived.by(() => {
-		if (!viz || !xScales.length || !viz.modelSeries.length) return 8;
-		const verticalMax = aggBarStrokeHeight / 2 - 3;
-		return Math.max(5, Math.min(verticalMax, 20));
-	});
+	const rStmtSelected = 9;
+	const rStmtOther = 7;
 
 	/**
-	 * @param {{ fundModel: string, itemMeans: (number|null)[], aggregate: number }} m
+	 * @param {{ fundModel: string, itemMeans: (number|null)[] }} m
 	 * @returns {[number, number][]}
 	 */
 	function modelPoints(m) {
 		if (!viz || !xScales.length) return [];
 		const ys = rowCentersY;
 		/** @type {[number, number][]} */
-		const pts = [[xScales[0](m.aggregate), ys[0]]];
+		const pts = [];
 		for (let i = 0; i < m.itemMeans.length; i++) {
 			const v = m.itemMeans[i];
 			if (v === null || v === undefined || Number.isNaN(v)) continue;
-			pts.push([xScales[i + 1](v), ys[i + 1]]);
+			pts.push([xScales[i](v), ys[i]]);
 		}
 		return pts;
 	}
@@ -218,7 +187,7 @@
 		};
 	}
 
-	function setHover(event, model, value, responseText) {
+	function setHover(event, model, responseText) {
 		hoveredModel = model;
 		const rect = event.currentTarget?.ownerSVGElement?.getBoundingClientRect();
 		const localX = rect ? event.clientX - rect.left : 0;
@@ -239,179 +208,108 @@
 </script>
 
 {#if !viz}
-	<p class="text-sm text-slate-500">No data for this dimension.</p>
+	<p class="text-sm text-slate-500">No data.</p>
 {:else}
 	<div class="chart-wrap" style="width: {width}px; height: {height}px;">
 		<svg
 			width={width}
 			height={height}
-			/* Height is controlled by the computed `height` attribute to preserve row centers. */
-			/* Avoid flex cross-axis stretching which would rescale our row geometry. */
 			style="overflow: visible"
 			class="block max-w-full shrink-0 self-start"
 			role="img"
 		>
-			<title>Model positions by dimension aggregate and statements</title>
+			<title>Model positions by statement</title>
 			<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} />
 
 			<g transform="translate({margin.side},0)" style="overflow: visible">
-			<rect
-				x="0"
-				y={aggBarStrokeTop + aggBarStrokeHeight /4}
-				width={innerWidth}
-				height={aggBarStrokeHeight /2}
-				rx={aggBarStrokeHeight /4}
-				fill={AGG_TRACK_FILL}
-				stroke={AGG_TRACK_STROKE}
-				stroke-width="0"
-			/>
-			
-			<text
-				x={-10}
-				y={rowCentersY[0]}
-				fill="#1c1917"
-				font-size="11"
-				font-weight="600"
-				text-anchor="end"
-				dominant-baseline="middle"
-			>
-				{viz.labels.aggregate.left}
-			</text>
-			<text
-				x={innerWidth + 10}
-				y={rowCentersY[0]}
-				fill="#1c1917"
-				font-size="11"
-				font-weight="600"
-				text-anchor="start"
-				dominant-baseline="middle"
-			>
-				{viz.labels.aggregate.right}
-			</text>
-
-			{#each viz.dim.items as item, ri (item.item_id)}
-				/**
-				 * Axis guides align to the statement-row top edge (match right ContextPanel card top border).
-				 * We keep dot/line positions for the model curves based on row centers separately.
-				 */
-				{@const yi = rowCentersY[ri + 1]}
-				{@const baseMin = endpointTextForSide(item, 'min')}
-				{@const baseMax = endpointTextForSide(item, 'max')}
-				{@const rowLeft = item?.reverse ? baseMax : baseMin}
-				{@const rowRight = item?.reverse ? baseMin : baseMax}
-				<text
-					x={-10}
-					y={yi}
-					fill="#57534e"
-					font-size="11"
-					font-weight="400"
-					text-anchor="end"
-					dominant-baseline="middle"
-				>
-					{rowLeft}
-				</text>
-				<text
-					x={innerWidth + 10}
-					y={yi}
-					fill="#57534e"
-					font-size="11"
-					font-weight="400"
-					text-anchor="start"
-					dominant-baseline="middle"
-				>
-					{rowRight}
-				</text>
-				<line
-					x1="0"
-					x2={innerWidth}
-					y1={yi}
-					y2={yi}
-					stroke={ITEM_LINE_STROKE}
-					stroke-width="1"
-				/>
-			{/each}
-
-			{#each [...viz.modelSeries].sort((a, b) => {
-				if (a.fundModel === activeModel) return 1;
-				if (b.fundModel === activeModel) return -1;
-				return 0;
-			}) as m (m.fundModel)}
-				{@const selected = m.fundModel === activeModel}
-				{@const d = pathD(m)}
-				{#if d}
-					<path
-						fill="none"
-						stroke={selected ? SELECTED_PATH_STROKE : NON_SELECTED_PATH_STROKE}
-						stroke-width={selected ? 2.75 : 1.25}
-						opacity={selected ? 1 : 0.38}
-						{d}
+				{#each viz.dim.items as item, ri (item.item_id)}
+					{@const yi = rowCentersY[ri]}
+					{@const baseMin = endpointTextForSide(item, 'min')}
+					{@const baseMax = endpointTextForSide(item, 'max')}
+					{@const rowLeft = item?.reverse ? baseMax : baseMin}
+					{@const rowRight = item?.reverse ? baseMin : baseMax}
+					<text
+						x={-10}
+						y={yi}
+						fill="#57534e"
+						font-size="11"
+						font-weight="400"
+						text-anchor="end"
+						dominant-baseline="middle"
+					>
+						{rowLeft}
+					</text>
+					<text
+						x={innerWidth + 10}
+						y={yi}
+						fill="#57534e"
+						font-size="11"
+						font-weight="400"
+						text-anchor="start"
+						dominant-baseline="middle"
+					>
+						{rowRight}
+					</text>
+					<line
+						x1="0"
+						x2={innerWidth}
+						y1={yi}
+						y2={yi}
+						stroke={ITEM_LINE_STROKE}
+						stroke-width="1"
 					/>
-				{/if}
-				{@const rAgg = aggDotR}
-				{@const rStmt = selected ? 9 : 7}
-				{@const aggregateX = xScales[0](m.aggregate)}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<circle
-					cx={aggregateX}
-					cy={rowCentersY[0]}
-					r={rAgg}
-					fill={valueColorScale(m.aggregate)}
-					stroke={selected ? '#0a0a0a' : '#f5f5f4'}
-					// Keep the selected emphasis ring readable without obscuring the fill.
-					stroke-width="2"
-					stroke-opacity={selected ? 1 : 0.85}
-					opacity={1}
-					onmouseenter={(event) => {
-						const min = Number(viz?.dim?.scale?.min);
-						const max = Number(viz?.dim?.scale?.max);
-						const responseText =
-							scaleTextForValue(m.aggregate, viz?.dim?.statement_scale, min, max, false) ||
-							aggregateScaleLabels().max;
-						setHover(event, m.fundModel, m.aggregate, responseText);
-					}}
-					onmousemove={(event) => {
-						const min = Number(viz?.dim?.scale?.min);
-						const max = Number(viz?.dim?.scale?.max);
-						const responseText =
-							scaleTextForValue(m.aggregate, viz?.dim?.statement_scale, min, max, false) ||
-							aggregateScaleLabels().max;
-						setHover(event, m.fundModel, m.aggregate, responseText);
-					}}
-					onmouseleave={clearHover}
-				/>
-				{#each m.itemMeans as value, itemIndex (itemIndex)}
-					{#if value !== null && value !== undefined && !Number.isNaN(value)}
-						{@const ptX = xScales[itemIndex + 1](value)}
-						{@const item = viz.dim.items[itemIndex]}
-						{@const min = Number(viz?.dim?.scale?.min)}
-						{@const max = Number(viz?.dim?.scale?.max)}
-						{@const itemScaleTexts = Array.isArray(item?.statement_scale) && item.statement_scale.length
-							? item.statement_scale
-							: viz?.dim?.statement_scale}
-						{@const responseText = scaleTextForValue(
-							value,
-							itemScaleTexts,
-							min,
-							max,
-							Boolean(item?.reverse)
-						)}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<circle
-							cx={ptX}
-							cy={rowCentersY[itemIndex + 1]}
-							r={rStmt}
-							fill={valueColorScale(value)}
-							stroke={selected ? '#0a0a0a' : 'transparent'}
-							stroke-width={selected ? 2 : 0}
-							stroke-opacity={selected ? 1 : 0.85}
-							opacity={1}
-							onmouseenter={(event) => setHover(event, m.fundModel, value, responseText)}
-							onmousemove={(event) => setHover(event, m.fundModel, value, responseText)}
-							onmouseleave={clearHover}
+				{/each}
+
+				{#each [...viz.modelSeries].sort((a, b) => {
+					if (a.fundModel === activeModel) return 1;
+					if (b.fundModel === activeModel) return -1;
+					return 0;
+				}) as m (m.fundModel)}
+					{@const selected = m.fundModel === activeModel}
+					{@const d = pathD(m)}
+					{#if d}
+						<path
+							fill="none"
+							stroke={selected ? SELECTED_PATH_STROKE : NON_SELECTED_PATH_STROKE}
+							stroke-width={selected ? 2.75 : 1.25}
+							opacity={selected ? 1 : 0.38}
+							{d}
 						/>
 					{/if}
+					{@const rDot = selected ? rStmtSelected : rStmtOther}
+					{#each m.itemMeans as value, itemIndex (itemIndex)}
+						{#if value !== null && value !== undefined && !Number.isNaN(value)}
+							{@const ptX = xScales[itemIndex](value)}
+							{@const item = viz.dim.items[itemIndex]}
+							{@const min = Number(item?.scaleMin)}
+							{@const max = Number(item?.scaleMax)}
+							{@const itemScaleTexts = Array.isArray(item?.statement_scale) && item.statement_scale.length
+								? item.statement_scale
+								: []}
+							{@const responseText = scaleTextForValue(
+								value,
+								itemScaleTexts,
+								min,
+								max,
+								Boolean(item?.reverse)
+							)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<circle
+								cx={ptX}
+								cy={rowCentersY[itemIndex]}
+								r={rDot}
+								fill={fillColorForItem(item, value)}
+								stroke={selected ? '#0a0a0a' : 'transparent'}
+								stroke-width={selected ? 2 : 0}
+								stroke-opacity={selected ? 1 : 0.85}
+								opacity={1}
+								onmouseenter={(event) => setHover(event, m.fundModel, responseText)}
+								onmousemove={(event) => setHover(event, m.fundModel, responseText)}
+								onmouseleave={clearHover}
+							/>
+						{/if}
+					{/each}
 				{/each}
-			{/each}
 			</g>
 		</svg>
 		{#if tooltip}
@@ -452,9 +350,5 @@
 
 	.tooltip-model {
 		font-weight: 600;
-	}
-
-	.tooltip-row {
-		color: #57534e;
 	}
 </style>
