@@ -43,8 +43,15 @@
 
 	/** @type {{ width: number, viz: Viz, selectedModel: string }} */
 	let { width, viz, selectedModel } = $props();
+	/** @type {string | null} */
+	let hoveredModel = $state(null);
+	/** @type {{ x: number, y: number, model: string, responseText: string } | null} */
+	let tooltip = $state(null);
 
 	const margin = { top: CHART_MARGIN_TOP, bottom: CHART_MARGIN_BOTTOM, side: CHART_SIDE_GUTTER };
+	const TOOLTIP_WIDTH = 170;
+	const TOOLTIP_HEIGHT = 56;
+	const TOOLTIP_PADDING = 8;
 
 	const height = $derived(
 		viz
@@ -56,6 +63,7 @@
 	);
 
 	const innerWidth = $derived(Math.max(120, width - margin.side * 2));
+	const activeModel = $derived(hoveredModel ?? selectedModel);
 
 	const rowCentersY = $derived.by(() => {
 		if (!viz) return [];
@@ -93,6 +101,25 @@
 		const str = isBlank(raw) ? '' : String(raw);
 		// Truncate endpoints ONLY for dimension id 27.
 		return dimId === 27 ? truncateFirstTwoWords(str) : str;
+	}
+
+	function aggregateScaleLabels() {
+		return {
+			min: String(viz?.labels?.aggregate?.left ?? ''),
+			max: String(viz?.labels?.aggregate?.right ?? '')
+		};
+	}
+
+	function scaleTextForValue(value, scaleTexts, min, max, reverse = false) {
+		if (!Array.isArray(scaleTexts) || scaleTexts.length === 0) return '';
+		if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max)) return '';
+		const clamped = Math.max(min, Math.min(max, value));
+		let bin = Math.floor(clamped);
+		if (reverse) {
+			bin = min + max - bin;
+		}
+		const idx = Math.max(0, Math.min(scaleTexts.length - 1, bin - min));
+		return String(scaleTexts[idx] ?? '');
 	}
 
 	/** Pill fills aggregate row (no inset so it stays visually filled). */
@@ -181,24 +208,53 @@
 		if (pts.length < 2) return '';
 		return linePath(pts) ?? '';
 	}
+
+	function clampTooltipPosition(rawX, rawY) {
+		const maxX = Math.max(TOOLTIP_PADDING, width - TOOLTIP_WIDTH - TOOLTIP_PADDING);
+		const maxY = Math.max(TOOLTIP_PADDING, height - TOOLTIP_HEIGHT - TOOLTIP_PADDING);
+		return {
+			x: Math.max(TOOLTIP_PADDING, Math.min(maxX, rawX)),
+			y: Math.max(TOOLTIP_PADDING, Math.min(maxY, rawY))
+		};
+	}
+
+	function setHover(event, model, value, responseText) {
+		hoveredModel = model;
+		const rect = event.currentTarget?.ownerSVGElement?.getBoundingClientRect();
+		const localX = rect ? event.clientX - rect.left : 0;
+		const localY = rect ? event.clientY - rect.top : 0;
+		const pos = clampTooltipPosition(localX + 12, localY - TOOLTIP_HEIGHT - 8);
+		tooltip = {
+			x: pos.x,
+			y: pos.y,
+			model,
+			responseText: responseText || ''
+		};
+	}
+
+	function clearHover() {
+		hoveredModel = null;
+		tooltip = null;
+	}
 </script>
 
 {#if !viz}
 	<p class="text-sm text-slate-500">No data for this dimension.</p>
 {:else}
-	<svg
-		width={width}
-		height={height}
-		/* Height is controlled by the computed `height` attribute to preserve row centers. */
-		/* Avoid flex cross-axis stretching which would rescale our row geometry. */
-		style="overflow: visible"
-		class="block max-w-full shrink-0 self-start"
-		role="img"
-	>
-		<title>Model positions by dimension aggregate and statements</title>
-		<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} />
+	<div class="chart-wrap" style="width: {width}px; height: {height}px;">
+		<svg
+			width={width}
+			height={height}
+			/* Height is controlled by the computed `height` attribute to preserve row centers. */
+			/* Avoid flex cross-axis stretching which would rescale our row geometry. */
+			style="overflow: visible"
+			class="block max-w-full shrink-0 self-start"
+			role="img"
+		>
+			<title>Model positions by dimension aggregate and statements</title>
+			<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} />
 
-		<g transform="translate({margin.side},0)" style="overflow: visible">
+			<g transform="translate({margin.side},0)" style="overflow: visible">
 			<rect
 				x="0"
 				y={aggBarStrokeTop + aggBarStrokeHeight /4}
@@ -276,11 +332,11 @@
 			{/each}
 
 			{#each [...viz.modelSeries].sort((a, b) => {
-				if (a.fundModel === selectedModel) return 1;
-				if (b.fundModel === selectedModel) return -1;
+				if (a.fundModel === activeModel) return 1;
+				if (b.fundModel === activeModel) return -1;
 				return 0;
 			}) as m (m.fundModel)}
-				{@const selected = m.fundModel === selectedModel}
+				{@const selected = m.fundModel === activeModel}
 				{@const d = pathD(m)}
 				{#if d}
 					<path
@@ -294,6 +350,7 @@
 				{@const rAgg = aggDotR}
 				{@const rStmt = selected ? 9 : 7}
 				{@const aggregateX = xScales[0](m.aggregate)}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<circle
 					cx={aggregateX}
 					cy={rowCentersY[0]}
@@ -304,23 +361,100 @@
 					stroke-width="2"
 					stroke-opacity={selected ? 1 : 0.85}
 					opacity={1}
+					onmouseenter={(event) => {
+						const min = Number(viz?.dim?.scale?.min);
+						const max = Number(viz?.dim?.scale?.max);
+						const responseText =
+							scaleTextForValue(m.aggregate, viz?.dim?.statement_scale, min, max, false) ||
+							aggregateScaleLabels().max;
+						setHover(event, m.fundModel, m.aggregate, responseText);
+					}}
+					onmousemove={(event) => {
+						const min = Number(viz?.dim?.scale?.min);
+						const max = Number(viz?.dim?.scale?.max);
+						const responseText =
+							scaleTextForValue(m.aggregate, viz?.dim?.statement_scale, min, max, false) ||
+							aggregateScaleLabels().max;
+						setHover(event, m.fundModel, m.aggregate, responseText);
+					}}
+					onmouseleave={clearHover}
 				/>
 				{#each m.itemMeans as value, itemIndex (itemIndex)}
 					{#if value !== null && value !== undefined && !Number.isNaN(value)}
 						{@const ptX = xScales[itemIndex + 1](value)}
-					<circle
-						cx={ptX}
-						cy={rowCentersY[itemIndex + 1]}
-						r={rStmt}
-						fill={valueColorScale(value)}
-						stroke={selected ? '#0a0a0a' : 'transparent'}
-						stroke-width={selected ? 2 : 0}
-						stroke-opacity={selected ? 1 : 0.85}
-						opacity={1}
-					/>
+						{@const item = viz.dim.items[itemIndex]}
+						{@const min = Number(viz?.dim?.scale?.min)}
+						{@const max = Number(viz?.dim?.scale?.max)}
+						{@const itemScaleTexts = Array.isArray(item?.statement_scale) && item.statement_scale.length
+							? item.statement_scale
+							: viz?.dim?.statement_scale}
+						{@const responseText = scaleTextForValue(
+							value,
+							itemScaleTexts,
+							min,
+							max,
+							Boolean(item?.reverse)
+						)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<circle
+							cx={ptX}
+							cy={rowCentersY[itemIndex + 1]}
+							r={rStmt}
+							fill={valueColorScale(value)}
+							stroke={selected ? '#0a0a0a' : 'transparent'}
+							stroke-width={selected ? 2 : 0}
+							stroke-opacity={selected ? 1 : 0.85}
+							opacity={1}
+							onmouseenter={(event) => setHover(event, m.fundModel, value, responseText)}
+							onmousemove={(event) => setHover(event, m.fundModel, value, responseText)}
+							onmouseleave={clearHover}
+						/>
 					{/if}
 				{/each}
 			{/each}
-		</g>
-	</svg>
+			</g>
+		</svg>
+		{#if tooltip}
+			<div
+				class="tooltip"
+				style="left: {tooltip.x}px; top: {tooltip.y}px;"
+				aria-hidden="true"
+			>
+				<div class="tooltip-model">{tooltip.model}</div>
+				{#if tooltip.responseText}
+					<div class="tooltip-value">Average Response: {tooltip.responseText}</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
 {/if}
+
+<style>
+	.chart-wrap {
+		position: relative;
+	}
+
+	.tooltip {
+		position: absolute;
+		pointer-events: none;
+		min-width: 120px;
+		max-width: 170px;
+		padding: 6px 8px;
+		border-radius: 6px;
+		border: 1px solid #d6d3d1;
+		background: rgba(255, 255, 255, 0.96);
+		color: #1c1917;
+		font-size: 11px;
+		line-height: 1.3;
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+		z-index: 10;
+	}
+
+	.tooltip-model {
+		font-weight: 600;
+	}
+
+	.tooltip-row {
+		color: #57534e;
+	}
+</style>

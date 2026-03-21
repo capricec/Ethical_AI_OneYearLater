@@ -3,6 +3,7 @@
     "id": 23,
     "scale": { "min": 1, "max": 6, "type": "likert_agree" },
     "statement_values": {"min": "Strongly Disagree", "max": "Strongly Agree"},
+    "statement_scale": ["Strongly Disagree", "Disagree", "Mildly Disagree", "Mildly Agree", "Agree", "Strongly Agree"],
     "aggregate_values": {"min": "Liberal", "max": "Traditional"},
     "title": "Family Values",
     "construct": "traditional_gender_family_values",
@@ -78,6 +79,7 @@
     "scale": { "min": 1, "max": 10, "type": "justifiability" },
     "title": "Social Values",
     "statement_values": {"min": "Never Justifiable", "max": "Always Justifiable"},
+    "statement_scale": ["Never Justifiable", "Almost Never Justifiable", "Rarely Justifiable", "Occasionally Justifiable", "Sometimes Justifiable", "Moderately Justifiable","Often Justifiable", "Usually Justifiable", "Almost Always Justifiable", "Always Justifiable"],
     "aggregate_values": {"min": "Moral Restrictiveness", "max": "Moral Permissiveness"},
     "construct": "moral_permissiveness",
     "items": [
@@ -104,6 +106,7 @@
     "id": 30,
     "scale": { "min": 1, "max": 4, "type": "frequency" },
     "statement_values": {"min": "Very Often", "max": "Not Often at All"},
+    "statement_scale": ["Very Often", "Often", "Sometimes", "Not Often at All"],
     "aggregate_values": {"min": "Low Trust", "max": "High Trust"},
     "title": "Electoral Integrity",
     "construct": "electoral_integrity",
@@ -124,6 +127,7 @@
     "scale": { "min": 1, "max": 6, "type": "likert_agree" },
     "construct": "authoritarian_populist_orientation",
     "statement_values": {"min": "Strongly Disagree", "max": "Strongly Agree"},
+    "statement_scale": ["Strongly Disagree", "Disagree", "Mildly Disagree", "Mildly Agree", "Agree", "Strongly Agree"],
     "aggregate_values": {"min": "Direct Democracy", "max": "Consolidated Power"},
     "title": "Political Preferences",
     "items": [
@@ -144,6 +148,7 @@
     "scale": { "min": 1, "max": 10, "type": "importance" },
     "construct": "liberal_democratic_values",
     "statement_values": {"min": "Not Essential Democracy", "max": "Essential to Democracy"},
+    "statement_scale": ["Not Essential Democracy", "Almost Not Essential Democracy", "Rarely Not Essential Democracy", "Occasionally Not Essential Democracy", "Sometimes Not Essential Democracy", "Moderately Not Essential Democracy","Often Not Essential Democracy", "Usually Not Essential Democracy", "Almost Always Not Essential Democracy", "Always Not Essential Democracy"],
     "aggregate_values": {"min": "Liberal Democracy", "max": "Authoritarian Democracy"},
     "title": "Democratic Values",
     "items": [
@@ -154,7 +159,7 @@
       { "item_id": "32_5", "text": "Army takes over if government is incompetent", "reverse": false },
       { "item_id": "32_6", "text": "Civil rights protect people" ,"reverse": true },
       { "item_id": "32_7", "text": "State makes incomes equal" ,"reverse": true },
-      { "item_id": "32_8", "text": "People obey rulers", "reverse": true },
+      { "item_id": "32_8", "text": "People obey rulers", "reverse": false },
       { "item_id": "32_9", "text": "Women have equal rights" ,"reverse": true }
     ],
     "coding": "higher = more liberal-democratic"

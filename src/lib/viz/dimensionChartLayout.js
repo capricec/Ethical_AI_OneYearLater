@@ -7,7 +7,7 @@ export const CHART_SIDE_GUTTER = 150;
 export const ROW_AGG_HEIGHT = 96;
 
 /** One row per underlying statement (more padding for table feel). */
-export const ROW_ITEM_HEIGHT = 80;
+export const ROW_ITEM_HEIGHT = 90;
 
 /** @param {number} itemCount */
 export function chartHeight(itemCount) {

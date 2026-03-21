@@ -160,7 +160,7 @@
 										: 'border-transparent bg-transparent hover:bg-slate-50'}"
 									onclick={() => setSelectedStatementId(item.item_id)}
 								>
-									<span class="line-clamp-2 text-slate-800">{statementLabel(item)}</span>
+									<span class="line-clamp-3 text-slate-800">{statementLabel(item)}</span>
 								</button>
 							</div>
 

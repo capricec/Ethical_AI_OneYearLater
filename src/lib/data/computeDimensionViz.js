@@ -117,18 +117,48 @@ export function computeDimensionViz(encoding, compiled, dimensionId) {
 
 	if (!modelSeries.length) return null;
 
+	// Rank statements by dispersion across model means (highest -> lowest).
+	// Dispersion = max(modelMeans) - min(modelMeans), tie-break by original index.
+	const statementDispersion = dim.items.map((item, idx) => {
+		const vals = modelSeries
+			.map((m) => m.itemMeans[idx])
+			.filter((v) => typeof v === 'number' && !Number.isNaN(v));
+		const dispersion = vals.length > 1 ? Math.max(...vals) - Math.min(...vals) : 0;
+		return { idx, item, dispersion };
+	});
+	statementDispersion.sort((a, b) => {
+		if (b.dispersion !== a.dispersion) return b.dispersion - a.dispersion;
+		return a.idx - b.idx;
+	});
+	const orderedIndices = statementDispersion.map((d) => d.idx);
+	const orderedItems = statementDispersion.map((d) => d.item);
+
+	const orderedModelSeries = modelSeries.map((m) => ({
+		...m,
+		itemMeans: orderedIndices.map((idx) => m.itemMeans[idx])
+	}));
+
 	// Scale domains: derived from the worksheet `scale.min/max` so x-axes remain stable
 	// across dimensions and both statement + aggregate plots share the same domain.
 	const aggregateExtent = [scaleMin, scaleMax];
 
 	// Each statement row uses the same domain so the axes are consistent.
-	const itemExtents = dim.items.map(() => [scaleMin, scaleMax]);
+	const itemExtents = orderedItems.map(() => [scaleMin, scaleMax]);
+
+	const orderedDim = {
+		...dim,
+		items: orderedItems
+	};
 
 	return {
-		dim,
-		modelSeries,
+		dim: orderedDim,
+		modelSeries: orderedModelSeries,
 		aggregateExtent,
 		itemExtents,
-		labels
+		labels,
+		statementDispersion: statementDispersion.map(({ item, dispersion }) => ({
+			item_id: item.item_id,
+			dispersion
+		}))
 	};
 }
