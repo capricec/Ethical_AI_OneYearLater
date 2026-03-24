@@ -32,7 +32,7 @@ Reference documents:
 - **Universal Store** at `src/lib/stores/universalState.js` (JavaScript; no TypeScript requirement):
   - `rawData` – large immutable JSON loaded once at startup.
   - Selections (universal):
-    - `selectedModel`, `selectedStatementId`, `selectedViewMode`, `selectedDimensionFilter` (`null` = all dimensions).
+    - `selectedModel`, `selectedStatementId`, `selectedViewMode` (`VIEW_MODE_DIMENSION_BUMP` | `VIEW_MODE_RADIAL`), `selectedDimensionFilter` (`null` = all dimensions).
     - `leftTrayOpen`, `rightTrayOpen`.
   - Derived slices:
     - `currentStatementData`

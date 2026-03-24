@@ -1,4 +1,18 @@
 import { MODEL_ORDER } from '$lib/viz/modelColors.js';
+import { subscaleDisplayName } from '$lib/ui/subscaleDisplayName.js';
+import { subscaleInterpretation } from '$lib/data/dataset.js';
+
+/**
+ * @param {number} dimensionId
+ * @param {string} subscaleKey — internal key including __none__
+ */
+function interpretationForSubscale(dimensionId, subscaleKey) {
+	if (subscaleKey === '__none__') return null;
+	const dim = /** @type {Record<string, Record<string, { label?: string, description?: string }>>} */ (
+		subscaleInterpretation
+	);
+	return dim[String(dimensionId)]?.[subscaleKey] ?? null;
+}
 
 /** @param {string} itemId */
 function responseKeyFromItemId(itemId) {
@@ -80,24 +94,49 @@ function constructTitle(construct) {
 	return String(construct).replace(/_/g, ' ');
 }
 
+/** First-appearance order of subscale keys within one dimension's item list. */
+function subscaleRankMapForDimension(dim) {
+	/** @type {Map<string, number>} */
+	const map = new Map();
+	let rank = 0;
+	if (!Array.isArray(dim.items)) return map;
+	for (const item of dim.items) {
+		const key = String(item?.subscale ?? '').trim() || '__none__';
+		if (!map.has(key)) map.set(key, rank++);
+	}
+	return map;
+}
+
+export const STATEMENT_ORDER_DIVERGENCE = 'divergence';
+export const STATEMENT_ORDER_DIMENSION = 'dimension';
+/** Radial: encoding dimension order, then first-appearance subscale order within dimension, then item index. */
+export const STATEMENT_ORDER_SUBSCALE = 'subscale';
+
 /**
- * All statements across dimensions, sorted by normalized divergence (high → low).
+ * All statements across dimensions.
  * Optional filter: single dimension id, or null for all.
  *
  * @param {unknown[]} encoding
  * @param {unknown[]} compiled
  * @param {number | null} dimensionFilter
+ * @param {'divergence' | 'dimension' | 'subscale'} [order='divergence']
  */
-export function computeStatementsViz(encoding, compiled, dimensionFilter) {
+export function computeStatementsViz(
+	encoding,
+	compiled,
+	dimensionFilter,
+	order = STATEMENT_ORDER_DIVERGENCE
+) {
 	if (!Array.isArray(encoding) || !Array.isArray(compiled)) return null;
 
 	/** @type {Map<number, { fundModel: string, itemMeans: (number|null)[] }[]>} */
 	const seriesByDimId = new Map();
 
-	/** @type {{ dim: object, item: object, itemIndexInDim: number, divergence: number, rawSpread: number }[]} */
+	/** @type {{ dim: object, item: object, itemIndexInDim: number, encodingIndex: number, divergence: number, rawSpread: number, subscaleKey: string, subscaleRankInDim: number }[]} */
 	const entries = [];
 
-	for (const dim of encoding) {
+	for (let encodingIndex = 0; encodingIndex < encoding.length; encodingIndex++) {
+		const dim = encoding[encodingIndex];
 		if (!dim || typeof dim.id !== 'number' || !Array.isArray(dim.items) || !dim.items.length) continue;
 
 		const byModel = buildByModelForDimension(compiled, dim.id);
@@ -111,6 +150,8 @@ export function computeStatementsViz(encoding, compiled, dimensionFilter) {
 		const scaleRange =
 			Number.isFinite(scaleMin) && Number.isFinite(scaleMax) ? scaleMax - scaleMin : NaN;
 
+		const subscaleRanks = subscaleRankMapForDimension(dim);
+
 		dim.items.forEach((item, itemIndexInDim) => {
 			const vals = modelSeries
 				.map((m) => m.itemMeans[itemIndexInDim])
@@ -118,11 +159,31 @@ export function computeStatementsViz(encoding, compiled, dimensionFilter) {
 			const rawSpread = vals.length > 1 ? Math.max(...vals) - Math.min(...vals) : 0;
 			const divergence =
 				Number.isFinite(scaleRange) && scaleRange > 0 ? rawSpread / scaleRange : rawSpread;
-			entries.push({ dim, item, itemIndexInDim, divergence, rawSpread });
+			const subscaleKey = String(item?.subscale ?? '').trim() || '__none__';
+			const subscaleRankInDim = subscaleRanks.get(subscaleKey) ?? 0;
+			entries.push({
+				dim,
+				item,
+				itemIndexInDim,
+				encodingIndex,
+				divergence,
+				rawSpread,
+				subscaleKey,
+				subscaleRankInDim
+			});
 		});
 	}
 
 	entries.sort((a, b) => {
+		if (order === STATEMENT_ORDER_SUBSCALE) {
+			if (a.encodingIndex !== b.encodingIndex) return a.encodingIndex - b.encodingIndex;
+			if (a.subscaleRankInDim !== b.subscaleRankInDim) return a.subscaleRankInDim - b.subscaleRankInDim;
+			return a.itemIndexInDim - b.itemIndexInDim;
+		}
+		if (order === STATEMENT_ORDER_DIMENSION) {
+			if (a.encodingIndex !== b.encodingIndex) return a.encodingIndex - b.encodingIndex;
+			return a.itemIndexInDim - b.itemIndexInDim;
+		}
 		if (b.divergence !== a.divergence) return b.divergence - a.divergence;
 		if (a.dim.id !== b.dim.id) return a.dim.id - b.dim.id;
 		return a.itemIndexInDim - b.itemIndexInDim;
@@ -135,15 +196,38 @@ export function computeStatementsViz(encoding, compiled, dimensionFilter) {
 
 	if (!filtered.length) return null;
 
+	/** Unique subscale keys in final list order (for radial rail). */
+	const seenSubscale = new Set();
+	/** @type {{ key: string, label: string, description: string }[]} */
+	const subscalesInOrder = [];
+	for (const e of filtered) {
+		const key = e.subscaleKey;
+		if (seenSubscale.has(key)) continue;
+		seenSubscale.add(key);
+		const interp = interpretationForSubscale(e.dim.id, key);
+		subscalesInOrder.push({
+			key,
+			label:
+				interp?.label ?? (key === '__none__' ? 'Uncategorized' : subscaleDisplayName(key)),
+			description: interp?.description ? String(interp.description) : ''
+		});
+	}
+
 	/** @type {object[]} */
 	const enrichedItems = filtered.map((e) => {
 		const dim = e.dim;
 		const scaleMin = Number(dim.scale?.min);
 		const scaleMax = Number(dim.scale?.max);
+		const sk = e.subscaleKey;
+		const interp = interpretationForSubscale(dim.id, sk);
 		return {
 			...e.item,
 			dimensionId: dim.id,
 			dimensionTitle: dim.title ?? constructTitle(dim.construct),
+			subscaleKey: sk,
+			subscaleLabel:
+				interp?.label ?? (sk === '__none__' ? 'Uncategorized' : subscaleDisplayName(sk)),
+			subscaleDescription: interp?.description ? String(interp.description) : '',
 			scaleMin,
 			scaleMax,
 			statement_scale: Array.isArray(e.item.statement_scale)
@@ -179,6 +263,7 @@ export function computeStatementsViz(encoding, compiled, dimensionFilter) {
 		dim: { items: enrichedItems },
 		modelSeries,
 		itemExtents,
+		subscalesInOrder,
 		labels: {
 			aggregate: { left: '', right: '' },
 			item: { left: '', right: '' }
