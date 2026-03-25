@@ -1,9 +1,5 @@
 {
   "23": {
-    "gender_roles": {
-      "label": "Gender Roles",
-      "description": "Beliefs about appropriate roles and capabilities of men and women in society, including leadership, work, and education. Higher values indicate more traditional, male-advantaged role preferences."
-    },
     "family_obligation": {
       "label": "Family Obligation",
       "description": "The extent to which individuals believe in duties to family, including caring for parents and prioritizing family expectations. Higher values reflect stronger norms of familial responsibility and collectivism."
@@ -11,6 +7,10 @@
     "Immigration": {
       "label": "Immigration",
       "description": "Preference for prioritizing citizens over outsiders (e.g., immigrants) in economic opportunities. Higher values indicate stronger in-group favoritism and exclusionary attitudes."
+    },
+    "gender_roles": {
+      "label": "Traditional Gender Roles",
+      "description": "Beliefs about appropriate roles and capabilities of men and women in society, including leadership, work, and education. Higher values indicate more traditional, male-advantaged role preferences."
     }
   },
   "27": {

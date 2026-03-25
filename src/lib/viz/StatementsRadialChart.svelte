@@ -11,11 +11,8 @@
 	const PANEL_BG = '#ebebeb';
 	const SPOKE_GUIDE = '#d4d4d4';
 	const LABEL_RING_STROKE = '#a3a3a3';
-	const NON_SELECTED_PATH_STROKE = '#9ca3af';
 	const SELECTED_PATH_STROKE = '#0a0a0a';
-
-	/** Stacked filled circles (Baby Spike style) — discrete steps along the value palette, then clip to the area. */
-	const CONCENTRIC_BANDS = 56;
+	const INACTIVE_MODEL_PATH_STROKE = '#a8a29e';
 
 	/** Outer annulus for subscale labels (plot uses radius inside this band). */
 	const LABEL_BAND = 30;
@@ -31,19 +28,16 @@
 	/** @type {{ width: number, height: number, viz: Viz, selectedModel: string }} */
 	let { width, height, viz, selectedModel } = $props();
 
-	/** @type {string | null} */
-	let hoveredModel = $state(null);
-	/** @type {{ kind: 'dot', x: number, y: number, model: string, responseText: string } | { kind: 'spoke', x: number, y: number, dimensionTitle: string, subscaleLabel: string, statementText: string } | null} */
+	/**
+	 * @type { { kind: 'dot', x: number, y: number, model: string, subscaleLabel: string, statementText: string, responseText: string }
+	 *   | null }
+	 */
 	let tooltip = $state(null);
 
 	/** Inset from SVG edge to plot (spokes use full usable side = min(w,h) − 2×PAD). */
 	const PAD = 8;
 	const TOOLTIP_PAD = 8;
-	const TOOLTIP_MAX_W = 280;
-	const SPOKE_TOOLTIP_W = 340;
-	const SPOKE_TOOLTIP_H = 140;
-
-	const activeModel = $derived(hoveredModel ?? selectedModel);
+	const TOOLTIP_MAX_W = 320;
 
 	/** Positive minor angular span from boundary t0 to t1 (radians, ≤ 2π). */
 	function sectorSpan(t0, t1) {
@@ -123,11 +117,11 @@
 				fullOuterR: 40,
 				plotOuterR: 32,
 				labelTextR: 36,
-				innerR: 8,
+				innerR: 14,
 				angles: /** @type {number[]} */ ([]),
 				rScales: /** @type {import('d3').ScaleLinear<number, number>[]} */ ([]),
 				n: 0,
-				subscaleArcs: /** @type {{ id: string, label: string, t0: number, t1: number, textPathD: string }[]} */ (
+				subscaleArcs: /** @type {{ id: string, label: string, i0: number, i1: number, t0: number, t1: number, textPathD: string }[]} */ (
 					[]
 				)
 			};
@@ -141,7 +135,8 @@
 			Math.max(20, fullOuterR - LABEL_BAND),
 			fullOuterR - 4
 		);
-		const innerR = Math.max(10, plotOuterR * 0.08);
+		/** Larger hub (empty center); statement scales still map innerR → plotOuterR. */
+		const innerR = Math.max(14, plotOuterR * 0.17);
 		const labelTextR = (plotOuterR + fullOuterR) / 2;
 
 		const angles = [];
@@ -162,6 +157,8 @@
 			return {
 				id: `subscale-tp-${idx}`,
 				label: run.label,
+				i0: run.i0,
+				i1: run.i1,
 				t0,
 				t1,
 				textPathD: labelCircleArcD(cx, cy, labelTextR, t0, t1, labelPathReverse(mid))
@@ -210,18 +207,134 @@
 		return rRef;
 	}
 
-	/** Dense angular samples: must match deviation quads so the stroke sits on the same piecewise-linear mean as the fill. */
+	const meanPathRefRadii = $derived.by(() => {
+		const n = layout.n;
+		if (!n) return /** @type {number[]} */ ([]);
+		const out = [];
+		for (let i = 0; i < n; i++) out.push(refRadiusAtIndex(i));
+		return out;
+	});
+
+	/** Sample budget scale for deviation fills (cardinal path resampled to polar quads vs ref). */
 	function denseSegCount(n) {
 		return Math.max(96, n * 16);
 	}
 
-	const meanRingLineLinear = d3
-		.lineRadial()
-		.curve(d3.curveLinearClosed)
-		.angle((d) => d.angle)
-		.radius((d) => d.r);
-
 	const TAU = 2 * Math.PI;
+
+	/** Shared with stroke: bands sample this exact cardinal spline in local (x,y). */
+	const MEAN_CARDINAL_TENSION = 0.5;
+	const meanLineCurve = d3.curveCardinal.tension(MEAN_CARDINAL_TENSION);
+	const subscaleMeanLineOpen = d3.line().curve(meanLineCurve);
+
+	/**
+	 * @param {[number, number][]} pts
+	 * @param {(context: import('d3').Path) => import('d3').Curve} curveFactory — same as line().curve(...)
+	 */
+	function recordLineSegmentsWithCurve(pts, curveFactory) {
+		/** @type {{ kind: 'M'|'L'|'C', x: number, y: number, x1?: number, y1?: number, x2?: number, y2?: number }[]} */
+		const segs = [];
+		const ctx = {
+			moveTo(x, y) {
+				segs.push({ kind: 'M', x, y });
+			},
+			lineTo(x, y) {
+				segs.push({ kind: 'L', x, y });
+			},
+			bezierCurveTo(x1, y1, x2, y2, x, y) {
+				segs.push({ kind: 'C', x, y, x1, y1, x2, y2 });
+			},
+			closePath() {}
+		};
+		const curve = curveFactory(ctx);
+		curve.lineStart();
+		for (const p of pts) curve.point(p[0], p[1]);
+		curve.lineEnd();
+		return segs;
+	}
+
+	function polarFromLocalXY(x, y) {
+		const rr = Math.hypot(x, y);
+		if (rr < 1e-9) return { theta: 0, r: 0 };
+		return { theta: Math.atan2(y, x), r: rr };
+	}
+
+	/**
+	 * Walk recorded SVG-style segments; sample cubics/lines so band quads follow the same path as the stroke.
+	 * @param {{ kind: 'M'|'L'|'C', x: number, y: number, x1?: number, y1?: number, x2?: number, y2?: number }[]} segs
+	 */
+	function samplePathSegmentsToPolar(segs, budget) {
+		let px = 0;
+		let py = 0;
+		let started = false;
+		let nC = 0;
+		let nL = 0;
+		for (const s of segs) {
+			if (s.kind === 'C') nC++;
+			else if (s.kind === 'L') nL++;
+		}
+		const parts = Math.max(1, nC + nL);
+		const stepsCurve = Math.max(6, Math.ceil(budget / parts));
+
+		/** @type {{ theta: number, r: number }[]} */
+		const out = [];
+
+		for (const s of segs) {
+			if (s.kind === 'M') {
+				px = s.x;
+				py = s.y;
+				started = true;
+				out.push(polarFromLocalXY(px, py));
+			} else if (s.kind === 'L' && started) {
+				const x1 = s.x;
+				const y1 = s.y;
+				for (let i = 1; i <= stepsCurve; i++) {
+					const t = i / stepsCurve;
+					out.push(polarFromLocalXY(px + t * (x1 - px), py + t * (y1 - py)));
+				}
+				px = x1;
+				py = y1;
+			} else if (s.kind === 'C' && started) {
+				const x0 = px;
+				const y0 = py;
+				const cp1x = s.x1 ?? 0;
+				const cp1y = s.y1 ?? 0;
+				const cp2x = s.x2 ?? 0;
+				const cp2y = s.y2 ?? 0;
+				const x3 = s.x;
+				const y3 = s.y;
+				for (let i = 1; i <= stepsCurve; i++) {
+					const t = i / stepsCurve;
+					const omt = 1 - t;
+					const x =
+						omt * omt * omt * x0 +
+						3 * omt * omt * t * cp1x +
+						3 * omt * t * t * cp2x +
+						t * t * t * x3;
+					const y =
+						omt * omt * omt * y0 +
+						3 * omt * omt * t * cp1y +
+						3 * omt * t * t * cp2y +
+						t * t * t * y3;
+					out.push(polarFromLocalXY(x, y));
+				}
+				px = x3;
+				py = y3;
+			}
+		}
+		return out;
+	}
+
+	function wedgeMeanPointsLocalXY(arc, n, rRef, rData) {
+		/** @type {[number, number][]} */
+		const pts = [];
+		pts.push(ptLocalPolar(sampleRCyclic(arc.t0, n, rRef), arc.t0));
+		for (let i = arc.i0; i <= arc.i1; i++) {
+			pts.push(ptLocalPolar(rData[i], layout.angles[i]));
+		}
+		pts.push(ptLocalPolar(sampleRCyclic(arc.t1, n, rRef), arc.t1));
+		return pts;
+	}
 
 	/** Piecewise-linear r(θ) between spokes (same indexing as layout.angles). */
 	function sampleRCyclic(theta, n, rArr) {
@@ -238,11 +351,27 @@
 	}
 
 	/**
-	 * Deviation clips: below = strip mean→ref only where rData<rRef; above = ref→mean only where rData>rRef.
-	 * Inner/outer edges always use interpolated rData and rRef (never min hybrid), so fills cannot cross the black mean.
+	 * Dense (θ, r) samples for deviation math along the same cardinal spline as `subscaleMeanPolylinePathLocalD`
+	 * (shared control points + `meanLineCurve`).
 	 */
-	function deviationBandPathsD(n, rRef, rData) {
-		const N_SEG = denseSegCount(n);
+	function wedgeMeanSamplesAlongPolyline(arc, n, rRef, rData, baseSeg) {
+		const pts = wedgeMeanPointsLocalXY(arc, n, rRef, rData);
+		if (pts.length < 2) return [];
+		const segs = recordLineSegmentsWithCurve(pts, meanLineCurve);
+		const wedgeSpan = sectorSpan(arc.t0, arc.t1);
+		const budget = Math.max(96, Math.ceil(baseSeg * (wedgeSpan / TAU)));
+		return samplePathSegmentsToPolar(segs, budget);
+	}
+
+	/**
+	 * Deviation clips per subscale wedge: trapezoids follow the same cardinal mean as the black stroke.
+	 */
+	function deviationBandPathsPerSubscaleD(
+		n,
+		rRef,
+		rData,
+		/** @type {{ t0: number, t1: number, i0: number, i1: number }[]} */ arcs
+	) {
 		/** @type {string[]} */
 		const belowParts = [];
 		/** @type {string[]} */
@@ -258,7 +387,6 @@
 			(isBelow ? belowParts : aboveParts).push(part);
 		}
 
-		/** rD < rR: clamped crossing fixes gaps when f=0 at an endpoint (old strict 0<t<1 dropped whole segments). */
 		function addBelowSegment(ta, tb, rDa, rDb, rRa, rRb) {
 			const fa = rDa - rRa;
 			const fb = rDb - rRb;
@@ -295,16 +423,22 @@
 			if (tc < 1 - 1e-12 && gb > 0) pushTrap(false, tm, tb, rDm, rDb, rRm, rRb);
 		}
 
-		for (let j = 0; j < N_SEG; j++) {
-			const ta = -Math.PI / 2 + (j / N_SEG) * TAU;
-			const tb = -Math.PI / 2 + ((j + 1) / N_SEG) * TAU;
-			const rDa = sampleRCyclic(ta, n, rData);
-			const rRa = sampleRCyclic(ta, n, rRef);
-			const rDb = sampleRCyclic(tb, n, rData);
-			const rRb = sampleRCyclic(tb, n, rRef);
+		const baseSeg = denseSegCount(n);
 
-			addBelowSegment(ta, tb, rDa, rDb, rRa, rRb);
-			addAboveSegment(ta, tb, rDa, rDb, rRa, rRb);
+		for (const arc of arcs) {
+			const samples = wedgeMeanSamplesAlongPolyline(arc, n, rRef, rData, baseSeg);
+			if (samples.length < 2) continue;
+			for (let j = 0; j < samples.length - 1; j++) {
+				const ta = samples[j].theta;
+				const tb = samples[j + 1].theta;
+				const rDa = samples[j].r;
+				const rDb = samples[j + 1].r;
+				const rRa = sampleRCyclic(ta, n, rRef);
+				const rRb = sampleRCyclic(tb, n, rRef);
+
+				addBelowSegment(ta, tb, rDa, rDb, rRa, rRb);
+				addAboveSegment(ta, tb, rDa, rDb, rRa, rRb);
+			}
 		}
 
 		return {
@@ -314,26 +448,18 @@
 	}
 
 	/**
-	 * Closed mean loop — same dense linear r(θ) as deviation inner/outer data edges (local coords).
+	 * Open polyline for one subscale: ref at wedge angles t0 → statement means i0..i1 → ref at t1 (local coords).
 	 * @param {{ fundModel: string, itemMeans: (number|null)[] }} m
+	 * @param {{ i0: number, i1: number, t0: number, t1: number }} arc
+	 * @param {number[]} rRefArr
 	 */
-	function modelMeanRingPathLocalD(m) {
+	function subscaleMeanPolylinePathLocalD(m, arc, rRefArr) {
 		const n = layout.n;
-		if (n < 3) return '';
-		const rDataEff = [];
-		for (let i = 0; i < n; i++) {
-			rDataEff.push(effectiveRForModelAt(m, i));
-		}
-		const N = denseSegCount(n);
-		const pts = [];
-		for (let k = 0; k < N; k++) {
-			const theta = -Math.PI / 2 + (k / N) * TAU;
-			pts.push({
-				angle: theta + Math.PI / 2,
-				r: sampleRCyclic(theta, n, rDataEff)
-			});
-		}
-		return meanRingLineLinear(pts) ?? '';
+		if (!n || arc.i1 < arc.i0) return '';
+		const rData = [];
+		for (let i = 0; i < n; i++) rData.push(effectiveRForModelAt(m, i));
+		const pts = wedgeMeanPointsLocalXY(arc, n, rRefArr, rData);
+		return subscaleMeanLineOpen(pts) ?? '';
 	}
 
 	/**
@@ -352,12 +478,12 @@
 
 		let pathAbove = '';
 		let pathBelow = '';
-		if (selected) {
+		if (selected && layout.subscaleArcs.length) {
 			const rDataEff = [];
 			for (let i = 0; i < n; i++) {
 				rDataEff.push(effectiveRForModelAt(selected, i));
 			}
-			const bands = deviationBandPathsD(n, rRef, rDataEff);
+			const bands = deviationBandPathsPerSubscaleD(n, rRef, rDataEff, layout.subscaleArcs);
 			pathBelow = bands.pathBelow;
 			pathAbove = bands.pathAbove;
 		}
@@ -365,42 +491,59 @@
 		return { pathAbove, pathBelow, hasFill: Boolean(selected) };
 	});
 
-	/** t ∈ [0,1] along radius; `pal` is a sub-slice (cool-only or warm-only) so fills don’t share neutral/peach. */
-	function spectrumFillAtT(t, pal) {
-		if (!pal.length) return '#94a3b8';
-		if (pal.length === 1) return pal[0];
-		const n = pal.length - 1;
-		const u = Math.max(0, Math.min(1, t)) * n;
-		const i0 = Math.min(n, Math.max(0, Math.floor(u)));
-		const i1 = Math.min(n, i0 + 1);
-		return d3.interpolateRgb(pal[i0], pal[i1])(u - i0);
-	}
-
 	const radialClipBase = $derived(
 		`${String(selectedModel).replace(/[^a-zA-Z0-9_-]/g, '_')}-${layout.n}`
 	);
 	const radialSpectrumClipBelowId = $derived(`radial-spectrum-below-${radialClipBase}`);
 	const radialSpectrumClipAboveId = $derived(`radial-spectrum-above-${radialClipBase}`);
 
-	function concentricRingsForPalette(pal) {
+	/**
+	 * Annulus path (origin = chart center via parent translate). evenodd subtracts inner disc.
+	 */
+	function annulusPathD(rInner, rOuter) {
+		if (!(rOuter > rInner) || rInner < 0) return '';
+		return [
+			`M 0 ${-rOuter}`,
+			`a ${rOuter} ${rOuter} 0 1 1 0 ${2 * rOuter}`,
+			`a ${rOuter} ${rOuter} 0 1 1 0 ${-2 * rOuter}`,
+			`M 0 ${-rInner}`,
+			`a ${rInner} ${rInner} 0 1 0 0 ${2 * rInner}`,
+			`a ${rInner} ${rInner} 0 1 0 0 ${-2 * rInner}`
+		].join(' ');
+	}
+
+	/**
+	 * Five equal annuli from innerR → plotOuterR, one palette stop each (no stacked-disk bleed).
+	 * Cool slice is ordered dark → light in the array; warm is light → dark. Darkest at plot outer for both.
+	 * @param {string[]} pal
+	 * @param {boolean} coolSlice — if true, reverse index so outer = pal[0] (darkest blue)
+	 */
+	function discreteSpectrumAnnuli(pal, coolSlice) {
 		const inner = layout.innerR;
 		const outer = layout.plotOuterR;
 		const span = Math.max(1e-6, outer - inner);
-		/** @type {{ k: number, r: number, fill: string }[]} */
+		const n = pal.length;
+		/** @type {{ k: number, d: string, fill: string }[]} */
 		const rings = [];
-		for (let step = CONCENTRIC_BANDS; step >= 1; step--) {
-			const frac = step / CONCENTRIC_BANDS;
+		for (let i = 0; i < n; i++) {
+			const r0 = inner + (i / n) * span;
+			const r1 = inner + ((i + 1) / n) * span;
+			const idx = coolSlice ? i : i;
 			rings.push({
-				k: step,
-				r: inner + span * frac,
-				fill: spectrumFillAtT(frac, pal)
+				k: i,
+				d: annulusPathD(r0, r1),
+				fill: pal[idx] ?? '#94a3b8'
 			});
 		}
 		return rings;
 	}
 
-	const concentricCoolRings = $derived.by(() => concentricRingsForPalette(RADIAL_FILL_PALETTE_COOL));
-	const concentricWarmRings = $derived.by(() => concentricRingsForPalette(RADIAL_FILL_PALETTE_WARM));
+	const concentricCoolRings = $derived.by(() =>
+		discreteSpectrumAnnuli(RADIAL_FILL_PALETTE_COOL, true)
+	);
+	const concentricWarmRings = $derived.by(() =>
+		discreteSpectrumAnnuli(RADIAL_FILL_PALETTE_WARM, false)
+	);
 
 	function clampTooltip(rawX, rawY, tw, th) {
 		const maxX = Math.max(TOOLTIP_PAD, width - tw - TOOLTIP_PAD);
@@ -414,43 +557,26 @@
 	/**
 	 * @param {MouseEvent} event
 	 * @param {string} model
+	 * @param {object} item
 	 * @param {string} responseText
 	 */
-	function setDotHover(event, model, responseText) {
-		hoveredModel = model;
+	function setDotHover(event, model, item, responseText) {
 		const rect = event.currentTarget?.ownerSVGElement?.getBoundingClientRect();
 		const localX = rect ? event.clientX - rect.left : 0;
 		const localY = rect ? event.clientY - rect.top : 0;
-		const pos = clampTooltip(localX + 12, localY - 52, 170, 56);
-		tooltip = { kind: 'dot', x: pos.x, y: pos.y, model, responseText: responseText || '' };
-	}
-
-	/**
-	 * @param {MouseEvent} event
-	 * @param {object} item
-	 */
-	function setSpokeHover(event, item) {
-		hoveredModel = null;
-		const rect = event.currentTarget?.ownerSVGElement?.getBoundingClientRect();
-		const localX = rect ? event.clientX - rect.left : 0;
-		const localY = rect ? event.clientY - rect.top : 0;
-		const pos = clampTooltip(localX + 12, localY - 8, SPOKE_TOOLTIP_W, SPOKE_TOOLTIP_H);
+		const pos = clampTooltip(localX + 12, localY - 52, TOOLTIP_MAX_W, 120);
 		tooltip = {
-			kind: 'spoke',
+			kind: 'dot',
 			x: pos.x,
 			y: pos.y,
-			dimensionTitle: String(item.dimensionTitle ?? ''),
-			subscaleLabel: String(item.subscaleLabel ?? ''),
-			statementText: statementLabel(item)
+			model,
+			subscaleLabel: String(item?.subscaleLabel ?? ''),
+			statementText: statementLabel(item),
+			responseText: responseText || ''
 		};
 	}
 
 	function clearDotHover() {
-		hoveredModel = null;
-		tooltip = null;
-	}
-
-	function clearSpokeHover() {
 		tooltip = null;
 	}
 </script>
@@ -465,10 +591,39 @@
 			class="block max-h-full max-w-full"
 			style="overflow: visible"
 			role="img"
-			aria-label="Radial chart of model mean responses by statement. Hover spokes or dots for details."
+			aria-label="Radial chart of model mean responses by statement. Hover dots for details."
 			focusable="false"
 		>
 			<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} />
+
+			<!-- Plot annulus: stroke-only subscale separation (no fill), no per-statement spokes -->
+			<g aria-hidden="true" class="subscale-plot-grid" pointer-events="none">
+				<circle
+					cx={layout.cx}
+					cy={layout.cy}
+					r={layout.innerR}
+					fill="none"
+					stroke={SPOKE_GUIDE}
+					stroke-width="1"
+				/>
+				<circle
+					cx={layout.cx}
+					cy={layout.cy}
+					r={layout.plotOuterR}
+					fill="none"
+					stroke={SPOKE_GUIDE}
+					stroke-width="1"
+				/>
+				{#if layout.subscaleArcs.length > 1}
+					{#each layout.subscaleArcs as arc (arc.id)}
+						{@const x0 = layout.cx + layout.innerR * Math.cos(arc.t0)}
+						{@const y0 = layout.cy + layout.innerR * Math.sin(arc.t0)}
+						{@const x1 = layout.cx + layout.plotOuterR * Math.cos(arc.t0)}
+						{@const y1 = layout.cy + layout.plotOuterR * Math.sin(arc.t0)}
+						<line x1={x0} y1={y0} x2={x1} y2={y1} stroke={SPOKE_GUIDE} stroke-width="1" />
+					{/each}
+				{/if}
+			</g>
 
 			<defs>
 				{#each layout.subscaleArcs as arc (arc.id)}
@@ -560,99 +715,80 @@
 					</defs>
 					<g clip-path="url(#{radialSpectrumClipBelowId})" fill-opacity="0.58">
 						{#each concentricCoolRings as ring (ring.k)}
-							<circle cx="0" cy="0" r={ring.r} fill={ring.fill} />
+							<path d={ring.d} fill={ring.fill} fill-rule="evenodd" />
 						{/each}
 					</g>
 					<g clip-path="url(#{radialSpectrumClipAboveId})" fill-opacity="0.58">
 						{#each concentricWarmRings as ring (ring.k)}
-							<circle cx="0" cy="0" r={ring.r} fill={ring.fill} />
+							<path d={ring.d} fill={ring.fill} fill-rule="evenodd" />
 						{/each}
 					</g>
 				</g>
 			{/if}
 
-			{#each layout.angles as ang, i (i)}
-				{@const x1 = layout.cx + layout.innerR * Math.cos(ang)}
-				{@const y1 = layout.cy + layout.innerR * Math.sin(ang)}
-				{@const x2 = layout.cx + layout.plotOuterR * Math.cos(ang)}
-				{@const y2 = layout.cy + layout.plotOuterR * Math.sin(ang)}
-				{@const xHit = layout.cx + layout.fullOuterR * Math.cos(ang)}
-				{@const yHit = layout.cy + layout.fullOuterR * Math.sin(ang)}
-				<line
-					x1={x1}
-					y1={y1}
-					x2={x2}
-					y2={y2}
-					stroke={SPOKE_GUIDE}
-					stroke-width="1"
+			{#if layout.n && layout.subscaleArcs.length && viz.modelSeries?.length}
+				<g
+					transform="translate({layout.cx},{layout.cy})"
+					class="subscale-mean-paths"
 					pointer-events="none"
-				/>
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<line
-					x1={x1}
-					y1={y1}
-					x2={xHit}
-					y2={yHit}
-					stroke="transparent"
-					stroke-width="36"
-					pointer-events="stroke"
-					onmouseenter={(e) => setSpokeHover(e, viz.dim.items[i])}
-					onmousemove={(e) => setSpokeHover(e, viz.dim.items[i])}
-					onmouseleave={clearSpokeHover}
-				/>
-			{/each}
+					aria-hidden="true"
+				>
+					{#each [...viz.modelSeries].sort((a, b) => {
+						if (a.fundModel === selectedModel) return 1;
+						if (b.fundModel === selectedModel) return -1;
+						return 0;
+					}) as m (m.fundModel)}
+						{#each layout.subscaleArcs as arc (`${m.fundModel}-${arc.id}`)}
+							{@const dSub = subscaleMeanPolylinePathLocalD(m, arc, meanPathRefRadii)}
+							{@const isSelected = m.fundModel === selectedModel}
+							{#if dSub}
+								<path
+									fill="none"
+									stroke={isSelected ? SELECTED_PATH_STROKE : INACTIVE_MODEL_PATH_STROKE}
+									stroke-width={isSelected ? 1.35 : 1}
+									d={dSub}
+								/>
+							{/if}
+						{/each}
+					{/each}
+				</g>
+			{/if}
 
-			{#each [...viz.modelSeries].sort((a, b) => {
-				if (a.fundModel === activeModel) return 1;
-				if (b.fundModel === activeModel) return -1;
-				return 0;
-			}) as m (m.fundModel)}
-				{@const selected = m.fundModel === activeModel}
-				{@const dLocal = modelMeanRingPathLocalD(m)}
-				{#if dLocal}
-					<g transform="translate({layout.cx},{layout.cy})" pointer-events="none">
-						<path
-							fill="none"
-							stroke={selected ? SELECTED_PATH_STROKE : NON_SELECTED_PATH_STROKE}
-							stroke-width={selected ? 1.35 : 1.15}
-							opacity={selected ? 1 : 0.38}
-							d={dLocal}
-						/>
-					</g>
+			{#each viz.modelSeries as m (m.fundModel)}
+				{#if m.fundModel === selectedModel}
+					{#each m.itemMeans as value, itemIndex (itemIndex)}
+						{#if value !== null && value !== undefined && !Number.isNaN(value)}
+							{@const item = viz.dim.items[itemIndex]}
+							{@const ang = layout.angles[itemIndex]}
+							{@const r = layout.rScales[itemIndex](value)}
+							{@const pt = polar(layout.cx, layout.cy, r, ang)}
+							{@const min = Number(item?.scaleMin)}
+							{@const max = Number(item?.scaleMax)}
+							{@const itemScaleTexts = Array.isArray(item?.statement_scale) && item.statement_scale.length
+								? item.statement_scale
+								: []}
+							{@const responseText = scaleTextForValue(
+								value,
+								itemScaleTexts,
+								min,
+								max,
+								Boolean(item?.reverse)
+							)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<circle
+								cx={pt[0]}
+								cy={pt[1]}
+								r={3}
+								fill={fillColorForItem(item, value)}
+								stroke="#1c1917"
+								stroke-width={0.45}
+								onmouseenter={(e) => setDotHover(e, m.fundModel, item, responseText)}
+								onmousemove={(e) => setDotHover(e, m.fundModel, item, responseText)}
+								onmouseleave={clearDotHover}
+							/>
+						{/if}
+					{/each}
 				{/if}
-				{@const rDot = selected ? 3 : 3}
-				{#each m.itemMeans as value, itemIndex (itemIndex)}
-					{#if value !== null && value !== undefined && !Number.isNaN(value)}
-						{@const item = viz.dim.items[itemIndex]}
-						{@const ang = layout.angles[itemIndex]}
-						{@const r = layout.rScales[itemIndex](value)}
-						{@const pt = polar(layout.cx, layout.cy, r, ang)}
-						{@const min = Number(item?.scaleMin)}
-						{@const max = Number(item?.scaleMax)}
-						{@const itemScaleTexts = Array.isArray(item?.statement_scale) && item.statement_scale.length
-							? item.statement_scale
-							: []}
-						{@const responseText = scaleTextForValue(
-							value,
-							itemScaleTexts,
-							min,
-							max,
-							Boolean(item?.reverse)
-						)}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<circle
-							cx={pt[0]}
-							cy={pt[1]}
-							r={rDot}
-							fill={fillColorForItem(item, value)}
-							stroke={selected ? '#1c1917' : 'transparent'}
-							stroke-width={selected ? 0.45 : 0}
-							onmouseenter={(e) => setDotHover(e, m.fundModel, responseText)}
-							onmousemove={(e) => setDotHover(e, m.fundModel, responseText)}
-							onmouseleave={clearDotHover}
-						/>
-					{/if}
-				{/each}
 			{/each}
 		</svg>
 
@@ -662,24 +798,16 @@
 				style="left: {tooltip.x}px; top: {tooltip.y}px; max-width: {TOOLTIP_MAX_W}px;"
 				aria-hidden="true"
 			>
-				<div class="tooltip-model">{tooltip.model}</div>
-				{#if tooltip.responseText}
-					<div class="tooltip-value">Average Response: {tooltip.responseText}</div>
-				{/if}
-			</div>
-		{:else if tooltip?.kind === 'spoke'}
-			<div
-				class="tooltip tooltip-spoke"
-				style="left: {tooltip.x}px; top: {tooltip.y}px; max-width: {SPOKE_TOOLTIP_W}px;"
-				aria-hidden="true"
-			>
-				{#if tooltip.dimensionTitle}
-					<div class="tooltip-dim">{tooltip.dimensionTitle}</div>
-				{/if}
 				{#if tooltip.subscaleLabel}
 					<div class="tooltip-subscale">{tooltip.subscaleLabel}</div>
 				{/if}
-				<div class="tooltip-statement">{tooltip.statementText}</div>
+				{#if tooltip.statementText}
+					<div class="tooltip-statement">{tooltip.statementText}</div>
+				{/if}
+				<div class="tooltip-model">{tooltip.model}</div>
+				{#if tooltip.responseText}
+					<div class="tooltip-value">Average response: {tooltip.responseText}</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -705,19 +833,6 @@
 		z-index: 50;
 	}
 
-	.tooltip-model {
-		font-weight: 600;
-	}
-
-	.tooltip-dim {
-		font-size: 10px;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: #64748b;
-		margin-bottom: 4px;
-	}
-
 	.tooltip-subscale {
 		font-size: 10px;
 		font-weight: 600;
@@ -728,6 +843,16 @@
 	.tooltip-statement {
 		color: #1c1917;
 		white-space: normal;
+		margin-bottom: 8px;
+	}
+
+	.tooltip-model {
+		font-weight: 600;
+		margin-bottom: 4px;
+	}
+
+	.tooltip-value {
+		color: #334155;
 	}
 
 	.subscale-label-text {

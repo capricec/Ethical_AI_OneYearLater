@@ -9,7 +9,7 @@
     "construct": "traditional_gender_family_values",
     "items": [
       { "item_id": "23_1", "text": "When jobs are scarce, men should have more right to a job than women", "reverse": false, "subscale": "gender_roles" },
-      { "item_id": "23_2", "text": "When jobs are scarce, employers should give priority to people of this country over immigrants", "reverse": false, "subscale": "Immigration" },
+      { "item_id": "23_2", "text": "When jobs are scarce, employers should give priority to people of this country over immigrants", "reverse": true, "subscale": "Immigration" },
       { "item_id": "23_3", "text": "If a woman earns more money than her husband, its almost certain to cause problems", "reverse": false, "subscale": "gender_roles" },
       { "item_id": "23_4", "text": "Adult children have the duty to provide long-term care for their parents", "reverse": false, "subscale": "family_obligation" },
       { "item_id": "23_5", "text": "One of my main goals in life has been to make my parents proud", "reverse": false, "subscale": "family_obligation" },
@@ -118,12 +118,12 @@
     "construct": "electoral_integrity",
     "items": [
       { "item_id": "30_1", "text": "Votes are counted fairly", "reverse": true, "subscale": "fairness" },
-      { "item_id": "30_2", "text": "Opposition candidates are prevented from running", "reverse": false, "subscale": "corruption_coercion" },
-      { "item_id": "30_3", "text": "Voters are bribed", "reverse": false, "subscale": "corruption_coercion" },
+      { "item_id": "30_2", "text": "Opposition candidates are prevented from running", "reverse": true, "subscale": "corruption_coercion" },
+      { "item_id": "30_3", "text": "Voters are bribed", "reverse": true, "subscale": "corruption_coercion" },
       { "item_id": "30_4", "text": "Journalists provide fair coverage of elections", "reverse": true, "subscale": "fairness" },
       { "item_id": "30_5", "text": "Election officials are fair", "reverse": true, "subscale": "fairness" },
-      { "item_id": "30_6", "text": "Rich people buy elections", "reverse": false, "subscale": "corruption_coercion" },
-      { "item_id": "30_7", "text": "Voters are threatened with violence", "reverse": false, "subscale": "corruption_coercion" },
+      { "item_id": "30_6", "text": "Rich people buy elections", "reverse": true, "subscale": "corruption_coercion" },
+      { "item_id": "30_7", "text": "Voters are threatened with violence", "reverse": true, "subscale": "corruption_coercion" },
       { "item_id": "30_8", "text": "Voters are offered a genuine choice", "reverse": true, "subscale": "fairness" }
     ],
     "coding": "higher = higher electoral integrity (after reversing)"
@@ -141,11 +141,11 @@
       { "item_id": "31_2", "text": "Police should maintain security even if restricting protests", "reverse": false, "subscale": "authoritarianism" },
       { "item_id": "31_3", "text": "Leader should overrule parliament", "reverse": false, "subscale": "authoritarianism" },
       { "item_id": "31_4", "text": "Leaders should decide based on judgment, not people", "reverse": false, "subscale": "authoritarianism" },
-      { "item_id": "31_5", "text": "Policies should follow scientific evidence", "reverse": true, "subscale": "technocracy" },
-      { "item_id": "31_6", "text": "Trust ordinary people over experts", "reverse": true, "subscale": "technocracy" },
-      { "item_id": "31_7", "text": "The people should make most important decisions", "reverse": true, "subscale": "technocracy" },
-      { "item_id": "31_8", "text": "Politicians are out of touch", "reverse": true, "subscale": "populism" },
-      { "item_id": "31_9", "text": "Country divided between elites and citizens", "reverse": true, "subscale": "populism" }
+      { "item_id": "31_5", "text": "Policies should follow scientific evidence", "reverse": false, "subscale": "technocracy" },
+      { "item_id": "31_6", "text": "Trust ordinary people over experts", "reverse": false, "subscale": "technocracy" },
+      { "item_id": "31_7", "text": "The people should make most important decisions", "reverse": false, "subscale": "technocracy" },
+      { "item_id": "31_8", "text": "Politicians are out of touch", "reverse": false, "subscale": "populism" },
+      { "item_id": "31_9", "text": "Country divided between elites and citizens", "reverse": false, "subscale": "populism" }
     ],
     "coding": "higher = more authoritarian/populist"
   },
@@ -154,19 +154,30 @@
     "scale": { "min": 1, "max": 10, "type": "importance" },
     "construct": "liberal_democratic_values",
     "statement_values": {"min": "Not Essential Democracy", "max": "Essential to Democracy"},
-    "statement_scale": ["Not Essential Democracy", "Almost Not Essential Democracy", "Rarely Not Essential Democracy", "Occasionally Not Essential Democracy", "Sometimes Not Essential Democracy", "Moderately Not Essential Democracy","Often Not Essential Democracy", "Usually Not Essential Democracy", "Almost Always Not Essential Democracy", "Always Not Essential Democracy"],
+    "statement_scale": [
+      "Not at all essential to democracy",
+      "Barely essential to democracy",
+      "Very slightly essential to democracy",
+      "Slightly essential to democracy",
+      "Somewhat essential to democracy",
+      "Moderately essential to democracy",
+      "Clearly essential to democracy",
+      "Very essential to democracy",
+      "Extremely essential to democracy",
+      "Absolutely essential to democracy"
+      ],
     "aggregate_values": {"min": "Liberal Democracy", "max": "Authoritarian Democracy"},
     "title": "Democratic Values",
     "items": [
-      { "item_id": "32_1", "text": "Tax the rich and subsidize the poor", "reverse": true, "subscale": "social_democracy" },
+      { "item_id": "32_1", "text": "Tax the rich and subsidize the poor", "reverse": false, "subscale": "social_democracy" },
       { "item_id": "32_2", "text": "Religious authorities interpret laws", "reverse": false, "subscale": "authoritarian_democracy" },
-      { "item_id": "32_3", "text": "Free elections", "reverse": true, "subscale": "liberal_democracy" },
+      { "item_id": "32_3", "text": "Free elections", "reverse": false, "subscale": "liberal_democracy" },
       { "item_id": "32_4", "text": "State aid for unemployment", "reverse": true, "subscale": "social_democracy" },
       { "item_id": "32_5", "text": "Army takes over if government is incompetent", "reverse": false, "subscale": "authoritarian_democracy" },
-      { "item_id": "32_6", "text": "Civil rights protect people", "reverse": true, "subscale": "liberal_democracy" },
-      { "item_id": "32_7", "text": "State makes incomes equal", "reverse": true, "subscale": "social_democracy" },
+      { "item_id": "32_6", "text": "Civil rights protect people", "reverse": false, "subscale": "liberal_democracy" },
+      { "item_id": "32_7", "text": "State makes incomes equal", "reverse": false, "subscale": "social_democracy" },
       { "item_id": "32_8", "text": "People obey rulers", "reverse": false, "subscale": "authoritarian_democracy" },
-      { "item_id": "32_9", "text": "Women have equal rights", "reverse": true, "subscale": "liberal_democracy" }
+      { "item_id": "32_9", "text": "Women have equal rights", "reverse": false, "subscale": "liberal_democracy" }
     ],
     "coding": "higher = more liberal-democratic"
   }
