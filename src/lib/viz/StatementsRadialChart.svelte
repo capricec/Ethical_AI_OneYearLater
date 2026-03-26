@@ -1,16 +1,18 @@
 <script>
 	import * as d3 from 'd3';
-	import {
-		fillColorForItem,
-		scaleTextForValue,
-		RADIAL_FILL_PALETTE_COOL,
-		RADIAL_FILL_PALETTE_WARM
-	} from '$lib/viz/valuePalette.js';
+	import { modelColor } from '$lib/viz/modelColors.js';
 	import { statementLabel } from '$lib/ui/statementLabel.js';
+	import { scaleTextForValue } from '$lib/viz/valuePalette.js';
 
-	const PANEL_BG = '#ebebeb';
-	const SPOKE_GUIDE = '#d4d4d4';
-	const LABEL_RING_STROKE = '#a3a3a3';
+	const PANEL_BG = '#ffffff';
+	/** Pixels beyond outer label ring; keeps curved labels inside the clip. */
+	const DISC_CLIP_OUTSET = 4;
+	/** White ring between grey hub and inner end of value scale (spike bases). */
+	const INNER_SCALE_WHITE_PAD = 14;
+	/** Subscale wedge rims + wide radial separators (matches surrounding grey panels). */
+	const WEDGE_BORDER_STROKE = '#ebebeb';
+	const SUBSCALE_SPOKE_WIDTH = 1;
+	const SUBSCALE_RIM_WIDTH = 1;
 	const SELECTED_PATH_STROKE = '#0a0a0a';
 	const INACTIVE_MODEL_PATH_STROKE = '#a8a29e';
 
@@ -25,11 +27,11 @@
 	 * @property {{ aggregate: object, item: object }} labels
 	 */
 
-	/** @type {{ width: number, height: number, viz: Viz, selectedModel: string }} */
-	let { width, height, viz, selectedModel } = $props();
+	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void) }} */
+	let { width, height, viz, selectedModel, onSubscaleWedgeClick = () => {} } = $props();
 
 	/**
-	 * @type { { kind: 'dot', x: number, y: number, model: string, subscaleLabel: string, statementText: string, responseText: string }
+	 * @type { { kind: 'dot', x: number, y: number, placeLeft: boolean, model: string, subscaleLabel: string, statementText: string, responseText: string }
 	 *   | null }
 	 */
 	let tooltip = $state(null);
@@ -56,6 +58,21 @@
 		const da = sectorSpan(t0, t1);
 		const largeArc = da > Math.PI ? 1 : 0;
 		return `M ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1}`;
+	}
+
+	/** Closed annular sector path (outer arc t0→t1, inner arc t1→t0). */
+	function annularSectorPathD(cx, cy, rInner, rOuter, t0, t1) {
+		const ox0 = cx + rOuter * Math.cos(t0);
+		const oy0 = cy + rOuter * Math.sin(t0);
+		const ox1 = cx + rOuter * Math.cos(t1);
+		const oy1 = cy + rOuter * Math.sin(t1);
+		const ix1 = cx + rInner * Math.cos(t1);
+		const iy1 = cy + rInner * Math.sin(t1);
+		const ix0 = cx + rInner * Math.cos(t0);
+		const iy0 = cy + rInner * Math.sin(t0);
+		const da = sectorSpan(t0, t1);
+		const largeArc = da > Math.PI ? 1 : 0;
+		return `M ${ox0} ${oy0} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${ox1} ${oy1} L ${ix1} ${iy1} A ${rInner} ${rInner} 0 ${largeArc} 0 ${ix0} ${iy0} Z`;
 	}
 
 	/**
@@ -117,7 +134,9 @@
 				fullOuterR: 40,
 				plotOuterR: 32,
 				labelTextR: 36,
-				innerR: 14,
+				hubR: 14,
+				scaleInnerR: 28,
+				clipEdgeR: 40 + DISC_CLIP_OUTSET,
 				angles: /** @type {number[]} */ ([]),
 				rScales: /** @type {import('d3').ScaleLinear<number, number>[]} */ ([]),
 				n: 0,
@@ -135,8 +154,12 @@
 			Math.max(20, fullOuterR - LABEL_BAND),
 			fullOuterR - 4
 		);
-		/** Larger hub (empty center); statement scales still map innerR → plotOuterR. */
-		const innerR = Math.max(14, plotOuterR * 0.17);
+		/** Grey hub; value scale and spikes start at scaleInnerR (white pad between). */
+		const hubR = Math.max(14, plotOuterR * 0.17);
+		const scaleInnerR = Math.max(
+			hubR + 2,
+			Math.min(hubR + INNER_SCALE_WHITE_PAD, plotOuterR - 6)
+		);
 		const labelTextR = (plotOuterR + fullOuterR) / 2;
 
 		const angles = [];
@@ -144,7 +167,7 @@
 		for (let i = 0; i < n; i++) {
 			angles.push(-Math.PI / 2 + (i / n) * 2 * Math.PI);
 			const ext = viz.itemExtents[i] ?? [0, 1];
-			rScales.push(d3.scaleLinear().domain(ext).range([innerR, plotOuterR]));
+			rScales.push(d3.scaleLinear().domain(ext).range([scaleInnerR, plotOuterR]));
 		}
 
 		const items = viz.dim.items;
@@ -171,7 +194,9 @@
 			fullOuterR,
 			plotOuterR,
 			labelTextR,
-			innerR,
+			hubR,
+			scaleInnerR,
+			clipEdgeR: fullOuterR + DISC_CLIP_OUTSET,
 			angles,
 			rScales,
 			n,
@@ -181,6 +206,17 @@
 
 	function polar(cx, cy, r, ang) {
 		return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
+	}
+
+	/** Local (0,0-centered) arc path for statement bump caps. */
+	function arcPathLocalD(r, t0, t1) {
+		const x0 = r * Math.cos(t0);
+		const y0 = r * Math.sin(t0);
+		const x1 = r * Math.cos(t1);
+		const y1 = r * Math.sin(t1);
+		const da = sectorSpan(t0, t1);
+		const largeArc = da > Math.PI ? 1 : 0;
+		return `M ${x0} ${y0} A ${r} ${r} 0 ${largeArc} 1 ${x1} ${y1}`;
 	}
 
 	/** Scale midpoint radius on spoke i (same ref as areaRadial bands). */
@@ -462,88 +498,383 @@
 		return subscaleMeanLineOpen(pts) ?? '';
 	}
 
-	/**
-	 * Above/below threshold bands (translate(cx,cy) in markup). Geometry follows mean vs ref, not d3 min() hybrid.
-	 */
-	const radialBandPaths = $derived.by(() => {
-		const empty = { pathAbove: '', pathBelow: '', hasFill: false };
-		if (!viz?.dim?.items?.length || !layout.n) return empty;
+	function statementSpikeHalfAngle(n) {
+		if (!n) return 0.06;
+		// half-step is TAU/n/2; user-approved window = 0.35× half-step
+		const halfStep = TAU / n / 2;
+		return Math.max(0.02, Math.min(0.14, 1 * halfStep));
+	}
+
+	function statementSpikePointsLocalXY(i, rRefArr, rDataArr) {
 		const n = layout.n;
-		const selected = viz.modelSeries.find((s) => s.fundModel === selectedModel);
+		if (!n) return [];
+		const ang = layout.angles[i];
+		const half = statementSpikeHalfAngle(n);
+		const rr = rRefArr[i] ?? sampleRCyclic(ang, n, rRefArr);
+		const rd = rDataArr[i] ?? rr;
+		/** @type {[number, number][]} */
+		const pts = [];
+		pts.push(ptLocalPolar(rr, ang - half));
+		pts.push(ptLocalPolar(rd, ang));
+		pts.push(ptLocalPolar(rr, ang + half));
+		return pts;
+	}
 
-		const rRef = [];
-		for (let i = 0; i < n; i++) {
-			rRef.push(refRadiusAtIndex(i));
+	function statementSpikeStrokePathLocalD(i, rRefArr, rDataArr) {
+		const pts = statementSpikePointsLocalXY(i, rRefArr, rDataArr);
+		if (pts.length < 2) return '';
+		return subscaleMeanLineOpen(pts) ?? '';
+	}
+
+	/**
+	 * Deviation clips per statement: each statement becomes its own spike vs baseline rRef[i].
+	 * Output is a union of trapezoids (clip-path friendly), split into above vs below.
+	 */
+	function deviationSpikePathsPerStatementD(n, rRef, rData) {
+		/** @type {string[]} */
+		const belowParts = [];
+		/** @type {string[]} */
+		const aboveParts = [];
+
+		/** @param {boolean} isBelow */
+		function pushTrap(isBelow, t0, t1, rd0, rd1, rr0, rr1) {
+			const [iax, iay] = ptLocalPolar(isBelow ? rd0 : rr0, t0);
+			const [ibx, iby] = ptLocalPolar(isBelow ? rd1 : rr1, t1);
+			const [obx, oby] = ptLocalPolar(isBelow ? rr1 : rd1, t1);
+			const [oax, oay] = ptLocalPolar(isBelow ? rr0 : rd0, t0);
+			const part = `M ${iax} ${iay} L ${ibx} ${iby} L ${obx} ${oby} L ${oax} ${oay} Z`;
+			(isBelow ? belowParts : aboveParts).push(part);
 		}
 
-		let pathAbove = '';
-		let pathBelow = '';
-		if (selected && layout.subscaleArcs.length) {
-			const rDataEff = [];
-			for (let i = 0; i < n; i++) {
-				rDataEff.push(effectiveRForModelAt(selected, i));
+		function addBelowSegment(ta, tb, rDa, rDb, rR) {
+			const fa = rDa - rR;
+			const fb = rDb - rR;
+			if (fa < 0 && fb < 0) {
+				pushTrap(true, ta, tb, rDa, rDb, rR, rR);
+				return;
 			}
-			const bands = deviationBandPathsPerSubscaleD(n, rRef, rDataEff, layout.subscaleArcs);
-			pathBelow = bands.pathBelow;
-			pathAbove = bands.pathAbove;
+			if (fa >= 0 && fb >= 0) return;
+			const denom = fb - fa;
+			let tc = Math.abs(denom) > 1e-10 ? -fa / denom : 0.5;
+			tc = Math.max(0, Math.min(1, tc));
+			const tm = ta + tc * (tb - ta);
+			const rDm = rDa + tc * (rDb - rDa);
+			if (tc > 1e-12 && fa < 0) pushTrap(true, ta, tm, rDa, rDm, rR, rR);
+			if (tc < 1 - 1e-12 && fb < 0) pushTrap(true, tm, tb, rDm, rDb, rR, rR);
 		}
 
-		return { pathAbove, pathBelow, hasFill: Boolean(selected) };
+		function addAboveSegment(ta, tb, rDa, rDb, rR) {
+			const ga = rDa - rR;
+			const gb = rDb - rR;
+			if (ga > 0 && gb > 0) {
+				pushTrap(false, ta, tb, rDa, rDb, rR, rR);
+				return;
+			}
+			if (ga <= 0 && gb <= 0) return;
+			const denom = gb - ga;
+			let tc = Math.abs(denom) > 1e-10 ? -ga / denom : 0.5;
+			tc = Math.max(0, Math.min(1, tc));
+			const tm = ta + tc * (tb - ta);
+			const rDm = rDa + tc * (rDb - rDa);
+			if (tc > 1e-12 && ga > 0) pushTrap(false, ta, tm, rDa, rDm, rR, rR);
+			if (tc < 1 - 1e-12 && gb > 0) pushTrap(false, tm, tb, rDm, rDb, rR, rR);
+		}
+
+		for (let i = 0; i < n; i++) {
+			const rr = rRef[i];
+			const pts = statementSpikePointsLocalXY(i, rRef, rData);
+			if (pts.length < 2) continue;
+			const segs = recordLineSegmentsWithCurve(pts, meanLineCurve);
+			const samples = samplePathSegmentsToPolar(segs, 24);
+			if (samples.length < 2) continue;
+			for (let j = 0; j < samples.length - 1; j++) {
+				const ta = samples[j].theta;
+				const tb = samples[j + 1].theta;
+				const rDa = samples[j].r;
+				const rDb = samples[j + 1].r;
+				addBelowSegment(ta, tb, rDa, rDb, rr);
+				addAboveSegment(ta, tb, rDa, rDb, rr);
+			}
+		}
+
+		return {
+			pathBelow: belowParts.join(' '),
+			pathAbove: aboveParts.join(' ')
+		};
+	}
+
+	/**
+	 * Convergence view: per-statement overlap (grey) + per-model overhangs (model colors).
+	 * Missing means are treated as baseline via `effectiveRForModelAt`.
+	 */
+	const spikeIndexList = $derived.by(() => Array.from({ length: layout.n }, (_, i) => i));
+
+	const spikeRDataByModel = $derived.by(() => {
+		const n = layout.n;
+		/** @type {Map<string, number[]>} */
+		const map = new Map();
+		if (!n || !viz?.modelSeries?.length) return map;
+		for (const s of viz.modelSeries) {
+			const arr = [];
+			for (let i = 0; i < n; i++) arr.push(effectiveRForModelAt(s, i));
+			map.set(s.fundModel, arr);
+		}
+		return map;
 	});
 
-	const radialClipBase = $derived(
-		`${String(selectedModel).replace(/[^a-zA-Z0-9_-]/g, '_')}-${layout.n}`
-	);
-	const radialSpectrumClipBelowId = $derived(`radial-spectrum-below-${radialClipBase}`);
-	const radialSpectrumClipAboveId = $derived(`radial-spectrum-above-${radialClipBase}`);
-
 	/**
-	 * Annulus path (origin = chart center via parent translate). evenodd subtracts inner disc.
+	 * Sample a single statement spike curve in local XY, given baseline radius and tip radius.
+	 * @returns {[number, number][]}
 	 */
-	function annulusPathD(rInner, rOuter) {
-		if (!(rOuter > rInner) || rInner < 0) return '';
-		return [
-			`M 0 ${-rOuter}`,
-			`a ${rOuter} ${rOuter} 0 1 1 0 ${2 * rOuter}`,
-			`a ${rOuter} ${rOuter} 0 1 1 0 ${-2 * rOuter}`,
-			`M 0 ${-rInner}`,
-			`a ${rInner} ${rInner} 0 1 0 0 ${2 * rInner}`,
-			`a ${rInner} ${rInner} 0 1 0 0 ${-2 * rInner}`
-		].join(' ');
-	}
-
-	/**
-	 * Five equal annuli from innerR → plotOuterR, one palette stop each (no stacked-disk bleed).
-	 * Cool slice is ordered dark → light in the array; warm is light → dark. Darkest at plot outer for both.
-	 * @param {string[]} pal
-	 * @param {boolean} coolSlice — if true, reverse index so outer = pal[0] (darkest blue)
-	 */
-	function discreteSpectrumAnnuli(pal, coolSlice) {
-		const inner = layout.innerR;
-		const outer = layout.plotOuterR;
-		const span = Math.max(1e-6, outer - inner);
-		const n = pal.length;
-		/** @type {{ k: number, d: string, fill: string }[]} */
-		const rings = [];
-		for (let i = 0; i < n; i++) {
-			const r0 = inner + (i / n) * span;
-			const r1 = inner + ((i + 1) / n) * span;
-			const idx = coolSlice ? i : i;
-			rings.push({
-				k: i,
-				d: annulusPathD(r0, r1),
-				fill: pal[idx] ?? '#94a3b8'
-			});
+	function sampleStatementSpikeCurveXY(i, rBase, rTip, budget = 22) {
+		const n = layout.n;
+		if (!n) return [];
+		const ang = layout.angles[i];
+		const half = statementSpikeHalfAngle(n);
+		const pts = [ptLocalPolar(rBase, ang - half), ptLocalPolar(rTip, ang), ptLocalPolar(rBase, ang + half)];
+		const segs = recordLineSegmentsWithCurve(pts, meanLineCurve);
+		/** @type {[number, number][]} */
+		const out = [];
+		let px = 0;
+		let py = 0;
+		let started = false;
+		for (const s of segs) {
+			if (s.kind === 'M') {
+				px = s.x;
+				py = s.y;
+				started = true;
+				out.push([px, py]);
+				continue;
+			}
+			if (!started) continue;
+			if (s.kind === 'L') {
+				const x1 = s.x;
+				const y1 = s.y;
+				for (let k = 1; k <= budget; k++) {
+					const t = k / budget;
+					out.push([px + t * (x1 - px), py + t * (y1 - py)]);
+				}
+				px = x1;
+				py = y1;
+			} else if (s.kind === 'C') {
+				const x0 = px;
+				const y0 = py;
+				const cp1x = s.x1 ?? x0;
+				const cp1y = s.y1 ?? y0;
+				const cp2x = s.x2 ?? x0;
+				const cp2y = s.y2 ?? y0;
+				const x3 = s.x;
+				const y3 = s.y;
+				for (let k = 1; k <= budget; k++) {
+					const t = k / budget;
+					const omt = 1 - t;
+					const x =
+						omt * omt * omt * x0 +
+						3 * omt * omt * t * cp1x +
+						3 * omt * t * t * cp2x +
+						t * t * t * x3;
+					const y =
+						omt * omt * omt * y0 +
+						3 * omt * omt * t * cp1y +
+						3 * omt * t * t * cp2y +
+						t * t * t * y3;
+					out.push([x, y]);
+				}
+				px = x3;
+				py = y3;
+			}
 		}
-		return rings;
+		return out;
 	}
 
-	const concentricCoolRings = $derived.by(() =>
-		discreteSpectrumAnnuli(RADIAL_FILL_PALETTE_COOL, true)
-	);
-	const concentricWarmRings = $derived.by(() =>
-		discreteSpectrumAnnuli(RADIAL_FILL_PALETTE_WARM, false)
-	);
+	function pathFromXY(points) {
+		if (!points.length) return '';
+		let d = `M ${points[0][0]} ${points[0][1]}`;
+		for (let i = 1; i < points.length; i++) d += ` L ${points[i][0]} ${points[i][1]}`;
+		return d + ' Z';
+	}
+
+	function stripPathBetweenCurves(outerPts, innerPts) {
+		if (!outerPts.length || !innerPts.length) return '';
+		let d = `M ${outerPts[0][0]} ${outerPts[0][1]}`;
+		for (let i = 1; i < outerPts.length; i++) d += ` L ${outerPts[i][0]} ${outerPts[i][1]}`;
+		for (let i = innerPts.length - 1; i >= 0; i--) d += ` L ${innerPts[i][0]} ${innerPts[i][1]}`;
+		return d + ' Z';
+	}
+
+	const convergenceByStatement = $derived.by(() => {
+		const n = layout.n;
+		if (!n || !viz?.modelSeries?.length) return [];
+		const models = viz.modelSeries.map((s) => s.fundModel);
+		/** @type {{ i: number, rBase: number, sharedTip: number|null, allAbove: boolean, allBelow: boolean, rByModel: Map<string, number> }[]} */
+		const out = [];
+		for (let i = 0; i < n; i++) {
+			const rBase = meanPathRefRadii[i];
+			let allAbove = true;
+			let allBelow = true;
+			let minR = Infinity;
+			let maxR = -Infinity;
+			/** @type {Map<string, number>} */
+			const rByModel = new Map();
+			for (const m of models) {
+				const arr = spikeRDataByModel.get(m) ?? [];
+				const r = arr[i] ?? rBase;
+				rByModel.set(m, r);
+				if (r <= rBase + 1e-6) allAbove = false;
+				if (r >= rBase - 1e-6) allBelow = false;
+				minR = Math.min(minR, r);
+				maxR = Math.max(maxR, r);
+			}
+			let sharedTip = null;
+			if (allAbove) sharedTip = minR;
+			else if (allBelow) sharedTip = maxR;
+			out.push({ i, rBase, sharedTip, allAbove, allBelow, rByModel });
+		}
+		return out;
+	});
+
+	const isolatedModelSeries = $derived.by(() => {
+		if (!selectedModel) return null;
+		return viz?.modelSeries?.find((s) => s.fundModel === selectedModel) ?? null;
+	});
+
+	const isolatedModelRData = $derived.by(() => {
+		const n = layout.n;
+		if (!n || !isolatedModelSeries) return /** @type {number[]} */ ([]);
+		const out = [];
+		for (let i = 0; i < n; i++) out.push(effectiveRForModelAt(isolatedModelSeries, i));
+		return out;
+	});
+
+	/**
+	 * Grey consensus + colored spikes. Colored paths sorted by descending radial extent (largest drawn first = bottom).
+	 */
+	const convergenceFillLayers = $derived.by(() => {
+		/** @type {{ d: string, key: string }[]} */
+		const greyPaths = [];
+		/** @type {{ d: string, fill: string, key: string, area: number }[]} */
+		const coloredPaths = [];
+
+		if (!layout.n || !viz?.modelSeries?.length || !convergenceByStatement.length) {
+			return { greyPaths, coloredPaths };
+		}
+
+		for (const st of convergenceByStatement) {
+			if (st.sharedTip !== null && Math.abs(st.sharedTip - st.rBase) > 1e-6) {
+				const sharedPts = sampleStatementSpikeCurveXY(st.i, st.rBase, st.sharedTip);
+				const dShared = pathFromXY(sharedPts);
+				if (dShared) greyPaths.push({ d: dShared, key: `grey-${st.i}` });
+			}
+		}
+
+		if (!selectedModel) {
+			for (const st of convergenceByStatement) {
+				for (const ms of viz.modelSeries) {
+					const r = st.rByModel.get(ms.fundModel) ?? st.rBase;
+					if (st.sharedTip !== null) {
+						if ((st.allAbove && r > st.sharedTip + 1e-6) || (st.allBelow && r < st.sharedTip - 1e-6)) {
+							const outerTip = st.allAbove ? r : st.sharedTip;
+							const innerTip = st.allAbove ? st.sharedTip : r;
+							const outerPts = sampleStatementSpikeCurveXY(st.i, st.rBase, outerTip);
+							const innerPts = sampleStatementSpikeCurveXY(st.i, st.rBase, innerTip);
+							const dStrip = stripPathBetweenCurves(outerPts, innerPts);
+							if (dStrip) {
+								coloredPaths.push({
+									d: dStrip,
+									fill: modelColor(ms.fundModel),
+									key: `${st.i}-${ms.fundModel}-strip`,
+									area: Math.abs(outerTip - innerTip)
+								});
+							}
+						}
+					} else if (Math.abs(r - st.rBase) > 1e-6) {
+						const pts = sampleStatementSpikeCurveXY(st.i, st.rBase, r);
+						const dSpikeFill = pathFromXY(pts);
+						if (dSpikeFill) {
+							coloredPaths.push({
+								d: dSpikeFill,
+								fill: modelColor(ms.fundModel),
+								key: `${st.i}-${ms.fundModel}-full`,
+								area: Math.abs(r - st.rBase)
+							});
+						}
+					}
+				}
+			}
+		} else if (isolatedModelSeries && isolatedModelRData.length) {
+			const c = modelColor(selectedModel);
+			for (const st of convergenceByStatement) {
+				const r = isolatedModelRData[st.i] ?? st.rBase;
+				if (st.sharedTip !== null) {
+					if ((st.allAbove && r > st.sharedTip + 1e-6) || (st.allBelow && r < st.sharedTip - 1e-6)) {
+						const outerTip = st.allAbove ? r : st.sharedTip;
+						const innerTip = st.allAbove ? st.sharedTip : r;
+						const outerPts = sampleStatementSpikeCurveXY(st.i, st.rBase, outerTip);
+						const innerPts = sampleStatementSpikeCurveXY(st.i, st.rBase, innerTip);
+						const dStrip = stripPathBetweenCurves(outerPts, innerPts);
+						if (dStrip) {
+							coloredPaths.push({
+								d: dStrip,
+								fill: c,
+								key: `${st.i}-${selectedModel}-iso-strip`,
+								area: Math.abs(outerTip - innerTip)
+							});
+						}
+					}
+				} else if (Math.abs(r - st.rBase) > 1e-6) {
+					const pts = sampleStatementSpikeCurveXY(st.i, st.rBase, r);
+					const dSpikeFill = pathFromXY(pts);
+					if (dSpikeFill) {
+						coloredPaths.push({
+							d: dSpikeFill,
+							fill: c,
+							key: `${st.i}-${selectedModel}-iso-full`,
+							area: Math.abs(r - st.rBase)
+						});
+					}
+				}
+			}
+		}
+
+		coloredPaths.sort((a, b) => b.area - a.area);
+		return { greyPaths, coloredPaths };
+	});
+
+	const spikeHoverTargets = $derived.by(() => {
+		if (!layout.n || !viz?.modelSeries?.length || !meanPathRefRadii.length) return [];
+		/** @type {{ key: string, d: string, model: string, item: object, responseText: string }[]} */
+		const targets = [];
+		const activeSeries =
+			selectedModel === null
+				? viz.modelSeries
+				: viz.modelSeries.filter((series) => series.fundModel === selectedModel);
+		for (const model of activeSeries) {
+			const rData = [];
+			for (let i = 0; i < layout.n; i++) rData.push(effectiveRForModelAt(model, i));
+			for (let i = 0; i < layout.n; i++) {
+				const value = model.itemMeans?.[i];
+				if (value === null || value === undefined || Number.isNaN(value)) continue;
+				const d = statementSpikeStrokePathLocalD(i, meanPathRefRadii, rData);
+				if (!d) continue;
+				const item = viz.dim.items[i];
+				const responseText = scaleTextForValue(
+					value,
+					Array.isArray(item?.statement_scale) ? item.statement_scale : [],
+					Number(item?.scaleMin),
+					Number(item?.scaleMax),
+					Boolean(item?.reverse)
+				);
+				targets.push({
+					key: `${model.fundModel}-${item?.item_id ?? i}`,
+					d,
+					model: model.fundModel,
+					item,
+					responseText
+				});
+			}
+		}
+		return targets;
+	});
 
 	function clampTooltip(rawX, rawY, tw, th) {
 		const maxX = Math.max(TOOLTIP_PAD, width - tw - TOOLTIP_PAD);
@@ -564,11 +895,20 @@
 		const rect = event.currentTarget?.ownerSVGElement?.getBoundingClientRect();
 		const localX = rect ? event.clientX - rect.left : 0;
 		const localY = rect ? event.clientY - rect.top : 0;
-		const pos = clampTooltip(localX + 12, localY - 52, TOOLTIP_MAX_W, 120);
+		const placeLeft = localX > width / 2;
+		// Anchor the nearest tooltip edge near cursor so short tooltips don't sit far away.
+		const rightEdgeX = Math.max(TOOLTIP_PAD + TOOLTIP_MAX_W, Math.min(width - TOOLTIP_PAD, localX - 12));
+		const leftEdgeX = Math.max(
+			TOOLTIP_PAD,
+			Math.min(width - TOOLTIP_MAX_W - TOOLTIP_PAD, localX + 12)
+		);
+		const x = placeLeft ? rightEdgeX : leftEdgeX;
+		const y = clampTooltip(localX, localY - 52, TOOLTIP_MAX_W, 120).y;
 		tooltip = {
 			kind: 'dot',
-			x: pos.x,
-			y: pos.y,
+			x,
+			y,
+			placeLeft,
 			model,
 			subscaleLabel: String(item?.subscaleLabel ?? ''),
 			statementText: statementLabel(item),
@@ -579,110 +919,156 @@
 	function clearDotHover() {
 		tooltip = null;
 	}
+
+	/** @param {string} subscaleKey */
+	function handleSubscaleWedgeClick(subscaleKey) {
+		onSubscaleWedgeClick(subscaleKey);
+	}
 </script>
 
 {#if !viz || !layout.n}
 	<p class="text-sm text-slate-500">No data.</p>
 {:else}
-	<div class="chart-wrap max-h-full max-w-full" style="width: {width}px; height: {height}px;">
+	<div
+		class="chart-wrap max-h-full max-w-full overflow-visible rounded-full"
+		style="width: {width}px; height: {height}px;"
+	>
 		<svg
 			width={width}
 			height={height}
 			class="block max-h-full max-w-full"
-			style="overflow: visible"
+			style="overflow: hidden"
 			role="img"
-			aria-label="Radial chart of model mean responses by statement. Hover dots for details."
+			aria-label="Radial chart of model convergence by statement."
 			focusable="false"
 		>
-			<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} />
-
-			<!-- Plot annulus: stroke-only subscale separation (no fill), no per-statement spokes -->
-			<g aria-hidden="true" class="subscale-plot-grid" pointer-events="none">
-				<circle
-					cx={layout.cx}
-					cy={layout.cy}
-					r={layout.innerR}
-					fill="none"
-					stroke={SPOKE_GUIDE}
-					stroke-width="1"
-				/>
-				<circle
-					cx={layout.cx}
-					cy={layout.cy}
-					r={layout.plotOuterR}
-					fill="none"
-					stroke={SPOKE_GUIDE}
-					stroke-width="1"
-				/>
-				{#if layout.subscaleArcs.length > 1}
-					{#each layout.subscaleArcs as arc (arc.id)}
-						{@const x0 = layout.cx + layout.innerR * Math.cos(arc.t0)}
-						{@const y0 = layout.cy + layout.innerR * Math.sin(arc.t0)}
-						{@const x1 = layout.cx + layout.plotOuterR * Math.cos(arc.t0)}
-						{@const y1 = layout.cy + layout.plotOuterR * Math.sin(arc.t0)}
-						<line x1={x0} y1={y0} x2={x1} y2={y1} stroke={SPOKE_GUIDE} stroke-width="1" />
-					{/each}
-				{/if}
-			</g>
-
 			<defs>
+				<clipPath id="radial-plot-disc-clip">
+					<circle
+						cx={layout.cx}
+						cy={layout.cy}
+						r={layout.fullOuterR + DISC_CLIP_OUTSET}
+					/>
+				</clipPath>
 				{#each layout.subscaleArcs as arc (arc.id)}
 					<path id={arc.id} d={arc.textPathD} fill="none" />
 				{/each}
 			</defs>
 
-			<!-- Subscale ring: cell borders -->
-			<g aria-hidden="true" class="subscale-ring" pointer-events="none">
-				{#each layout.subscaleArcs as arc, sidx (sidx)}
-					{@const xA = layout.cx + layout.plotOuterR * Math.cos(arc.t0)}
-					{@const yA = layout.cy + layout.plotOuterR * Math.sin(arc.t0)}
-					{@const xOuterA = layout.cx + layout.fullOuterR * Math.cos(arc.t0)}
-					{@const yOuterA = layout.cy + layout.fullOuterR * Math.sin(arc.t0)}
-					{@const xOuterB = layout.cx + layout.fullOuterR * Math.cos(arc.t1)}
-					{@const yOuterB = layout.cy + layout.fullOuterR * Math.sin(arc.t1)}
-					<path
-						d={geometricSectorArcD(
-							layout.cx,
-							layout.cy,
-							layout.plotOuterR,
-							arc.t0,
-							arc.t1
-						)}
-						fill="none"
-						stroke={LABEL_RING_STROKE}
-						stroke-width="1"
-					/>
-					<path
-						d={geometricSectorArcD(
-							layout.cx,
-							layout.cy,
-							layout.fullOuterR,
-							arc.t0,
-							arc.t1
-						)}
-						fill="none"
-						stroke={LABEL_RING_STROKE}
-						stroke-width="1"
-					/>
-					<line
-						x1={xA}
-						y1={yA}
-						x2={xOuterA}
-						y2={yOuterA}
-						stroke={LABEL_RING_STROKE}
-						stroke-width="1"
-					/>
-					<line
-						x1={layout.cx + layout.plotOuterR * Math.cos(arc.t1)}
-						y1={layout.cy + layout.plotOuterR * Math.sin(arc.t1)}
-						x2={xOuterB}
-						y2={yOuterB}
-						stroke={LABEL_RING_STROKE}
-						stroke-width="1"
-					/>
-				{/each}
+			<g clip-path="url(#radial-plot-disc-clip)">
+				<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} />
+
+				<!-- Inner hub: same grey as column chrome / wedge separators -->
+				<circle
+					cx={layout.cx}
+					cy={layout.cy}
+					r={layout.hubR}
+					fill={WEDGE_BORDER_STROKE}
+					aria-hidden="true"
+				/>
+
+				{#if layout.n && viz.modelSeries?.length && convergenceFillLayers.coloredPaths.length + convergenceFillLayers.greyPaths.length > 0}
+					<g
+						transform="translate({layout.cx},{layout.cy})"
+						class="model-convergence-fills"
+						aria-hidden="true"
+						pointer-events="none"
+					>
+						{#each convergenceFillLayers.coloredPaths as p (p.key)}
+							<path d={p.d} fill={p.fill} />
+						{/each}
+						{#each convergenceFillLayers.greyPaths as g (g.key)}
+							<path d={g.d} fill="#cecece" fill-opacity="0.78" />
+						{/each}
+					</g>
+				{/if}
+
+				<!-- Hover target overlays for statement spikes -->
+				<g transform="translate({layout.cx},{layout.cy})" class="spike-hit-targets">
+					{#each spikeHoverTargets as t (t.key)}
+						<path
+							d={t.d}
+							fill="none"
+							stroke="transparent"
+							stroke-width="13"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							role="presentation"
+							aria-hidden="true"
+							onmouseenter={(event) => setDotHover(event, t.model, t.item, t.responseText)}
+							onmousemove={(event) => setDotHover(event, t.model, t.item, t.responseText)}
+							onmouseleave={clearDotHover}
+						/>
+					{/each}
+				</g>
+
+				<!-- Subscale wedges only: rim arcs + wide radials at subscale boundaries to clip edge -->
+				<g aria-hidden="true" class="subscale-plot-grid" pointer-events="none">
+					{#if layout.subscaleArcs.length <= 1}
+						<circle
+							cx={layout.cx}
+							cy={layout.cy}
+							r={layout.clipEdgeR}
+							fill="none"
+							stroke={WEDGE_BORDER_STROKE}
+							stroke-width={SUBSCALE_RIM_WIDTH}
+						/>
+					{:else}
+						{#each layout.subscaleArcs as arc (arc.id)}
+							<path
+								d={geometricSectorArcD(
+									layout.cx,
+									layout.cy,
+									layout.clipEdgeR,
+									arc.t0,
+									arc.t1
+								)}
+								fill="none"
+								stroke={WEDGE_BORDER_STROKE}
+								stroke-width={SUBSCALE_RIM_WIDTH}
+							/>
+						{/each}
+						{#each layout.subscaleArcs as arc (arc.id)}
+							{@const t = arc.t0}
+							{@const x0 = layout.cx + layout.hubR * Math.cos(t)}
+							{@const y0 = layout.cy + layout.hubR * Math.sin(t)}
+							{@const x1 = layout.cx + layout.clipEdgeR * Math.cos(t)}
+							{@const y1 = layout.cy + layout.clipEdgeR * Math.sin(t)}
+							<line
+								x1={x0}
+								y1={y0}
+								x2={x1}
+								y2={y1}
+								stroke={WEDGE_BORDER_STROKE}
+								stroke-width={SUBSCALE_SPOKE_WIDTH}
+								stroke-linecap="butt"
+							/>
+						{/each}
+					{/if}
+				</g>
+
+				<g class="subscale-hit-targets">
+					{#each layout.subscaleArcs as arc (arc.id)}
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<path
+							d={annularSectorPathD(
+								layout.cx,
+								layout.cy,
+								Math.max(layout.plotOuterR + 2, layout.hubR),
+								layout.clipEdgeR,
+								arc.t0,
+								arc.t1
+							)}
+							fill="transparent"
+							onclick={() => handleSubscaleWedgeClick(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
+						/>
+					{/each}
+				</g>
 			</g>
 
+			<!-- Subscale labels intentionally rendered outside the clipped group so long curved tags
+			     (e.g., Environment/Immigration) are never cut off at the outer radius. -->
 			<g aria-hidden="true" class="subscale-labels" pointer-events="none">
 				{#each layout.subscaleArcs as arc (arc.id)}
 					<text class="subscale-label-text" dominant-baseline="middle">
@@ -692,110 +1078,14 @@
 					</text>
 				{/each}
 			</g>
-
-			{#if radialBandPaths.hasFill}
-				<!-- Trapezoid clips are disjoint (mean vs ref); no warm mask — masking pathBelow hid large warm regions in some cases. -->
-				<g
-					transform="translate({layout.cx},{layout.cy})"
-					class="radial-threshold-bands"
-					aria-hidden="true"
-					pointer-events="none"
-				>
-					<defs>
-						<clipPath id={radialSpectrumClipBelowId}>
-							{#if radialBandPaths.pathBelow}
-								<path d={radialBandPaths.pathBelow} />
-							{/if}
-						</clipPath>
-						<clipPath id={radialSpectrumClipAboveId}>
-							{#if radialBandPaths.pathAbove}
-								<path d={radialBandPaths.pathAbove} />
-							{/if}
-						</clipPath>
-					</defs>
-					<g clip-path="url(#{radialSpectrumClipBelowId})" fill-opacity="0.58">
-						{#each concentricCoolRings as ring (ring.k)}
-							<path d={ring.d} fill={ring.fill} fill-rule="evenodd" />
-						{/each}
-					</g>
-					<g clip-path="url(#{radialSpectrumClipAboveId})" fill-opacity="0.58">
-						{#each concentricWarmRings as ring (ring.k)}
-							<path d={ring.d} fill={ring.fill} fill-rule="evenodd" />
-						{/each}
-					</g>
-				</g>
-			{/if}
-
-			{#if layout.n && layout.subscaleArcs.length && viz.modelSeries?.length}
-				<g
-					transform="translate({layout.cx},{layout.cy})"
-					class="subscale-mean-paths"
-					pointer-events="none"
-					aria-hidden="true"
-				>
-					{#each [...viz.modelSeries].sort((a, b) => {
-						if (a.fundModel === selectedModel) return 1;
-						if (b.fundModel === selectedModel) return -1;
-						return 0;
-					}) as m (m.fundModel)}
-						{#each layout.subscaleArcs as arc (`${m.fundModel}-${arc.id}`)}
-							{@const dSub = subscaleMeanPolylinePathLocalD(m, arc, meanPathRefRadii)}
-							{@const isSelected = m.fundModel === selectedModel}
-							{#if dSub}
-								<path
-									fill="none"
-									stroke={isSelected ? SELECTED_PATH_STROKE : INACTIVE_MODEL_PATH_STROKE}
-									stroke-width={isSelected ? 1.35 : 1}
-									d={dSub}
-								/>
-							{/if}
-						{/each}
-					{/each}
-				</g>
-			{/if}
-
-			{#each viz.modelSeries as m (m.fundModel)}
-				{#if m.fundModel === selectedModel}
-					{#each m.itemMeans as value, itemIndex (itemIndex)}
-						{#if value !== null && value !== undefined && !Number.isNaN(value)}
-							{@const item = viz.dim.items[itemIndex]}
-							{@const ang = layout.angles[itemIndex]}
-							{@const r = layout.rScales[itemIndex](value)}
-							{@const pt = polar(layout.cx, layout.cy, r, ang)}
-							{@const min = Number(item?.scaleMin)}
-							{@const max = Number(item?.scaleMax)}
-							{@const itemScaleTexts = Array.isArray(item?.statement_scale) && item.statement_scale.length
-								? item.statement_scale
-								: []}
-							{@const responseText = scaleTextForValue(
-								value,
-								itemScaleTexts,
-								min,
-								max,
-								Boolean(item?.reverse)
-							)}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<circle
-								cx={pt[0]}
-								cy={pt[1]}
-								r={3}
-								fill={fillColorForItem(item, value)}
-								stroke="#1c1917"
-								stroke-width={0.45}
-								onmouseenter={(e) => setDotHover(e, m.fundModel, item, responseText)}
-								onmousemove={(e) => setDotHover(e, m.fundModel, item, responseText)}
-								onmouseleave={clearDotHover}
-							/>
-						{/if}
-					{/each}
-				{/if}
-			{/each}
 		</svg>
 
 		{#if tooltip?.kind === 'dot'}
 			<div
 				class="tooltip"
-				style="left: {tooltip.x}px; top: {tooltip.y}px; max-width: {TOOLTIP_MAX_W}px;"
+				style="left: {tooltip.x}px; top: {tooltip.y}px; max-width: {TOOLTIP_MAX_W}px; transform: {tooltip.placeLeft
+					? 'translateX(-100%)'
+					: 'none'};"
 				aria-hidden="true"
 			>
 				{#if tooltip.subscaleLabel}

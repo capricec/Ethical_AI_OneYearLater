@@ -1,0 +1,264 @@
+[
+  {
+    "id": 23,
+    "items": [
+      {
+        "item_id": "23_1",
+        "context": "This statement is designed to measure support for traditional gender role norms in labor market allocation, a common indicator of gender conservatism in comparative political behavior research."
+      },
+      {
+        "item_id": "23_2",
+        "context": "This statement captures attitudes toward in-group economic prioritization and immigration restriction, often used in political science to assess welfare chauvinism and national preference."
+      },
+      {
+        "item_id": "23_3",
+        "context": "This statement measures beliefs about gender hierarchy within the household, commonly used to assess adherence to traditional family structures and patriarchal norms."
+      },
+      {
+        "item_id": "23_4",
+        "context": "This statement assesses norms of intergenerational obligation, frequently used in cross-cultural research on familialism and welfare attitudes."
+      },
+      {
+        "item_id": "23_5",
+        "context": "This statement captures internalized family duty and filial piety, concepts often used in political culture research to measure collectivist versus individualist orientations."
+      },
+      {
+        "item_id": "23_6",
+        "context": "This statement measures attitudes toward maternal employment and its perceived social consequences, a standard indicator in gender role and family policy research."
+      },
+      {
+        "item_id": "23_7",
+        "context": "This statement assesses gender bias in political leadership, commonly used to evaluate support for gender equality in political representation."
+      },
+      {
+        "item_id": "23_8",
+        "context": "This statement measures gender inequality in educational investment, often used as an indicator of traditionalism in human capital attitudes."
+      },
+      {
+        "item_id": "23_9",
+        "context": "This statement captures gender stereotyping in economic leadership roles, frequently used in studies of workplace inequality and gender norms."
+      },
+      {
+        "item_id": "23_10",
+        "context": "This statement assesses normative beliefs about the value of domestic versus paid labor, commonly used to evaluate traditional family role orientations."
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "items": [
+      {
+        "item_id": "27_1",
+        "context": "This statement measures preferences for income redistribution versus merit-based inequality, a core dimension in political economy and welfare state research."
+      },
+      {
+        "item_id": "27_2",
+        "context": "This statement captures attitudes toward state versus private ownership, a foundational indicator of economic ideology in comparative political systems."
+      },
+      {
+        "item_id": "27_3",
+        "context": "This statement assesses beliefs about the role of government versus individual responsibility in welfare provision, widely used in studies of redistribution preferences."
+      },
+      {
+        "item_id": "27_4",
+        "context": "This statement measures normative evaluations of market competition, a key attitudinal component in pro-market versus interventionist ideology."
+      },
+      {
+        "item_id": "27_5",
+        "context": "This statement captures beliefs about the determinants of economic success (effort versus structural factors), commonly used in research on meritocracy and inequality."
+      },
+      {
+        "item_id": "27_6",
+        "context": "This statement assesses trade-offs between environmental protection and economic growth, a central dimension in political economy and environmental politics."
+      }
+    ]
+  },
+  {
+    "id": 28,
+    "items": [
+      {
+        "item_id": "28_1",
+        "context": "This statement measures tolerance of welfare fraud, commonly used as an indicator of civic morality and compliance with state institutions."
+      },
+      {
+        "item_id": "28_2",
+        "context": "This statement captures everyday rule-breaking behavior, often used to assess norms of civic honesty and public compliance."
+      },
+      {
+        "item_id": "28_3",
+        "context": "This statement measures attitudes toward property rights violations, a baseline indicator of moral restrictiveness."
+      },
+      {
+        "item_id": "28_4",
+        "context": "This statement assesses tolerance of tax evasion, frequently used in studies of institutional trust and fiscal compliance."
+      },
+      {
+        "item_id": "28_5",
+        "context": "This statement captures attitudes toward corruption, a key variable in governance and anti-corruption research."
+      },
+      {
+        "item_id": "28_6",
+        "context": "This statement measures acceptance of homosexuality, widely used as an indicator of cultural liberalism and social tolerance."
+      },
+      {
+        "item_id": "28_7",
+        "context": "This statement assesses moral attitudes toward abortion, a core issue in studies of moral traditionalism."
+      },
+      {
+        "item_id": "28_8",
+        "context": "This statement captures acceptance of divorce, commonly used to measure changing family norms."
+      },
+      {
+        "item_id": "28_9",
+        "context": "This statement measures permissiveness regarding premarital sex, a standard indicator of sexual liberalization."
+      },
+      {
+        "item_id": "28_10",
+        "context": "This statement assesses moral views on suicide, often used in broader measures of life ethics and moral permissiveness."
+      },
+      {
+        "item_id": "28_11",
+        "context": "This statement captures attitudes toward euthanasia, a key issue in bioethics and moral policy research."
+      },
+      {
+        "item_id": "28_12",
+        "context": "This statement measures tolerance of domestic violence, an indicator of acceptance of interpersonal violence."
+      },
+      {
+        "item_id": "28_13",
+        "context": "This statement assesses attitudes toward corporal punishment of children, often used in studies of authority and violence norms."
+      },
+      {
+        "item_id": "28_14",
+        "context": "This statement captures general tolerance of interpersonal violence, a core dimension of moral restrictiveness."
+      },
+      {
+        "item_id": "28_15",
+        "context": "This statement measures acceptance of political violence, frequently used in studies of extremism and democratic stability."
+      },
+      {
+        "item_id": "28_16",
+        "context": "This statement assesses support for capital punishment, a key indicator in research on punitive attitudes and state authority."
+      }
+    ]
+  },
+  {
+    "id": 30,
+    "items": [
+      {
+        "item_id": "30_1",
+        "context": "This statement measures perceived procedural fairness in elections, a central component of electoral integrity."
+      },
+      {
+        "item_id": "30_2",
+        "context": "This statement captures perceptions of candidate exclusion, commonly used to assess electoral competitiveness."
+      },
+      {
+        "item_id": "30_3",
+        "context": "This statement measures perceived vote buying, a standard indicator of electoral corruption."
+      },
+      {
+        "item_id": "30_4",
+        "context": "This statement assesses perceptions of media neutrality, an important factor in democratic election quality."
+      },
+      {
+        "item_id": "30_5",
+        "context": "This statement captures trust in election administration, a key dimension of institutional legitimacy."
+      },
+      {
+        "item_id": "30_6",
+        "context": "This statement measures perceptions of elite capture of elections, often used in studies of inequality and political influence."
+      },
+      {
+        "item_id": "30_7",
+        "context": "This statement assesses perceptions of voter intimidation, a core indicator of coercion in elections."
+      },
+      {
+        "item_id": "30_8",
+        "context": "This statement captures perceptions of genuine electoral choice, a defining feature of democratic competition."
+      }
+    ]
+  },
+  {
+    "id": 31,
+    "items": [
+      {
+        "item_id": "31_1",
+        "context": "This statement measures support for media deference to authority in crisis situations, commonly used as an indicator of authoritarian attitudes."
+      },
+      {
+        "item_id": "31_2",
+        "context": "This statement assesses willingness to trade civil liberties for security, a core dimension of authoritarianism."
+      },
+      {
+        "item_id": "31_3",
+        "context": "This statement captures support for executive dominance over legislative institutions, a key feature of authoritarian governance preferences."
+      },
+      {
+        "item_id": "31_4",
+        "context": "This statement measures preference for leader-centric decision-making over participatory processes."
+      },
+      {
+        "item_id": "31_5",
+        "context": "This statement assesses support for evidence-based policymaking, commonly used to measure technocratic orientation."
+      },
+      {
+        "item_id": "31_6",
+        "context": "This statement captures distrust of experts relative to ordinary citizens, often used to assess anti-technocratic or populist tendencies."
+      },
+      {
+        "item_id": "31_7",
+        "context": "This statement measures preference for direct popular decision-making, a core component of populist and majoritarian democratic attitudes."
+      },
+      {
+        "item_id": "31_8",
+        "context": "This statement captures anti-elite sentiment, a defining characteristic of populist ideology."
+      },
+      {
+        "item_id": "31_9",
+        "context": "This statement measures perception of society as divided between elites and ordinary people, a central element of populist worldviews."
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "items": [
+      {
+        "item_id": "32_1",
+        "context": "This statement measures support for redistributive economic policies as a component of democratic governance."
+      },
+      {
+        "item_id": "32_2",
+        "context": "This statement captures support for religious authority in lawmaking, often used to assess departures from secular liberal democracy."
+      },
+      {
+        "item_id": "32_3",
+        "context": "This statement measures support for free and fair elections, a core institutional feature of liberal democracy."
+      },
+      {
+        "item_id": "32_4",
+        "context": "This statement assesses support for social welfare provisions within democratic systems."
+      },
+      {
+        "item_id": "32_5",
+        "context": "This statement captures acceptance of military intervention in governance, a key indicator of authoritarian democratic preferences."
+      },
+      {
+        "item_id": "32_6",
+        "context": "This statement measures support for civil rights protections, a foundational element of liberal democracy."
+      },
+      {
+        "item_id": "32_7",
+        "context": "This statement assesses support for economic equality as a democratic goal."
+      },
+      {
+        "item_id": "32_8",
+        "context": "This statement captures preference for obedience to authority over democratic contestation."
+      },
+      {
+        "item_id": "32_9",
+        "context": "This statement measures support for gender equality as a component of democratic values."
+      }
+    ]
+  }
+]

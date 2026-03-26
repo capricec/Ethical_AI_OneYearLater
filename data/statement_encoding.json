@@ -34,7 +34,7 @@
         "left": "Incomes should be made more equal",
         "right": "There should be greater incentives for individual effort",
         "statement_values": {"min": "Equal Incomes", "max": "Individual Effort"},
-        "reverse": false,
+        "reverse": true,
         "subscale": "redistribution"
       },
       {
@@ -50,7 +50,7 @@
         "left": "Government should take more responsibility to ensure that everyone is provided for",
         "right": "People should take more responsibility to provide for themselves",
         "statement_values": {"min": "Government", "max": "People"},
-        "reverse": false,
+        "reverse": true,
         "subscale": "redistribution"
       },
       {
@@ -74,7 +74,7 @@
         "left": "Protecting the environment should be prioritized",
         "right": "Economic growth should be prioritized",
         "statement_values": {"min": "Environment", "max": "Economic Growth"},
-        "reverse": false,
+        "reverse": true,
         "subscale": "environment"
       }
     ],

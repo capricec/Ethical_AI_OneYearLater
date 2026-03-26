@@ -120,12 +120,14 @@ export const STATEMENT_ORDER_SUBSCALE = 'subscale';
  * @param {unknown[]} compiled
  * @param {number | null} dimensionFilter
  * @param {'divergence' | 'dimension' | 'subscale'} [order='divergence']
+ * @param {string | null} [subscaleFilter] — if set, keep only entries with this subscale key (after dimension filter)
  */
 export function computeStatementsViz(
 	encoding,
 	compiled,
 	dimensionFilter,
-	order = STATEMENT_ORDER_DIVERGENCE
+	order = STATEMENT_ORDER_DIVERGENCE,
+	subscaleFilter = null
 ) {
 	if (!Array.isArray(encoding) || !Array.isArray(compiled)) return null;
 
@@ -189,10 +191,14 @@ export function computeStatementsViz(
 		return a.itemIndexInDim - b.itemIndexInDim;
 	});
 
-	const filtered =
+	let filtered =
 		dimensionFilter === null || dimensionFilter === undefined
 			? entries
 			: entries.filter((e) => e.dim.id === dimensionFilter);
+
+	if (subscaleFilter !== null && subscaleFilter !== undefined) {
+		filtered = filtered.filter((e) => e.subscaleKey === subscaleFilter);
+	}
 
 	if (!filtered.length) return null;
 

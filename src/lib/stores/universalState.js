@@ -23,7 +23,8 @@ function firstAvailableModel() {
 
 export const rawDataset = writable({ compiled, encoding });
 
-export const selectedModel = writable(firstAvailableModel());
+/** `null` means “no model selected” (used for convergence views). */
+export const selectedModel = writable(/** @type {string | null} */ (null));
 
 export const selectedStatementId = writable(firstGlobalItemId());
 
@@ -32,26 +33,36 @@ export const selectedViewMode = writable(VIEW_MODE_DIMENSION_BUMP);
 /** `null` = all dimensions; otherwise filter to this dimension id */
 export const selectedDimensionFilter = writable(/** @type {number | null} */ (null));
 
+/** `null` = all subscales; otherwise filter to this subscale key (e.g. from encoding item.subscale) */
+export const selectedSubscaleFilter = writable(/** @type {string | null} */ (null));
+
+/** Mirrors view mode: open in Bump, closed in Radial (driven by `selectedViewMode`). */
 export const leftTrayOpen = writable(true);
 
 export const rightTrayOpen = writable(true);
 
+selectedViewMode.subscribe((mode) => {
+	leftTrayOpen.set(mode === VIEW_MODE_DIMENSION_BUMP);
+});
+
 export const statementsViz = derived(
-	[rawDataset, selectedDimensionFilter, selectedViewMode],
-	([$raw, $filter, $mode]) =>
+	[rawDataset, selectedDimensionFilter, selectedViewMode, selectedSubscaleFilter],
+	([$raw, $filter, $mode, $subscale]) =>
 		computeStatementsViz(
 			$raw.encoding,
 			$raw.compiled,
 			$filter,
-			$mode === VIEW_MODE_RADIAL ? STATEMENT_ORDER_SUBSCALE : STATEMENT_ORDER_DIVERGENCE
+			$mode === VIEW_MODE_RADIAL ? STATEMENT_ORDER_SUBSCALE : STATEMENT_ORDER_DIVERGENCE,
+			$subscale
 		)
 );
 
 statementsViz.subscribe((viz) => {
 	if (!viz?.modelSeries?.length) return;
 	const current = get(selectedModel);
+	if (current === null) return;
 	if (!viz.modelSeries.some((m) => m.fundModel === current)) {
-		selectedModel.set(viz.modelSeries[0].fundModel);
+		selectedModel.set(null);
 	}
 });
 
@@ -64,7 +75,7 @@ statementsViz.subscribe((viz) => {
 });
 
 export function setSelectedModel(fundModel) {
-	selectedModel.set(fundModel);
+	selectedModel.set(fundModel ?? null);
 }
 
 export function setSelectedStatementId(itemId) {
@@ -74,6 +85,11 @@ export function setSelectedStatementId(itemId) {
 /** @param {number | null} dimId */
 export function setDimensionFilter(dimId) {
 	selectedDimensionFilter.set(dimId);
+}
+
+/** @param {string | null} subscaleKey */
+export function setSubscaleFilter(subscaleKey) {
+	selectedSubscaleFilter.set(subscaleKey ?? null);
 }
 
 export function setSelectedViewMode(mode) {

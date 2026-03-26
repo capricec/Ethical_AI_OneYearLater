@@ -1,12 +1,12 @@
 {
   "23": {
     "family_obligation": {
-      "label": "Family Obligation",
+      "label": "Family Duty",
       "description": "The extent to which individuals believe in duties to family, including caring for parents and prioritizing family expectations. Higher values reflect stronger norms of familial responsibility and collectivism."
     },
     "Immigration": {
       "label": "Immigration",
-      "description": "Preference for prioritizing citizens over outsiders (e.g., immigrants) in economic opportunities. Higher values indicate stronger in-group favoritism and exclusionary attitudes."
+      "description": "Preference for prioritizing citizens over outsiders (e.g., immigrants) in economic opportunities. Higher values indicate stronger support for immigration over in-group favoritism."
     },
     "gender_roles": {
       "label": "Traditional Gender Roles",
@@ -16,39 +16,39 @@
   "27": {
     "redistribution": {
       "label": "Redistribution",
-      "description": "Support for reducing economic inequality through government action, including income equalization and state responsibility for welfare. Lower scores favor redistribution; higher scores favor individual responsibility."
+      "description": "Support for reducing economic inequality through government action, including income equalization and state responsibility for welfare. Higher scores favor redistribution over individual responsibility."
     },
     "market_orientation": {
-      "label": "Market Orientation",
+      "label": "Free Markets",
       "description": "Beliefs about the role of markets, including support for private ownership, competition, and merit-based outcomes. Higher values indicate stronger support for market-based economic systems."
     },
     "environment": {
       "label": "Environment",
-      "description": "Preferences regarding trade-offs between environmental protection and economic growth. Higher values indicate prioritization of economic growth over environmental protection."
+      "description": "Preferences regarding trade-offs between environmental protection and economic growth. Higher values indicate prioritization of environmental protection over economic growth."
     }
   },
   "28": {
     "civic_morality": {
-      "label": "Civic Morality",
+      "label": "Civic Violation Tolerance",
       "description": "Judgments about the acceptability of rule-breaking behaviors such as fraud, tax evasion, and corruption. Higher values indicate greater tolerance for violations of civic rules."
     },
     "lifestyle_morality": {
-      "label": "Lifestyle Morality",
+      "label": "Lifestyle Tolerance",
       "description": "Attitudes toward personal and private behaviors such as sexuality, marriage, and end-of-life decisions. Higher values indicate greater moral permissiveness and acceptance of diverse lifestyles."
     },
     "violence_punishment": {
-      "label": "Violence and Punishment",
+      "label": "Violence Tolerance",
       "description": "Views on the acceptability of violence and punitive actions, including interpersonal violence and state-sanctioned punishment. Higher values indicate greater tolerance for violence or harsh punitive measures."
     }
   },
   "30": {
     "fairness": {
-      "label": "Electoral Fairness",
+      "label": "Electoral Integrity",
       "description": "Perceptions of whether elections are conducted fairly, including vote counting, media coverage, and voter choice. Higher values indicate stronger perceptions of electoral integrity."
     },
     "corruption_coercion": {
-      "label": "Corruption and Coercion",
-      "description": "Perceptions of manipulation in elections, including bribery, elite influence, and voter intimidation. Higher values indicate lower perceived corruption after reverse coding."
+      "label": "Electoral Corruption",
+      "description": "Perceptions of manipulation in elections, including bribery, elite influence, and voter intimidation. Higher values indicate higher perceived corruption."
     }
   },
   "31": {
@@ -62,7 +62,7 @@
     },
     "technocracy": {
       "label": "Technocracy",
-      "description": "Preferences for decision-making based on expertise and evidence versus the will of the people. Higher values (after coding) reflect less support for expert-driven governance and more emphasis on popular or non-expert judgment."
+      "description": "Preferences for decision-making based on expertise and evidence versus the will of the people. Higher values reflect more support for expert-driven governance and less emphasis on popular or non-expert judgment."
     }
   },
   "32": {
@@ -75,7 +75,7 @@
       "description": "Beliefs that democracy should include economic redistribution and social welfare protections. Higher values indicate stronger support for egalitarian and welfare-oriented policies within democracy."
     },
     "authoritarian_democracy": {
-      "label": "Authoritarian Democracy",
+      "label": "Restricted Democracy",
       "description": "Beliefs that democracy can include strong authority, obedience, or non-democratic elements such as military intervention or religious control. Higher values indicate greater acceptance of authoritarian features within a democratic system."
     }
   }

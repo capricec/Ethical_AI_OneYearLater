@@ -4,7 +4,7 @@ export const CHART_MARGIN_BOTTOM = 0;
 export const CHART_SIDE_GUTTER = 150;
 
 /** One row per statement (aligned with left/center/right table rows). */
-export const ROW_ITEM_HEIGHT = 90;
+export const ROW_ITEM_HEIGHT = 120;
 
 /** @param {number} itemCount */
 export function chartHeight(itemCount) {

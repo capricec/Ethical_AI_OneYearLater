@@ -6,13 +6,16 @@
 		CHART_SIDE_GUTTER,
 		ROW_ITEM_HEIGHT
 	} from '$lib/viz/dimensionChartLayout.js';
-	import { fillColorForItem, scaleTextForValue } from '$lib/viz/valuePalette.js';
+	import { scaleTextForValue } from '$lib/viz/valuePalette.js';
+	import { modelColor } from '$lib/viz/modelColors.js';
 
 	const PANEL_BG = '#ebebeb';
 
 	const ITEM_LINE_STROKE = '#cfcfcf';
 	const NON_SELECTED_PATH_STROKE = '#9ca3af';
 	const SELECTED_PATH_STROKE = '#0a0a0a';
+	const SCALE_TICK_STROKE = '#78716c';
+	const TICK_HALF_HEIGHT = 16;
 
 	/**
 	 * @typedef {object} Viz
@@ -22,7 +25,7 @@
 	 * @property {{ aggregate: { left: string, right: string }, item: { left: string, right: string } }} labels
 	 */
 
-	/** @type {{ width: number, viz: Viz, selectedModel: string }} */
+	/** @type {{ width: number, viz: Viz, selectedModel: (string|null) }} */
 	let { width, viz, selectedModel } = $props();
 	/** @type {string | null} */
 	let hoveredModel = $state(null);
@@ -87,6 +90,17 @@
 			scales.push(d3.scaleLinear().domain(ext).range([0, innerWidth]));
 		}
 		return scales;
+	});
+
+	/** Pixel x of domain midpoint per row (scale center tick). */
+	const rowTickX = $derived.by(() => {
+		if (!viz || !xScales.length) return [];
+		const xs = [];
+		for (let i = 0; i < viz.dim.items.length; i++) {
+			const ext = viz.itemExtents[i] ?? [0, 1];
+			xs.push(xScales[i]((ext[0] + ext[1]) / 2));
+		}
+		return xs;
 	});
 
 	const rStmtSelected = 9;
@@ -167,10 +181,27 @@
 			<g transform="translate({margin.side},0)" style="overflow: visible">
 				{#each viz.dim.items as item, ri (item.item_id)}
 					{@const yi = rowCentersY[ri]}
+					{@const tickX = rowTickX[ri] ?? innerWidth / 2}
 					{@const baseMin = endpointTextForSide(item, 'min')}
 					{@const baseMax = endpointTextForSide(item, 'max')}
 					{@const rowLeft = item?.reverse ? baseMax : baseMin}
 					{@const rowRight = item?.reverse ? baseMin : baseMax}
+					<line
+						x1="0"
+						x2={innerWidth}
+						y1={yi}
+						y2={yi}
+						stroke={ITEM_LINE_STROKE}
+						stroke-width="1"
+					/>
+					<line
+						x1={tickX}
+						x2={tickX}
+						y1={yi - TICK_HALF_HEIGHT}
+						y2={yi + TICK_HALF_HEIGHT}
+						stroke={SCALE_TICK_STROKE}
+						stroke-width="1.5"
+					/>
 					<text
 						x={-10}
 						y={yi}
@@ -193,14 +224,6 @@
 					>
 						{rowRight}
 					</text>
-					<line
-						x1="0"
-						x2={innerWidth}
-						y1={yi}
-						y2={yi}
-						stroke={ITEM_LINE_STROKE}
-						stroke-width="1"
-					/>
 				{/each}
 
 				{#each [...viz.modelSeries].sort((a, b) => {
@@ -241,9 +264,9 @@
 								cx={ptX}
 								cy={rowCentersY[itemIndex]}
 								r={rDot}
-								fill={fillColorForItem(item, value)}
-								stroke={selected ? '#0a0a0a' : 'transparent'}
-								stroke-width={selected ? 2 : 0}
+								fill={modelColor(m.fundModel)}
+								stroke={selected ? '#0a0a0a' : 'rgba(255, 255, 255, 0.9)'}
+								stroke-width={selected ? 2 : 1.25}
 								stroke-opacity={selected ? 1 : 0.85}
 								opacity={1}
 								onmouseenter={(event) => setHover(event, m.fundModel, responseText)}
