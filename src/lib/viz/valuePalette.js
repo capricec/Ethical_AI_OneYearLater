@@ -70,7 +70,8 @@ export function scaleTextForValue(value, scaleTexts, min, max, reverse = false) 
 	if (!Array.isArray(scaleTexts) || scaleTexts.length === 0) return '';
 	if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max)) return '';
 	const clamped = Math.max(min, Math.min(max, value));
-	let bin = Math.floor(clamped);
+	// Use nearest-bin mapping for tooltip labels; floor systematically biases means downward.
+	let bin = Math.round(clamped);
 	if (reverse) {
 		bin = min + max - bin;
 	}

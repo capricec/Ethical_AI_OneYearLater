@@ -10,11 +10,6 @@ import { MODEL_ORDER } from '$lib/viz/modelColors.js';
 export const VIEW_MODE_DIMENSION_BUMP = 'dimension_aggregate_bump';
 export const VIEW_MODE_RADIAL = 'statements_radial';
 
-function firstGlobalItemId() {
-	const viz = computeStatementsViz(encoding, compiled, null, STATEMENT_ORDER_DIVERGENCE);
-	return viz?.dim?.items?.[0]?.item_id ?? '';
-}
-
 function firstAvailableModel() {
 	const viz = computeStatementsViz(encoding, compiled, null, STATEMENT_ORDER_DIVERGENCE);
 	if (!viz) return MODEL_ORDER[0];
@@ -26,7 +21,8 @@ export const rawDataset = writable({ compiled, encoding });
 /** `null` means “no model selected” (used for convergence views). */
 export const selectedModel = writable(/** @type {string | null} */ (null));
 
-export const selectedStatementId = writable(firstGlobalItemId());
+/** `null` means no statement is selected yet (selection is explicit in Bump). */
+export const selectedStatementId = writable(/** @type {string | null} */ (null));
 
 export const selectedViewMode = writable(VIEW_MODE_DIMENSION_BUMP);
 
@@ -41,8 +37,14 @@ export const leftTrayOpen = writable(true);
 
 export const rightTrayOpen = writable(true);
 
+let previousViewMode = VIEW_MODE_DIMENSION_BUMP;
 selectedViewMode.subscribe((mode) => {
 	leftTrayOpen.set(mode === VIEW_MODE_DIMENSION_BUMP);
+	// Entering Bump should start with no default row selected.
+	if (mode === VIEW_MODE_DIMENSION_BUMP && previousViewMode !== VIEW_MODE_DIMENSION_BUMP) {
+		selectedStatementId.set(null);
+	}
+	previousViewMode = mode;
 });
 
 export const statementsViz = derived(
@@ -69,8 +71,9 @@ statementsViz.subscribe((viz) => {
 statementsViz.subscribe((viz) => {
 	if (!viz?.dim?.items?.length) return;
 	const cur = get(selectedStatementId);
+	if (cur === null) return;
 	if (!viz.dim.items.some((it) => it.item_id === cur)) {
-		selectedStatementId.set(viz.dim.items[0].item_id);
+		selectedStatementId.set(null);
 	}
 });
 

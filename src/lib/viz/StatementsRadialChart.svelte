@@ -2,22 +2,29 @@
 	import * as d3 from 'd3';
 	import { modelColor } from '$lib/viz/modelColors.js';
 	import { statementLabel } from '$lib/ui/statementLabel.js';
+	import VizTooltip from '$lib/ui/VizTooltip.svelte';
 	import { scaleTextForValue } from '$lib/viz/valuePalette.js';
 
 	const PANEL_BG = '#ffffff';
 	/** Pixels beyond outer label ring; keeps curved labels inside the clip. */
-	const DISC_CLIP_OUTSET = 4;
+	const DISC_CLIP_OUTSET = 0;
 	/** White ring between grey hub and inner end of value scale (spike bases). */
 	const INNER_SCALE_WHITE_PAD = 14;
 	/** Subscale wedge rims + wide radial separators (matches surrounding grey panels). */
 	const WEDGE_BORDER_STROKE = '#ebebeb';
 	const SUBSCALE_SPOKE_WIDTH = 1;
 	const SUBSCALE_RIM_WIDTH = 1;
+	const DIMENSION_DIVIDER_WIDTH = 5;
+	const DIMENSION_SPOKE_WIDTH = 5;
+	const DIMENSION_RING_FILL = '#8e8e8e';
+	const DIMENSION_RING_SEPARATOR = '#ebebeb';
 	const SELECTED_PATH_STROKE = '#0a0a0a';
 	const INACTIVE_MODEL_PATH_STROKE = '#a8a29e';
 
 	/** Outer annulus for subscale labels (plot uses radius inside this band). */
 	const LABEL_BAND = 30;
+	/** Outermost annulus for dimension grouping wedges + labels. */
+	const DIMENSION_BAND = 34;
 
 	/**
 	 * @typedef {object} Viz
@@ -126,21 +133,49 @@
 		return runs;
 	}
 
+	/**
+	 * @param {object[]} items
+	 * @param {number} n
+	 */
+	function dimensionRuns(items, n) {
+		if (!n) return [];
+		const keyOf = (it) => `${it.dimensionId}`;
+		/** @type {{ i0: number, i1: number, label: string }[]} */
+		const runs = [];
+		let start = 0;
+		for (let i = 1; i <= n; i++) {
+			if (i === n || keyOf(items[i]) !== keyOf(items[start])) {
+				runs.push({
+					i0: start,
+					i1: i - 1,
+					label: String(items[start].dimensionTitle ?? '')
+				});
+				start = i;
+			}
+		}
+		return runs;
+	}
+
 	const layout = $derived.by(() => {
 		if (!viz?.dim?.items?.length) {
 			return {
 				cx: width / 2,
 				cy: height / 2,
 				fullOuterR: 40,
+				dimensionInnerR: 30,
 				plotOuterR: 32,
 				labelTextR: 36,
+				dimensionLabelR: 38,
 				hubR: 14,
 				scaleInnerR: 28,
-				clipEdgeR: 40 + DISC_CLIP_OUTSET,
+				clipEdgeR: 30,
 				angles: /** @type {number[]} */ ([]),
 				rScales: /** @type {import('d3').ScaleLinear<number, number>[]} */ ([]),
 				n: 0,
 				subscaleArcs: /** @type {{ id: string, label: string, i0: number, i1: number, t0: number, t1: number, textPathD: string }[]} */ (
+					[]
+				),
+				dimensionArcs: /** @type {{ id: string, label: string, i0: number, i1: number, t0: number, t1: number, textPathD: string }[]} */ (
 					[]
 				)
 			};
@@ -150,17 +185,16 @@
 		const cy = height / 2;
 		const side = Math.max(120, Math.min(width, height) - 2 * PAD);
 		const fullOuterR = side / 2;
-		const plotOuterR = Math.min(
-			Math.max(20, fullOuterR - LABEL_BAND),
-			fullOuterR - 4
-		);
+		const dimensionInnerR = Math.max(24, fullOuterR - DIMENSION_BAND);
+		const plotOuterR = Math.min(Math.max(20, dimensionInnerR - LABEL_BAND), dimensionInnerR - 4);
 		/** Grey hub; value scale and spikes start at scaleInnerR (white pad between). */
 		const hubR = Math.max(14, plotOuterR * 0.17);
 		const scaleInnerR = Math.max(
 			hubR + 2,
 			Math.min(hubR + INNER_SCALE_WHITE_PAD, plotOuterR - 6)
 		);
-		const labelTextR = (plotOuterR + fullOuterR) / 2;
+		const labelTextR = (plotOuterR + dimensionInnerR) / 2;
+		const dimensionLabelR = (dimensionInnerR + fullOuterR) / 2;
 
 		const angles = [];
 		const rScales = [];
@@ -172,6 +206,7 @@
 
 		const items = viz.dim.items;
 		const runs = subscaleRuns(items, n);
+		const dimRuns = dimensionRuns(items, n);
 		const tau = 2 * Math.PI;
 		const subscaleArcs = runs.map((run, idx) => {
 			const t0 = -Math.PI / 2 + ((run.i0 - 0.5) / n) * tau;
@@ -187,20 +222,37 @@
 				textPathD: labelCircleArcD(cx, cy, labelTextR, t0, t1, labelPathReverse(mid))
 			};
 		});
+		const dimensionArcs = dimRuns.map((run, idx) => {
+			const t0 = -Math.PI / 2 + ((run.i0 - 0.5) / n) * tau;
+			const t1 = -Math.PI / 2 + ((run.i1 + 0.5) / n) * tau;
+			const mid = (t0 + t1) / 2;
+			return {
+				id: `dimension-tp-${idx}`,
+				label: run.label,
+				i0: run.i0,
+				i1: run.i1,
+				t0,
+				t1,
+				textPathD: labelCircleArcD(cx, cy, dimensionLabelR, t0, t1, labelPathReverse(mid))
+			};
+		});
 
 		return {
 			cx,
 			cy,
 			fullOuterR,
+			dimensionInnerR,
 			plotOuterR,
 			labelTextR,
+			dimensionLabelR,
 			hubR,
 			scaleInnerR,
-			clipEdgeR: fullOuterR + DISC_CLIP_OUTSET,
+			clipEdgeR: dimensionInnerR,
 			angles,
 			rScales,
 			n,
-			subscaleArcs
+			subscaleArcs,
+			dimensionArcs
 		};
 	});
 
@@ -953,6 +1005,9 @@
 				{#each layout.subscaleArcs as arc (arc.id)}
 					<path id={arc.id} d={arc.textPathD} fill="none" />
 				{/each}
+				{#each layout.dimensionArcs as arc (arc.id)}
+					<path id={arc.id} d={arc.textPathD} fill="none" />
+				{/each}
 			</defs>
 
 			<g clip-path="url(#radial-plot-disc-clip)">
@@ -1004,30 +1059,7 @@
 
 				<!-- Subscale wedges only: rim arcs + wide radials at subscale boundaries to clip edge -->
 				<g aria-hidden="true" class="subscale-plot-grid" pointer-events="none">
-					{#if layout.subscaleArcs.length <= 1}
-						<circle
-							cx={layout.cx}
-							cy={layout.cy}
-							r={layout.clipEdgeR}
-							fill="none"
-							stroke={WEDGE_BORDER_STROKE}
-							stroke-width={SUBSCALE_RIM_WIDTH}
-						/>
-					{:else}
-						{#each layout.subscaleArcs as arc (arc.id)}
-							<path
-								d={geometricSectorArcD(
-									layout.cx,
-									layout.cy,
-									layout.clipEdgeR,
-									arc.t0,
-									arc.t1
-								)}
-								fill="none"
-								stroke={WEDGE_BORDER_STROKE}
-								stroke-width={SUBSCALE_RIM_WIDTH}
-							/>
-						{/each}
+					{#if layout.subscaleArcs.length > 1}
 						{#each layout.subscaleArcs as arc (arc.id)}
 							{@const t = arc.t0}
 							{@const x0 = layout.cx + layout.hubR * Math.cos(t)}
@@ -1041,6 +1073,82 @@
 								y2={y1}
 								stroke={WEDGE_BORDER_STROKE}
 								stroke-width={SUBSCALE_SPOKE_WIDTH}
+								stroke-linecap="butt"
+							/>
+						{/each}
+					{/if}
+				</g>
+
+				<!-- Thicker separators only where dimensions change (e.g. Populism|Social Democracy). -->
+				<g aria-hidden="true" class="dimension-divider-spokes" pointer-events="none">
+					{#each layout.dimensionArcs as arc (arc.id)}
+						{@const t = arc.t0}
+						{@const x0 = layout.cx + layout.hubR * Math.cos(t)}
+						{@const y0 = layout.cy + layout.hubR * Math.sin(t)}
+						{@const x1 = layout.cx + layout.clipEdgeR * Math.cos(t)}
+						{@const y1 = layout.cy + layout.clipEdgeR * Math.sin(t)}
+						<line
+							x1={x0}
+							y1={y0}
+							x2={x1}
+							y2={y1}
+							stroke={WEDGE_BORDER_STROKE}
+							stroke-width={DIMENSION_DIVIDER_WIDTH}
+							stroke-linecap="butt"
+						/>
+					{/each}
+				</g>
+
+				<!-- Dimension ring: one outer wedge per dimension grouping -->
+				<g aria-hidden="true" class="dimension-ring-grid" pointer-events="none">
+					{#if layout.dimensionArcs.length <= 1}
+						<circle
+							cx={layout.cx}
+							cy={layout.cy}
+							r={layout.fullOuterR}
+							fill={DIMENSION_RING_FILL}
+							stroke={WEDGE_BORDER_STROKE}
+							stroke-width={SUBSCALE_RIM_WIDTH}
+						/>
+					{:else}
+						{#each layout.dimensionArcs as arc (arc.id)}
+							<path
+								d={annularSectorPathD(
+									layout.cx,
+									layout.cy,
+									layout.dimensionInnerR,
+									layout.fullOuterR,
+									arc.t0,
+									arc.t1
+								)}
+								fill={DIMENSION_RING_FILL}
+							/>
+							<path
+								d={geometricSectorArcD(
+									layout.cx,
+									layout.cy,
+									layout.fullOuterR,
+									arc.t0,
+									arc.t1
+								)}
+								fill="none"
+								stroke={DIMENSION_RING_SEPARATOR}
+								stroke-width={SUBSCALE_RIM_WIDTH}
+							/>
+						{/each}
+						{#each layout.dimensionArcs as arc (arc.id)}
+							{@const t = arc.t0}
+							{@const x0 = layout.cx + layout.dimensionInnerR * Math.cos(t)}
+							{@const y0 = layout.cy + layout.dimensionInnerR * Math.sin(t)}
+							{@const x1 = layout.cx + layout.fullOuterR * Math.cos(t)}
+							{@const y1 = layout.cy + layout.fullOuterR * Math.sin(t)}
+							<line
+								x1={x0}
+								y1={y0}
+								x2={x1}
+								y2={y1}
+								stroke={DIMENSION_RING_SEPARATOR}
+								stroke-width={DIMENSION_SPOKE_WIDTH}
 								stroke-linecap="butt"
 							/>
 						{/each}
@@ -1078,27 +1186,28 @@
 					</text>
 				{/each}
 			</g>
+			<g aria-hidden="true" class="dimension-labels" pointer-events="none">
+				{#each layout.dimensionArcs as arc (arc.id)}
+					<text class="dimension-label-text" dominant-baseline="middle">
+						<textPath href={`#${arc.id}`} startOffset="50%" text-anchor="middle">
+							{arc.label}
+						</textPath>
+					</text>
+				{/each}
+			</g>
 		</svg>
 
 		{#if tooltip?.kind === 'dot'}
-			<div
-				class="tooltip"
-				style="left: {tooltip.x}px; top: {tooltip.y}px; max-width: {TOOLTIP_MAX_W}px; transform: {tooltip.placeLeft
-					? 'translateX(-100%)'
-					: 'none'};"
-				aria-hidden="true"
-			>
-				{#if tooltip.subscaleLabel}
-					<div class="tooltip-subscale">{tooltip.subscaleLabel}</div>
-				{/if}
-				{#if tooltip.statementText}
-					<div class="tooltip-statement">{tooltip.statementText}</div>
-				{/if}
-				<div class="tooltip-model">{tooltip.model}</div>
-				{#if tooltip.responseText}
-					<div class="tooltip-value">Average response: {tooltip.responseText}</div>
-				{/if}
-			</div>
+			<VizTooltip
+				x={tooltip.x}
+				y={tooltip.y}
+				maxWidth={TOOLTIP_MAX_W}
+				placeLeft={tooltip.placeLeft}
+				subscaleLabel={tooltip.subscaleLabel}
+				statementText={tooltip.statementText}
+				model={tooltip.model}
+				responseText={tooltip.responseText}
+			/>
 		{/if}
 	</div>
 {/if}
@@ -1108,47 +1217,17 @@
 		position: relative;
 	}
 
-	.tooltip {
-		position: absolute;
-		pointer-events: none;
-		min-width: 120px;
-		padding: 6px 8px;
-		border-radius: 6px;
-		border: 1px solid #d6d3d1;
-		background: rgba(255, 255, 255, 0.96);
-		color: #1c1917;
-		font-size: 11px;
-		line-height: 1.35;
-		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-		z-index: 50;
-	}
-
-	.tooltip-subscale {
-		font-size: 10px;
-		font-weight: 600;
-		color: #475569;
-		margin-bottom: 6px;
-	}
-
-	.tooltip-statement {
-		color: #1c1917;
-		white-space: normal;
-		margin-bottom: 8px;
-	}
-
-	.tooltip-model {
-		font-weight: 600;
-		margin-bottom: 4px;
-	}
-
-	.tooltip-value {
-		color: #334155;
-	}
-
 	.subscale-label-text {
 		fill: #1e293b;
 		font-size: 9px;
 		font-weight: 600;
+		letter-spacing: 0.02em;
+	}
+
+	.dimension-label-text {
+		fill: #ffffff;
+		font-size: 10px;
+		font-weight: 700;
 		letter-spacing: 0.02em;
 	}
 </style>

@@ -142,8 +142,8 @@
       { "item_id": "31_3", "text": "Leader should overrule parliament", "reverse": false, "subscale": "authoritarianism" },
       { "item_id": "31_4", "text": "Leaders should decide based on judgment, not people", "reverse": false, "subscale": "authoritarianism" },
       { "item_id": "31_5", "text": "Policies should follow scientific evidence", "reverse": false, "subscale": "technocracy" },
-      { "item_id": "31_6", "text": "Trust ordinary people over experts", "reverse": false, "subscale": "technocracy" },
-      { "item_id": "31_7", "text": "The people should make most important decisions", "reverse": false, "subscale": "technocracy" },
+      { "item_id": "31_6", "text": "Trust ordinary people over experts", "reverse": true, "subscale": "technocracy" },
+      { "item_id": "31_7", "text": "The people should make most important decisions", "reverse": false, "subscale": "populism" },
       { "item_id": "31_8", "text": "Politicians are out of touch", "reverse": false, "subscale": "populism" },
       { "item_id": "31_9", "text": "Country divided between elites and citizens", "reverse": false, "subscale": "populism" }
     ],

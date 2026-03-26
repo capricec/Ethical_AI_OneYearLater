@@ -56,8 +56,12 @@ function modelSeriesForDimension(dim, byModel) {
 	const scaleMax = Number(dim.scale?.max);
 	const items = dim.items;
 	if (!Array.isArray(items)) return [];
+	const binCount =
+		Number.isFinite(scaleMin) && Number.isFinite(scaleMax)
+			? Math.max(1, Math.floor(scaleMax) - Math.floor(scaleMin) + 1)
+			: 1;
 
-	/** @type {{ fundModel: string, itemMeans: (number|null)[] }[]} */
+	/** @type {{ fundModel: string, itemMeans: (number|null)[], itemDistributions: number[][] }[]} */
 	const series = [];
 
 	for (const fundModel of MODEL_ORDER) {
@@ -79,11 +83,29 @@ function modelSeriesForDimension(dim, byModel) {
 			}
 			return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 		});
+		const itemDistributions = items.map((item) => {
+			const shouldReverse = Boolean(item?.reverse);
+			const key = responseKeyFromItemId(item.item_id);
+			const counts = Array.from({ length: binCount }, () => 0);
+			let total = 0;
+			for (const row of group) {
+				const raw = row.response_parsed[key];
+				if (typeof raw !== 'number' || Number.isNaN(raw)) continue;
+				let v = raw;
+				if (shouldReverse) v = reverseNumericValue(v, scaleMin, scaleMax);
+				const rounded = Math.round(v);
+				const idx = Math.max(0, Math.min(binCount - 1, rounded - Math.floor(scaleMin)));
+				counts[idx] += 1;
+				total += 1;
+			}
+			if (!total) return counts.map(() => 0);
+			return counts.map((c) => c / total);
+		});
 
 		const defined = itemMeans.filter((x) => x !== null);
 		if (!defined.length) continue;
 
-		series.push({ fundModel, itemMeans });
+		series.push({ fundModel, itemMeans, itemDistributions });
 	}
 
 	return series;
@@ -131,7 +153,7 @@ export function computeStatementsViz(
 ) {
 	if (!Array.isArray(encoding) || !Array.isArray(compiled)) return null;
 
-	/** @type {Map<number, { fundModel: string, itemMeans: (number|null)[] }[]>} */
+	/** @type {Map<number, { fundModel: string, itemMeans: (number|null)[], itemDistributions: number[][] }[]>} */
 	const seriesByDimId = new Map();
 
 	/** @type {{ dim: object, item: object, itemIndexInDim: number, encodingIndex: number, divergence: number, rawSpread: number, subscaleKey: string, subscaleRankInDim: number }[]} */
@@ -250,7 +272,7 @@ export function computeStatementsViz(
 
 	const itemExtents = enrichedItems.map((it) => [it.scaleMin, it.scaleMax]);
 
-	/** @type {{ fundModel: string, itemMeans: (number|null)[] }[]} */
+	/** @type {{ fundModel: string, itemMeans: (number|null)[], itemDistributions: number[][] }[]} */
 	const modelSeries = [];
 
 	for (const fundModel of MODEL_ORDER) {
@@ -259,8 +281,13 @@ export function computeStatementsViz(
 			const row = ms?.find((m) => m.fundModel === fundModel);
 			return row ? row.itemMeans[e.itemIndexInDim] : null;
 		});
+		const itemDistributions = filtered.map((e) => {
+			const ms = seriesByDimId.get(e.dim.id);
+			const row = ms?.find((m) => m.fundModel === fundModel);
+			return row ? row.itemDistributions[e.itemIndexInDim] ?? [] : [];
+		});
 		if (!itemMeans.some((v) => v !== null && v !== undefined)) continue;
-		modelSeries.push({ fundModel, itemMeans });
+		modelSeries.push({ fundModel, itemMeans, itemDistributions });
 	}
 
 	if (!modelSeries.length) return null;

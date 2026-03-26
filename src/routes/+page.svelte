@@ -21,11 +21,13 @@
 	import ContextPanel from '$lib/ui/ContextPanel.svelte';
 	import SubscaleList from '$lib/ui/SubscaleList.svelte';
 	import { statementLabel } from '$lib/ui/statementLabel.js';
+	import { scaleTextForValue } from '$lib/viz/valuePalette.js';
 
 	/** Fixed statements column when Bump tray is open. */
 	const LEFT_TRAY_W = 360;
-	/** Fixed context / subscale rail. */
-	const CONTEXT_RAIL_PX = 280;
+	/** Fixed context / subscale rail (matches left tray width). */
+	const CONTEXT_RAIL_PX = LEFT_TRAY_W;
+	const EXPANDED_ROW_HEIGHT = 520;
 
 	/** Dimension pills removed for now; avoid a stuck dimension-only filter. */
 	onMount(() => {
@@ -60,6 +62,10 @@
 			)}
 			{@const subscaleRail = $statementsViz.subscalesInOrder ?? []}
 			{@const bumpMainCols = `minmax(280px, 1fr) ${CONTEXT_RAIL_PX}px`}
+			{@const bumpRowHeights = $statementsViz.dim.items.map((it) =>
+				$selectedStatementId === it.item_id ? EXPANDED_ROW_HEIGHT : ROW_ITEM_HEIGHT
+			)}
+			{@const bumpRowTemplate = bumpRowHeights.map((h) => `${h}px`).join(' ')}
 
 			<div
 				class="flex h-[calc(100vh)] min-h-0 flex-col overflow-hidden rounded-lg bg-white ring-1 ring-slate-300"
@@ -158,6 +164,8 @@
 							>
 								<div class="w-[360px] overflow-x-hidden">
 									{#each $statementsViz.dim.items as item, i (item.item_id)}
+										{@const rowH = bumpRowHeights[i] ?? ROW_ITEM_HEIGHT}
+										{@const selectedRow = $selectedStatementId === item.item_id}
 										<div
 											role="button"
 											tabindex="0"
@@ -165,7 +173,7 @@
 											item.item_id
 												? 'border-l-4 border-l-slate-900 bg-slate-50'
 												: 'border-l-4 border-l-transparent hover:bg-slate-50/80'}"
-											style="height: {ROW_ITEM_HEIGHT}px; min-height: {ROW_ITEM_HEIGHT}px; max-height: {ROW_ITEM_HEIGHT}px;"
+											style="height: {rowH}px; min-height: {rowH}px; max-height: {rowH}px;"
 											onclick={() => setSelectedStatementId(item.item_id)}
 											onkeydown={(e) => {
 												if (e.key === 'Enter' || e.key === ' ') {
@@ -174,20 +182,15 @@
 												}
 											}}
 										>
-											<div class="flex min-h-0 min-w-0 flex-1 gap-2">
-												<p
-													class="min-h-0 min-w-0 flex-1 overflow-y-auto text-xs leading-snug text-slate-800 sm:text-sm"
-												>
-													{statementLabel(item)}
-												</p>
-												<div class="flex shrink-0 flex-col items-end gap-1 self-start sm:flex-row">
+											<div class="flex min-h-0 min-w-0 flex-1">
+												<div class="min-h-0 min-w-0 flex-1 overflow-y-auto">
+													<p class="text-xs leading-snug text-slate-800 sm:text-sm">
+														{statementLabel(item)}
+													</p>
 													{#if item.subscaleKey !== '__none__'}
 														<button
 															type="button"
-															class="max-w-[9rem] truncate rounded-full px-2 py-0.5 text-left text-[10px] font-medium transition-colors {$selectedSubscaleFilter ===
-															item.subscaleKey
-																? 'border border-slate-300 bg-slate-200 text-slate-900 ring-2 ring-slate-900 ring-offset-1 ring-offset-white'
-																: 'border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}"
+															class="mt-2 max-w-[12rem] truncate rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-left text-[10px] font-medium text-slate-600 transition-colors hover:bg-slate-100"
 															title={item.subscaleLabel}
 															onclick={(e) => {
 																e.stopPropagation();
@@ -196,6 +199,28 @@
 														>
 															{item.subscaleLabel}
 														</button>
+													{/if}
+													{#if selectedRow}
+														<div class="mt-8 space-y-4 pt-20">
+															{#each $statementsViz.modelSeries as ms (ms.fundModel)}
+																{@const mean = ms.itemMeans[i]}
+																{@const meanText = scaleTextForValue(
+																	typeof mean === 'number' ? mean : NaN,
+																	Array.isArray(item?.statement_scale) ? item.statement_scale : [],
+																	Number(item?.scaleMin),
+																	Number(item?.scaleMax),
+																	Boolean(item?.reverse)
+																)}
+																<div class="leading-tight">
+																	<div class="text-[11px] font-semibold text-slate-800">
+																		{ms.fundModel}
+																	</div>
+																	<div class="text-[10px] text-slate-600">
+																		Average response: {meanText || 'N/A'}
+																	</div>
+																</div>
+															{/each}
+														</div>
 													{/if}
 												</div>
 											</div>
@@ -211,7 +236,7 @@
 									style:grid-template-columns={bumpMainCols}
 									style:column-gap="0"
 									style:row-gap="0"
-									style:grid-template-rows={`repeat(${n}, ${ROW_ITEM_HEIGHT}px)`}
+									style:grid-template-rows={bumpRowTemplate}
 								>
 									<div
 										class="viz-table-cell box-border flex min-h-0 min-w-0 flex-col border-r border-slate-300 bg-[#ebebeb] px-2 shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.05)]"
@@ -225,14 +250,17 @@
 												width={Math.max(chartWidth, 280)}
 												viz={$statementsViz}
 												selectedModel={$selectedModel}
+												selectedStatementId={$selectedStatementId}
+												rowHeights={bumpRowHeights}
 											/>
 										</div>
 									</div>
 
 									{#each $statementsViz.dim.items as item, i (item.item_id)}
+										{@const rowH = bumpRowHeights[i] ?? ROW_ITEM_HEIGHT}
 										<div
 											class="box-border flex items-center border-b border-slate-300 bg-white"
-											style="height: {ROW_ITEM_HEIGHT}px; min-height: {ROW_ITEM_HEIGHT}px; max-height: {ROW_ITEM_HEIGHT}px; grid-column: 2; grid-row: {1 +
+											style="height: {rowH}px; min-height: {rowH}px; max-height: {rowH}px; grid-column: 2; grid-row: {1 +
 												i};"
 										>
 											<ContextPanel
