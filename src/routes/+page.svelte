@@ -27,7 +27,9 @@
 	const LEFT_TRAY_W = 360;
 	/** Fixed context / subscale rail (matches left tray width). */
 	const CONTEXT_RAIL_PX = LEFT_TRAY_W;
-	const EXPANDED_ROW_HEIGHT = 520;
+	const EXPANDED_ROW_HEIGHT = 620;
+	const EXPANDED_DETAIL_TOP_PAD = ROW_ITEM_HEIGHT + 5;
+	const EXPANDED_DETAIL_ROW_H = 80;
 
 	/** Dimension pills removed for now; avoid a stuck dimension-only filter. */
 	onMount(() => {
@@ -169,21 +171,27 @@
 										<div
 											role="button"
 											tabindex="0"
-											class="box-border flex min-h-0 w-full cursor-pointer items-stretch border-b border-slate-300 bg-white py-2 pl-4 pr-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 {$selectedStatementId ===
-											item.item_id
-												? 'border-l-4 border-l-slate-900 bg-slate-50'
+											class="box-border flex min-h-0 w-full cursor-pointer items-stretch border-b border-slate-300 bg-white py-2 pl-4 pr-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 {$selectedStatementId
+												? selectedRow
+													? 'border-l-4 border-l-slate-900 bg-slate-50'
+													: 'border-l-4 border-l-transparent opacity-50'
 												: 'border-l-4 border-l-transparent hover:bg-slate-50/80'}"
 											style="height: {rowH}px; min-height: {rowH}px; max-height: {rowH}px;"
-											onclick={() => setSelectedStatementId(item.item_id)}
+											onclick={() =>
+												setSelectedStatementId(
+													$selectedStatementId === item.item_id ? null : item.item_id
+												)}
 											onkeydown={(e) => {
 												if (e.key === 'Enter' || e.key === ' ') {
 													e.preventDefault();
-													setSelectedStatementId(item.item_id);
+													setSelectedStatementId(
+														$selectedStatementId === item.item_id ? null : item.item_id
+													);
 												}
 											}}
 										>
 											<div class="flex min-h-0 min-w-0 flex-1">
-												<div class="min-h-0 min-w-0 flex-1 overflow-y-auto">
+												<div class="relative min-h-0 min-w-0 flex-1 overflow-y-auto">
 													<p class="text-xs leading-snug text-slate-800 sm:text-sm">
 														{statementLabel(item)}
 													</p>
@@ -201,7 +209,10 @@
 														</button>
 													{/if}
 													{#if selectedRow}
-														<div class="mt-8 space-y-4 pt-20">
+														<div
+															class="pointer-events-none absolute right-0 box-border"
+															style="left: 10px; top: {EXPANDED_DETAIL_TOP_PAD}px;"
+														>
 															{#each $statementsViz.modelSeries as ms (ms.fundModel)}
 																{@const mean = ms.itemMeans[i]}
 																{@const meanText = scaleTextForValue(
@@ -211,7 +222,7 @@
 																	Number(item?.scaleMax),
 																	Boolean(item?.reverse)
 																)}
-																<div class="leading-tight">
+																<div class="box-border flex flex-col justify-center leading-tight" style="height: {EXPANDED_DETAIL_ROW_H}px;">
 																	<div class="text-[11px] font-semibold text-slate-800">
 																		{ms.fundModel}
 																	</div>
@@ -258,8 +269,13 @@
 
 									{#each $statementsViz.dim.items as item, i (item.item_id)}
 										{@const rowH = bumpRowHeights[i] ?? ROW_ITEM_HEIGHT}
+										{@const selectedRow = $selectedStatementId === item.item_id}
 										<div
-											class="box-border flex items-center border-b border-slate-300 bg-white"
+											class="box-border flex items-center border-b border-slate-300 bg-white {$selectedStatementId
+												? selectedRow
+													? 'border-r-4 border-r-slate-900'
+													: 'opacity-50'
+												: ''}"
 											style="height: {rowH}px; min-height: {rowH}px; max-height: {rowH}px; grid-column: 2; grid-row: {1 +
 												i};"
 										>

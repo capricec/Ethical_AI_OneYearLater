@@ -19,7 +19,7 @@
 	const spikeHalfHSelected = 25;
 	const spikeHalfHOther = 25;
 const DETAIL_TOP_PAD = ROW_ITEM_HEIGHT + 40;
-const DETAIL_ROW_H = 52;
+const DETAIL_ROW_H = 80;
 
 	/**
 	 * @typedef {object} Viz
@@ -307,6 +307,8 @@ const selectedDetail = $derived.by(() => {
 
 			<g transform="translate({margin.side},0)" style="overflow: visible">
 				{#each viz.dim.items as item, ri (item.item_id)}
+					{@const isSelectedRow = selectedStatementId === item.item_id}
+					{@const isDimmed = selectedStatementId && !isSelectedRow}
 					{@const yi = rowCentersY[ri]}
 					{@const tickX = rowTickX[ri] ?? innerWidth / 2}
 					{@const baseMin = endpointTextForSide(item, 'min')}
@@ -320,6 +322,7 @@ const selectedDetail = $derived.by(() => {
 						y2={yi}
 						stroke={ITEM_LINE_STROKE}
 						stroke-width="1"
+						opacity={isDimmed ? 0.5 : 1}
 					/>
 					<line
 						x1={tickX}
@@ -328,6 +331,7 @@ const selectedDetail = $derived.by(() => {
 						y2={yi + TICK_HALF_HEIGHT}
 						stroke={SCALE_TICK_STROKE}
 						stroke-width="1.5"
+						opacity={isDimmed ? 0.5 : 1}
 					/>
 					<text
 						x={-10}
@@ -337,7 +341,7 @@ const selectedDetail = $derived.by(() => {
 						font-weight="400"
 						text-anchor="end"
 						dominant-baseline="middle"
-					>
+						opacity={isDimmed ? 0.5 : 1}>
 						{rowLeft}
 					</text>
 					<text
@@ -348,17 +352,21 @@ const selectedDetail = $derived.by(() => {
 						font-weight="400"
 						text-anchor="start"
 						dominant-baseline="middle"
-					>
+						opacity={isDimmed ? 0.5 : 1}>
 						{rowRight}
 					</text>
 				{/each}
 
 				{#each spikeRenderRows as row (`row-${row.rowIndex}`)}
+					{@const isSelectedRow = selectedStatementId
+						? viz.dim.items[row.rowIndex]?.item_id === selectedStatementId
+						: false}
+					{@const rowOpacity = selectedStatementId && !isSelectedRow ? 0.5 : 1}
 					{#if row.sharedTip !== null}
 						<path
 							d={spikePathD(row.baseX, row.sharedTip, row.y, spikeHalfHSelected)}
 							fill={GREY_SPIKE_FILL}
-							fill-opacity="0.78"
+							fill-opacity={0.78 * rowOpacity}
 						/>
 					{/if}
 
@@ -379,7 +387,7 @@ const selectedDetail = $derived.by(() => {
 							fill-rule={layer.isBand ? 'evenodd' : 'nonzero'}
 							stroke="none"
 							stroke-width="0"
-							opacity={selected ? 1 : 0.9}
+							opacity={(selected ? 1 : 0.9) * rowOpacity}
 						/>
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<path
@@ -401,7 +409,7 @@ const selectedDetail = $derived.by(() => {
 						{@const nBins = Math.max(1, d.bins.length)}
 						{@const center = (nBins - 1) / 2}
 						{@const barY = d.y}
-						{@const barH = 22}
+						{@const barH = 30}
 						{@const safeTotal = d.bins.reduce((a, b) => a + Math.max(0, b || 0), 0) || 1}
 						{@const binsNorm = d.bins.map((v) => Math.max(0, v || 0) / safeTotal)}
 						{@const leftSpan = Math.max(0, selectedDetail.centerX - selectedDetail.chartX0)}
