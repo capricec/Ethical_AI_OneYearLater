@@ -13,7 +13,8 @@
 		model = '',
 		responseText = '',
 		responseLabel = 'Average response',
-		percentOfTotalText = ''
+		percentOfTotalText = '',
+		metaLine = ''
 	} = $props();
 </script>
 
@@ -38,6 +39,9 @@
 	{/if}
 	{#if percentOfTotalText}
 		<div class="viz-tooltip-value">Percent of total: {percentOfTotalText}</div>
+	{/if}
+	{#if metaLine}
+		<div class="viz-tooltip-value">{metaLine}</div>
 	{/if}
 </div>
 

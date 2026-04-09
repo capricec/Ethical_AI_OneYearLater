@@ -248,6 +248,10 @@ export function computeStatementsViz(
 		const scaleMax = Number(dim.scale?.max);
 		const sk = e.subscaleKey;
 		const interp = interpretationForSubscale(dim.id, sk);
+		const stmtVals = {
+			min: String(e.item?.statement_values?.min ?? dim.statement_values?.min ?? '').trim(),
+			max: String(e.item?.statement_values?.max ?? dim.statement_values?.max ?? '').trim()
+		};
 		return {
 			...e.item,
 			dimensionId: dim.id,
@@ -263,6 +267,8 @@ export function computeStatementsViz(
 				: Array.isArray(dim.statement_scale)
 					? dim.statement_scale
 					: [],
+			/** Pole labels from `statement_encoding.json` (`statement_values`), item overrides dimension. */
+			statement_values: stmtVals,
 			dimStatementValues: {
 				min: String(dim.statement_values?.min ?? ''),
 				max: String(dim.statement_values?.max ?? '')

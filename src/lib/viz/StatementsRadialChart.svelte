@@ -4,8 +4,11 @@
 	import { statementLabel } from '$lib/ui/statementLabel.js';
 	import VizTooltip from '$lib/ui/VizTooltip.svelte';
 	import { scaleTextForValue } from '$lib/viz/valuePalette.js';
+	import {
+		STATEMENT_ORDER_DIVERGENCE,
+		STATEMENT_ORDER_SUBSCALE
+	} from '$lib/data/computeStatementsViz.js';
 
-	const PANEL_BG = '#ffffff';
 	/** Pixels beyond outer label ring; keeps curved labels inside the clip. */
 	const DISC_CLIP_OUTSET = 0;
 	/** White ring between grey hub and inner end of value scale (spike bases). */
@@ -14,17 +17,28 @@
 	const WEDGE_BORDER_STROKE = '#ebebeb';
 	const SUBSCALE_SPOKE_WIDTH = 1;
 	const SUBSCALE_RIM_WIDTH = 1;
-	const DIMENSION_DIVIDER_WIDTH = 5;
 	const DIMENSION_SPOKE_WIDTH = 5;
 	const DIMENSION_RING_FILL = '#8e8e8e';
 	const DIMENSION_RING_SEPARATOR = '#ebebeb';
 	const SELECTED_PATH_STROKE = '#0a0a0a';
 	const INACTIVE_MODEL_PATH_STROKE = '#a8a29e';
+	const SUBSCALE_LABEL_FONT_PX = 5;
+	const SUBSCALE_LABEL_CHAR_PX = SUBSCALE_LABEL_FONT_PX * 0.6;
+	const SUBSCALE_LABEL_ARC_PAD_PX = 1;
+	/** Inset pole label arcs slightly from hub / outer clip so glyphs stay inside the value band. */
+	const POLE_LABEL_OUTER_INSET = 2;
+	const POLE_LABEL_INNER_INSET = 2;
+	/** Est. px per character along arc for pole label span (inner ring is shortest arc). */
+	const POLE_LABEL_CHAR_PX = 5.5;
+	/** Max angular span for a pole arc (~200°) so paths stay well-defined. */
+	const POLE_LABEL_MAX_SPAN_RAD = Math.PI * 1.15;
+	/** Served from `static/Group 77.png` (SvelteKit root). */
+	const RADIAL_LEGEND_SRC = '/Group%2077.png';
 
-	/** Outer annulus for subscale labels (plot uses radius inside this band). */
+	/** Gap between spike outer limit and inner edge of the grey subscale ring (px). */
 	const LABEL_BAND = 30;
-	/** Outermost annulus for dimension grouping wedges + labels. */
-	const DIMENSION_BAND = 34;
+	/** Radial thickness of the grey subscale ring (`fullOuterR − dimensionInnerR`). */
+	const SUBSCALE_RING_WIDTH = 22;
 
 	/**
 	 * @typedef {object} Viz
@@ -34,8 +48,36 @@
 	 * @property {{ aggregate: object, item: object }} labels
 	 */
 
-	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void) }} */
-	let { width, height, viz, selectedModel, onSubscaleWedgeClick = () => {} } = $props();
+	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void) }} */
+	let {
+		width,
+		height,
+		viz,
+		selectedModel,
+		radialSortMode = STATEMENT_ORDER_SUBSCALE,
+		onRadialSortModeChange = () => {},
+		highlightSubscaleKey = null,
+		onSubscaleWedgeClick = () => {}
+	} = $props();
+	const showGroupingMarkers = $derived(radialSortMode !== STATEMENT_ORDER_DIVERGENCE);
+
+	const HIGHLIGHT_DIM_OPACITY = 0.0;
+
+	/** When a subscale is highlighted from the context rail, dim other statements (all stay visible). */
+	function opacityForStatementIndex(i) {
+		if (
+			highlightSubscaleKey === null ||
+			highlightSubscaleKey === undefined ||
+			highlightSubscaleKey === ''
+		) {
+			return 1;
+		}
+		const item = viz?.dim?.items?.[i];
+		const k = String(item?.subscaleKey ?? '').trim() || '__none__';
+		return k === highlightSubscaleKey ? 1 : HIGHLIGHT_DIM_OPACITY;
+	}
+	/** In divergence mode, spikes extend much farther — space that was label + dimension rings in dimension mode. */
+	const DIVERGENCE_OUTER_R_PAD = 6;
 
 	/**
 	 * @type { { kind: 'dot', x: number, y: number, placeLeft: boolean, model: string, subscaleLabel: string, statementText: string, responseText: string }
@@ -111,6 +153,33 @@
 	}
 
 	/**
+	 * Widen pole text paths past the subscale wedge when needed so long strings fit on the inner ring.
+	 * When a subscale is highlighted, overlapping adjacent sectors is acceptable (their labels are off).
+	 *
+	 * @param {number} t0
+	 * @param {number} t1
+	 * @param {number} innerR — inner pole arc radius (bottleneck for arc length)
+	 * @param {string[]} texts
+	 */
+	function poleLabelSpanAngles(t0, t1, innerR, texts) {
+		const mid = (t0 + t1) / 2;
+		const wedgeSpan = sectorSpan(t0, t1);
+		let maxLen = 0;
+		for (const s of texts) {
+			const n = String(s ?? '').length;
+			if (n > maxLen) maxLen = n;
+		}
+		if (maxLen === 0 || innerR < 1e-6) return { t0p: t0, t1p: t1 };
+		const estPx = maxLen * POLE_LABEL_CHAR_PX;
+		const needSpan = Math.min(POLE_LABEL_MAX_SPAN_RAD, (estPx * 1.4) / innerR);
+		const span = Math.max(wedgeSpan, needSpan);
+		return {
+			t0p: mid - span / 2,
+			t1p: mid + span / 2
+		};
+	}
+
+	/**
 	 * @param {object[]} items
 	 * @param {number} n
 	 */
@@ -133,29 +202,6 @@
 		return runs;
 	}
 
-	/**
-	 * @param {object[]} items
-	 * @param {number} n
-	 */
-	function dimensionRuns(items, n) {
-		if (!n) return [];
-		const keyOf = (it) => `${it.dimensionId}`;
-		/** @type {{ i0: number, i1: number, label: string }[]} */
-		const runs = [];
-		let start = 0;
-		for (let i = 1; i <= n; i++) {
-			if (i === n || keyOf(items[i]) !== keyOf(items[start])) {
-				runs.push({
-					i0: start,
-					i1: i - 1,
-					label: String(items[start].dimensionTitle ?? '')
-				});
-				start = i;
-			}
-		}
-		return runs;
-	}
-
 	const layout = $derived.by(() => {
 		if (!viz?.dim?.items?.length) {
 			return {
@@ -164,7 +210,6 @@
 				fullOuterR: 40,
 				dimensionInnerR: 30,
 				plotOuterR: 32,
-				labelTextR: 36,
 				dimensionLabelR: 38,
 				hubR: 14,
 				scaleInnerR: 28,
@@ -175,9 +220,6 @@
 				subscaleArcs: /** @type {{ id: string, label: string, i0: number, i1: number, t0: number, t1: number, textPathD: string }[]} */ (
 					[]
 				),
-				dimensionArcs: /** @type {{ id: string, label: string, i0: number, i1: number, t0: number, t1: number, textPathD: string }[]} */ (
-					[]
-				)
 			};
 		}
 		const n = viz.dim.items.length;
@@ -185,16 +227,35 @@
 		const cy = height / 2;
 		const side = Math.max(120, Math.min(width, height) - 2 * PAD);
 		const fullOuterR = side / 2;
-		const dimensionInnerR = Math.max(24, fullOuterR - DIMENSION_BAND);
-		const plotOuterR = Math.min(Math.max(20, dimensionInnerR - LABEL_BAND), dimensionInnerR - 4);
-		/** Grey hub; value scale and spikes start at scaleInnerR (white pad between). */
-		const hubR = Math.max(14, plotOuterR * 0.17);
-		const scaleInnerR = Math.max(
-			hubR + 2,
-			Math.min(hubR + INNER_SCALE_WHITE_PAD, plotOuterR - 6)
-		);
-		const labelTextR = (plotOuterR + dimensionInnerR) / 2;
-		const dimensionLabelR = (dimensionInnerR + fullOuterR) / 2;
+		const divergenceMode = radialSortMode === STATEMENT_ORDER_DIVERGENCE;
+
+		let dimensionInnerR;
+		let plotOuterR;
+		let hubR;
+		let scaleInnerR;
+		let dimensionLabelR;
+
+		if (divergenceMode) {
+			/** Outer plot limit: nearly to clip circle (was label + dimension annuli in dimension mode). */
+			plotOuterR = Math.max(28, fullOuterR - DIVERGENCE_OUTER_R_PAD);
+			hubR = Math.max(14, plotOuterR * 0.17);
+			scaleInnerR = Math.max(
+				hubR + 2,
+				Math.min(hubR + INNER_SCALE_WHITE_PAD, plotOuterR - 6)
+			);
+			dimensionInnerR = Math.max(plotOuterR + 2, fullOuterR - 2);
+			dimensionLabelR = (dimensionInnerR + fullOuterR) / 2;
+		} else {
+			dimensionInnerR = Math.max(24, fullOuterR - SUBSCALE_RING_WIDTH);
+			plotOuterR = Math.min(Math.max(20, dimensionInnerR - LABEL_BAND), dimensionInnerR - 4);
+			/** Grey hub; value scale and spikes start at scaleInnerR (white pad between). */
+			hubR = Math.max(14, plotOuterR * 0.17);
+			scaleInnerR = Math.max(
+				hubR + 2,
+				Math.min(hubR + INNER_SCALE_WHITE_PAD, plotOuterR - 6)
+			);
+			dimensionLabelR = (dimensionInnerR + fullOuterR) / 2;
+		}
 
 		const angles = [];
 		const rScales = [];
@@ -206,29 +267,19 @@
 
 		const items = viz.dim.items;
 		const runs = subscaleRuns(items, n);
-		const dimRuns = dimensionRuns(items, n);
 		const tau = 2 * Math.PI;
 		const subscaleArcs = runs.map((run, idx) => {
 			const t0 = -Math.PI / 2 + ((run.i0 - 0.5) / n) * tau;
 			const t1 = -Math.PI / 2 + ((run.i1 + 0.5) / n) * tau;
 			const mid = (t0 + t1) / 2;
+			const label = run.label;
+			const arcLenPx = sectorSpan(t0, t1) * dimensionLabelR;
+			const estTextPx = String(label).trim().length * SUBSCALE_LABEL_CHAR_PX;
+			const labelFits = estTextPx + SUBSCALE_LABEL_ARC_PAD_PX <= arcLenPx;
 			return {
 				id: `subscale-tp-${idx}`,
-				label: run.label,
-				i0: run.i0,
-				i1: run.i1,
-				t0,
-				t1,
-				textPathD: labelCircleArcD(cx, cy, labelTextR, t0, t1, labelPathReverse(mid))
-			};
-		});
-		const dimensionArcs = dimRuns.map((run, idx) => {
-			const t0 = -Math.PI / 2 + ((run.i0 - 0.5) / n) * tau;
-			const t1 = -Math.PI / 2 + ((run.i1 + 0.5) / n) * tau;
-			const mid = (t0 + t1) / 2;
-			return {
-				id: `dimension-tp-${idx}`,
-				label: run.label,
+				label,
+				labelFits,
 				i0: run.i0,
 				i1: run.i1,
 				t0,
@@ -243,7 +294,6 @@
 			fullOuterR,
 			dimensionInnerR,
 			plotOuterR,
-			labelTextR,
 			dimensionLabelR,
 			hubR,
 			scaleInnerR,
@@ -251,14 +301,79 @@
 			angles,
 			rScales,
 			n,
-			subscaleArcs,
-			dimensionArcs
+			subscaleArcs
 		};
 	});
 
-	function polar(cx, cy, r, ang) {
-		return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
+	function normSubscaleKey(k) {
+		const s = String(k ?? '').trim();
+		return s || '__none__';
 	}
+
+	/** Context rail highlights one subscale: hide other subscale wedge labels (option B). */
+	const subscaleHighlightLocked = $derived(
+		highlightSubscaleKey != null && String(highlightSubscaleKey).trim() !== ''
+	);
+
+	/**
+	 * Pole copy from `statement_encoding.json` (`statement_values`), on arcs at the spike axis
+	 * endpoints: `plotOuterR` (domain max) and `scaleInnerR` (domain min). Arc span widens as needed
+	 * so long strings are not truncated on the inner ring (may extend past the wedge angle).
+	 */
+	const focusedSubscalePoleLabels = $derived.by(() => {
+		if (!subscaleHighlightLocked || !viz?.dim?.items?.length || !layout?.n) return null;
+		const want = normSubscaleKey(highlightSubscaleKey);
+		const arc = layout.subscaleArcs.find(
+			(a) => normSubscaleKey(viz.dim.items[a.i0]?.subscaleKey) === want
+		);
+		if (!arc) return null;
+		const item = viz.dim.items[arc.i0];
+		const sv = item?.statement_values;
+		let low = String(sv?.min ?? '').trim();
+		let high = String(sv?.max ?? '').trim();
+		if ((!low || !high) && Array.isArray(item.statement_scale) && item.statement_scale.length >= 2) {
+			if (!low) low = String(item.statement_scale[0] ?? '').trim();
+			if (!high) high = String(item.statement_scale[item.statement_scale.length - 1] ?? '').trim();
+		}
+		if (!low && !high) return null;
+		const rev = Boolean(item?.reverse);
+		let outerText = '';
+		let innerText = '';
+		if (low && high) {
+			outerText = rev ? low : high;
+			innerText = rev ? high : low;
+		} else {
+			const only = low || high;
+			outerText = only;
+			innerText = '';
+		}
+		const refR = (layout.scaleInnerR + layout.plotOuterR) / 2;
+		let outerR = layout.plotOuterR - POLE_LABEL_OUTER_INSET;
+		let innerR = layout.scaleInnerR + POLE_LABEL_INNER_INSET;
+		if (outerR <= innerR) {
+			outerR = layout.plotOuterR;
+			innerR = layout.scaleInnerR;
+		}
+		const { cx, cy } = layout;
+		const t0 = arc.t0;
+		const t1 = arc.t1;
+		const mid = (t0 + t1) / 2;
+		const pathReverse = labelPathReverse(mid);
+		const textsForSpan = innerText ? [outerText, innerText] : [outerText];
+		const { t0p, t1p } = poleLabelSpanAngles(t0, t1, innerR, textsForSpan);
+		const outerPathD = labelCircleArcD(cx, cy, outerR, t0p, t1p, pathReverse);
+		const innerPathD = labelCircleArcD(cx, cy, innerR, t0p, t1p, pathReverse);
+		const { t0p: ts0, t1p: ts1 } = poleLabelSpanAngles(t0, t1, refR, [outerText]);
+		const singlePathD = labelCircleArcD(cx, cy, refR, ts0, ts1, pathReverse);
+		return {
+			outerText,
+			innerText,
+			outerPathD,
+			innerPathD,
+			singlePathD,
+			twoPoles: Boolean(low && high)
+		};
+	});
 
 	/** Local (0,0-centered) arc path for statement bump caps. */
 	function arcPathLocalD(r, t0, t1) {
@@ -802,9 +917,9 @@
 	 * Grey consensus + colored spikes. Colored paths sorted by descending radial extent (largest drawn first = bottom).
 	 */
 	const convergenceFillLayers = $derived.by(() => {
-		/** @type {{ d: string, key: string }[]} */
+		/** @type {{ d: string, key: string, statementIndex: number }[]} */
 		const greyPaths = [];
-		/** @type {{ d: string, fill: string, key: string, area: number }[]} */
+		/** @type {{ d: string, fill: string, key: string, area: number, statementIndex: number }[]} */
 		const coloredPaths = [];
 
 		if (!layout.n || !viz?.modelSeries?.length || !convergenceByStatement.length) {
@@ -815,7 +930,7 @@
 			if (st.sharedTip !== null && Math.abs(st.sharedTip - st.rBase) > 1e-6) {
 				const sharedPts = sampleStatementSpikeCurveXY(st.i, st.rBase, st.sharedTip);
 				const dShared = pathFromXY(sharedPts);
-				if (dShared) greyPaths.push({ d: dShared, key: `grey-${st.i}` });
+				if (dShared) greyPaths.push({ d: dShared, key: `grey-${st.i}`, statementIndex: st.i });
 			}
 		}
 
@@ -835,7 +950,8 @@
 									d: dStrip,
 									fill: modelColor(ms.fundModel),
 									key: `${st.i}-${ms.fundModel}-strip`,
-									area: Math.abs(outerTip - innerTip)
+									area: Math.abs(outerTip - innerTip),
+									statementIndex: st.i
 								});
 							}
 						}
@@ -847,7 +963,8 @@
 								d: dSpikeFill,
 								fill: modelColor(ms.fundModel),
 								key: `${st.i}-${ms.fundModel}-full`,
-								area: Math.abs(r - st.rBase)
+								area: Math.abs(r - st.rBase),
+								statementIndex: st.i
 							});
 						}
 					}
@@ -869,7 +986,8 @@
 								d: dStrip,
 								fill: c,
 								key: `${st.i}-${selectedModel}-iso-strip`,
-								area: Math.abs(outerTip - innerTip)
+								area: Math.abs(outerTip - innerTip),
+								statementIndex: st.i
 							});
 						}
 					}
@@ -881,7 +999,8 @@
 							d: dSpikeFill,
 							fill: c,
 							key: `${st.i}-${selectedModel}-iso-full`,
-							area: Math.abs(r - st.rBase)
+							area: Math.abs(r - st.rBase),
+							statementIndex: st.i
 						});
 					}
 				}
@@ -894,7 +1013,7 @@
 
 	const spikeHoverTargets = $derived.by(() => {
 		if (!layout.n || !viz?.modelSeries?.length || !meanPathRefRadii.length) return [];
-		/** @type {{ key: string, d: string, model: string, item: object, responseText: string }[]} */
+		/** @type {{ key: string, d: string, model: string, item: object, responseText: string, statementIndex: number }[]} */
 		const targets = [];
 		const activeSeries =
 			selectedModel === null
@@ -921,7 +1040,8 @@
 					d,
 					model: model.fundModel,
 					item,
-					responseText
+					responseText,
+					statementIndex: i
 				});
 			}
 		}
@@ -981,19 +1101,17 @@
 {#if !viz || !layout.n}
 	<p class="text-sm text-slate-500">No data.</p>
 {:else}
-	<div
-		class="chart-wrap max-h-full max-w-full overflow-visible rounded-full"
-		style="width: {width}px; height: {height}px;"
-	>
-		<svg
-			width={width}
-			height={height}
-			class="block max-h-full max-w-full"
-			style="overflow: hidden"
-			role="img"
-			aria-label="Radial chart of model convergence by statement."
-			focusable="false"
-		>
+	<div class="radial-chart-shell">
+		<div class="radial-svg-slot">
+			<svg
+				width={width}
+				height={height}
+				class="radial-interactive-svg block max-h-full max-w-full shrink-0"
+				style="overflow: visible"
+				role="img"
+				aria-label="Radial chart of model convergence by statement."
+				focusable="false"
+			>
 			<defs>
 				<clipPath id="radial-plot-disc-clip">
 					<circle
@@ -1005,14 +1123,17 @@
 				{#each layout.subscaleArcs as arc (arc.id)}
 					<path id={arc.id} d={arc.textPathD} fill="none" />
 				{/each}
-				{#each layout.dimensionArcs as arc (arc.id)}
-					<path id={arc.id} d={arc.textPathD} fill="none" />
-				{/each}
+				{#if focusedSubscalePoleLabels}
+					{#if focusedSubscalePoleLabels.twoPoles}
+						<path id="radial-pole-outer" d={focusedSubscalePoleLabels.outerPathD} fill="none" />
+						<path id="radial-pole-inner" d={focusedSubscalePoleLabels.innerPathD} fill="none" />
+					{:else}
+						<path id="radial-pole-single" d={focusedSubscalePoleLabels.singlePathD} fill="none" />
+					{/if}
+				{/if}
 			</defs>
 
 			<g clip-path="url(#radial-plot-disc-clip)">
-				<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} />
-
 				<!-- Inner hub: same grey as column chrome / wedge separators -->
 				<circle
 					cx={layout.cx}
@@ -1020,6 +1141,18 @@
 					r={layout.hubR}
 					fill={WEDGE_BORDER_STROKE}
 					aria-hidden="true"
+				/>
+
+				<!-- Neutral reference circle: midpoint of value scale (spike baseline / ref radius). -->
+				<circle
+					cx={layout.cx}
+					cy={layout.cy}
+					r={(layout.scaleInnerR + layout.plotOuterR) / 2}
+					fill="none"
+					stroke={DIMENSION_RING_FILL}
+					stroke-width={SUBSCALE_RIM_WIDTH}
+					aria-hidden="true"
+					pointer-events="none"
 				/>
 
 				{#if layout.n && viz.modelSeries?.length && convergenceFillLayers.coloredPaths.length + convergenceFillLayers.greyPaths.length > 0}
@@ -1030,10 +1163,15 @@
 						pointer-events="none"
 					>
 						{#each convergenceFillLayers.coloredPaths as p (p.key)}
-							<path d={p.d} fill={p.fill} />
+							<path d={p.d} fill={p.fill} opacity={opacityForStatementIndex(p.statementIndex)} />
 						{/each}
 						{#each convergenceFillLayers.greyPaths as g (g.key)}
-							<path d={g.d} fill="#cecece" fill-opacity="0.78" />
+							<path
+								d={g.d}
+								fill="#cecece"
+								fill-opacity="0.78"
+								opacity={opacityForStatementIndex(g.statementIndex)}
+							/>
 						{/each}
 					</g>
 				{/if}
@@ -1048,6 +1186,7 @@
 							stroke-width="13"
 							stroke-linecap="round"
 							stroke-linejoin="round"
+							opacity={opacityForStatementIndex(t.statementIndex)}
 							role="presentation"
 							aria-hidden="true"
 							onmouseenter={(event) => setDotHover(event, t.model, t.item, t.responseText)}
@@ -1057,61 +1196,32 @@
 					{/each}
 				</g>
 
-				<!-- Subscale wedges only: rim arcs + wide radials at subscale boundaries to clip edge -->
-				<g aria-hidden="true" class="subscale-plot-grid" pointer-events="none">
-					{#if layout.subscaleArcs.length > 1}
+				{#if showGroupingMarkers}
+					<!-- Thin radials from hub to inner edge of the outer grey ring (plot / spike band). -->
+					<g aria-hidden="true" class="subscale-plot-grid" pointer-events="none">
+						{#if layout.subscaleArcs.length > 1}
+							{#each layout.subscaleArcs as arc (arc.id)}
+								{@const t = arc.t0}
+								{@const x0 = layout.cx + layout.hubR * Math.cos(t)}
+								{@const y0 = layout.cy + layout.hubR * Math.sin(t)}
+								{@const x1 = layout.cx + layout.clipEdgeR * Math.cos(t)}
+								{@const y1 = layout.cy + layout.clipEdgeR * Math.sin(t)}
+								<line
+									x1={x0}
+									y1={y0}
+									x2={x1}
+									y2={y1}
+									stroke={WEDGE_BORDER_STROKE}
+									stroke-width={SUBSCALE_SPOKE_WIDTH}
+									stroke-linecap="butt"
+								/>
+							{/each}
+						{/if}
+					</g>
+
+					<!-- Outer grey annulus: one sector per subscale (former dimension-ring styling). -->
+					<g aria-hidden="true" class="subscale-ring-grid" pointer-events="none">
 						{#each layout.subscaleArcs as arc (arc.id)}
-							{@const t = arc.t0}
-							{@const x0 = layout.cx + layout.hubR * Math.cos(t)}
-							{@const y0 = layout.cy + layout.hubR * Math.sin(t)}
-							{@const x1 = layout.cx + layout.clipEdgeR * Math.cos(t)}
-							{@const y1 = layout.cy + layout.clipEdgeR * Math.sin(t)}
-							<line
-								x1={x0}
-								y1={y0}
-								x2={x1}
-								y2={y1}
-								stroke={WEDGE_BORDER_STROKE}
-								stroke-width={SUBSCALE_SPOKE_WIDTH}
-								stroke-linecap="butt"
-							/>
-						{/each}
-					{/if}
-				</g>
-
-				<!-- Thicker separators only where dimensions change (e.g. Populism|Social Democracy). -->
-				<g aria-hidden="true" class="dimension-divider-spokes" pointer-events="none">
-					{#each layout.dimensionArcs as arc (arc.id)}
-						{@const t = arc.t0}
-						{@const x0 = layout.cx + layout.hubR * Math.cos(t)}
-						{@const y0 = layout.cy + layout.hubR * Math.sin(t)}
-						{@const x1 = layout.cx + layout.clipEdgeR * Math.cos(t)}
-						{@const y1 = layout.cy + layout.clipEdgeR * Math.sin(t)}
-						<line
-							x1={x0}
-							y1={y0}
-							x2={x1}
-							y2={y1}
-							stroke={WEDGE_BORDER_STROKE}
-							stroke-width={DIMENSION_DIVIDER_WIDTH}
-							stroke-linecap="butt"
-						/>
-					{/each}
-				</g>
-
-				<!-- Dimension ring: one outer wedge per dimension grouping -->
-				<g aria-hidden="true" class="dimension-ring-grid" pointer-events="none">
-					{#if layout.dimensionArcs.length <= 1}
-						<circle
-							cx={layout.cx}
-							cy={layout.cy}
-							r={layout.fullOuterR}
-							fill={DIMENSION_RING_FILL}
-							stroke={WEDGE_BORDER_STROKE}
-							stroke-width={SUBSCALE_RIM_WIDTH}
-						/>
-					{:else}
-						{#each layout.dimensionArcs as arc (arc.id)}
 							<path
 								d={annularSectorPathD(
 									layout.cx,
@@ -1136,7 +1246,7 @@
 								stroke-width={SUBSCALE_RIM_WIDTH}
 							/>
 						{/each}
-						{#each layout.dimensionArcs as arc (arc.id)}
+						{#each layout.subscaleArcs as arc (arc.id)}
 							{@const t = arc.t0}
 							{@const x0 = layout.cx + layout.dimensionInnerR * Math.cos(t)}
 							{@const y0 = layout.cy + layout.dimensionInnerR * Math.sin(t)}
@@ -1152,50 +1262,86 @@
 								stroke-linecap="butt"
 							/>
 						{/each}
-					{/if}
-				</g>
+					</g>
 
-				<g class="subscale-hit-targets">
+					<g class="subscale-hit-targets">
+						{#each layout.subscaleArcs as arc (arc.id)}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<path
+								d={annularSectorPathD(
+									layout.cx,
+									layout.cy,
+									Math.max(layout.plotOuterR + 2, layout.hubR),
+									layout.fullOuterR,
+									arc.t0,
+									arc.t1
+								)}
+								fill="transparent"
+								onclick={() => handleSubscaleWedgeClick(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
+							/>
+						{/each}
+					</g>
+				{/if}
+			</g>
+
+			<!-- Subscale names on the outer grey annulus (Dimension view). -->
+			{#if showGroupingMarkers}
+				<g aria-hidden="true" class="subscale-labels" pointer-events="none">
 					{#each layout.subscaleArcs as arc (arc.id)}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<path
-							d={annularSectorPathD(
-								layout.cx,
-								layout.cy,
-								Math.max(layout.plotOuterR + 2, layout.hubR),
-								layout.clipEdgeR,
-								arc.t0,
-								arc.t1
-							)}
-							fill="transparent"
-							onclick={() => handleSubscaleWedgeClick(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
-						/>
+						{#if arc.labelFits && (!subscaleHighlightLocked || normSubscaleKey(viz.dim.items[arc.i0]?.subscaleKey) === normSubscaleKey(highlightSubscaleKey))}
+							<text class="subscale-label-text" dominant-baseline="middle">
+								<textPath href={`#${arc.id}`} startOffset="50%" text-anchor="middle">
+									{arc.label}
+								</textPath>
+							</text>
+						{/if}
 					{/each}
 				</g>
-			</g>
-
-			<!-- Subscale labels intentionally rendered outside the clipped group so long curved tags
-			     (e.g., Environment/Immigration) are never cut off at the outer radius. -->
-			<g aria-hidden="true" class="subscale-labels" pointer-events="none">
-				{#each layout.subscaleArcs as arc (arc.id)}
-					<text class="subscale-label-text" dominant-baseline="middle">
-						<textPath href={`#${arc.id}`} startOffset="50%" text-anchor="middle">
-							{arc.label}
-						</textPath>
-					</text>
-				{/each}
-			</g>
-			<g aria-hidden="true" class="dimension-labels" pointer-events="none">
-				{#each layout.dimensionArcs as arc (arc.id)}
-					<text class="dimension-label-text" dominant-baseline="middle">
-						<textPath href={`#${arc.id}`} startOffset="50%" text-anchor="middle">
-							{arc.label}
-						</textPath>
-					</text>
-				{/each}
-			</g>
+			{/if}
+			{#if focusedSubscalePoleLabels}
+				<g aria-hidden="true" class="subscale-pole-labels" pointer-events="none">
+					{#if focusedSubscalePoleLabels.twoPoles}
+						<text class="subscale-pole-label" dominant-baseline="middle">
+							<textPath href="#radial-pole-outer" startOffset="50%" text-anchor="middle">
+								{focusedSubscalePoleLabels.outerText}
+							</textPath>
+						</text>
+						<text class="subscale-pole-label" dominant-baseline="middle">
+							<textPath href="#radial-pole-inner" startOffset="50%" text-anchor="middle">
+								{focusedSubscalePoleLabels.innerText}
+							</textPath>
+						</text>
+					{:else}
+						<text class="subscale-pole-label" dominant-baseline="middle">
+							<textPath href="#radial-pole-single" startOffset="50%" text-anchor="middle">
+								{focusedSubscalePoleLabels.outerText}
+							</textPath>
+						</text>
+					{/if}
+				</g>
+			{/if}
 		</svg>
+		</div>
+
+		<!-- Radial sort toggle (Dimension / Divergence) — uncomment block to restore
+		<div class="radial-sort-toggle" role="group" aria-label="Radial statement sort">
+			<button
+				type="button"
+				class:active={radialSortMode === STATEMENT_ORDER_SUBSCALE}
+				onclick={() => onRadialSortModeChange(STATEMENT_ORDER_SUBSCALE)}
+			>
+				Dimension
+			</button>
+			<button
+				type="button"
+				class:active={radialSortMode === STATEMENT_ORDER_DIVERGENCE}
+				onclick={() => onRadialSortModeChange(STATEMENT_ORDER_DIVERGENCE)}
+			>
+				Divergence
+			</button>
+		</div>
+		-->
 
 		{#if tooltip?.kind === 'dot'}
 			<VizTooltip
@@ -1209,25 +1355,97 @@
 				responseText={tooltip.responseText}
 			/>
 		{/if}
+		<img class="radial-legend" src={RADIAL_LEGEND_SRC} alt="Radial chart legend" />
 	</div>
 {/if}
 
 <style>
-	.chart-wrap {
+	/**
+	 * Fills the radial grid cell (not just the SVG square) so absolute controls
+	 * align to the column edge near the context rail.
+	 */
+	.radial-chart-shell {
 		position: relative;
+		height: 100%;
+		width: 100%;
+		min-height: 0;
+		overflow: visible;
 	}
+
+	.radial-svg-slot {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+	}
+
+	.radial-interactive-svg {
+		pointer-events: auto;
+		overflow: visible;
+	}
+
+	/* Radial sort toggle styles — restore with the commented markup block above
+	.radial-sort-toggle {
+		position: absolute;
+		right: 4px;
+		top: 8px;
+		left: auto;
+		transform: none;
+		z-index: 5;
+		display: inline-flex;
+		gap: 2px;
+		padding: 2px;
+		border: 1px solid #cbd5e1;
+		border-radius: 6px;
+		background: rgba(255, 255, 255, 0.92);
+	}
+
+	.radial-sort-toggle button {
+		border: 0;
+		background: transparent;
+		color: #475569;
+		font-size: 10px;
+		font-weight: 600;
+		line-height: 1;
+		padding: 5px 8px;
+		border-radius: 4px;
+		cursor: pointer;
+	}
+
+	.radial-sort-toggle button:hover {
+		background: #f1f5f9;
+	}
+
+	.radial-sort-toggle button.active {
+		background: #0f172a;
+		color: #ffffff;
+	}
+	*/
 
 	.subscale-label-text {
-		fill: #1e293b;
-		font-size: 9px;
-		font-weight: 600;
-		letter-spacing: 0.02em;
-	}
-
-	.dimension-label-text {
 		fill: #ffffff;
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.02em;
+	}
+
+	.subscale-pole-label {
+		fill: #475569;
+		font-size: 8px;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+	}
+
+	.radial-legend {
+		position: absolute;
+		right: 4px;
+		bottom: 8px;
+		width: 200px;
+		height: auto;
+		z-index: 4;
+		pointer-events: none;
+		user-select: none;
 	}
 </style>

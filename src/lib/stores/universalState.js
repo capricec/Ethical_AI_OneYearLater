@@ -29,8 +29,17 @@ export const selectedViewMode = writable(VIEW_MODE_DIMENSION_BUMP);
 /** `null` = all dimensions; otherwise filter to this dimension id */
 export const selectedDimensionFilter = writable(/** @type {number | null} */ (null));
 
-/** `null` = all subscales; otherwise filter to this subscale key (e.g. from encoding item.subscale) */
+/** `null` = all subscales. In bump view, narrows the statement list; in radial, highlight-only (viz ignores this for filtering). */
 export const selectedSubscaleFilter = writable(/** @type {string | null} */ (null));
+
+/**
+ * Radial-only statement ordering (bump always uses divergence).
+ */
+export const radialStatementOrder = writable(
+	/** @type {typeof STATEMENT_ORDER_SUBSCALE | typeof STATEMENT_ORDER_DIVERGENCE} */ (
+		STATEMENT_ORDER_SUBSCALE
+	)
+);
 
 /** Mirrors view mode: open in Bump, closed in Radial (driven by `selectedViewMode`). */
 export const leftTrayOpen = writable(true);
@@ -48,15 +57,13 @@ selectedViewMode.subscribe((mode) => {
 });
 
 export const statementsViz = derived(
-	[rawDataset, selectedDimensionFilter, selectedViewMode, selectedSubscaleFilter],
-	([$raw, $filter, $mode, $subscale]) =>
-		computeStatementsViz(
-			$raw.encoding,
-			$raw.compiled,
-			$filter,
-			$mode === VIEW_MODE_RADIAL ? STATEMENT_ORDER_SUBSCALE : STATEMENT_ORDER_DIVERGENCE,
-			$subscale
-		)
+	[rawDataset, selectedDimensionFilter, selectedViewMode, selectedSubscaleFilter, radialStatementOrder],
+	([$raw, $filter, $mode, $subscale, $radialOrder]) => {
+		const isRadial = $mode === VIEW_MODE_RADIAL;
+		const order = isRadial ? $radialOrder : STATEMENT_ORDER_DIVERGENCE;
+		const subscaleFilter = isRadial ? null : $subscale;
+		return computeStatementsViz($raw.encoding, $raw.compiled, $filter, order, subscaleFilter);
+	}
 );
 
 statementsViz.subscribe((viz) => {
@@ -93,6 +100,13 @@ export function setDimensionFilter(dimId) {
 /** @param {string | null} subscaleKey */
 export function setSubscaleFilter(subscaleKey) {
 	selectedSubscaleFilter.set(subscaleKey ?? null);
+}
+
+/** @param {typeof STATEMENT_ORDER_SUBSCALE | typeof STATEMENT_ORDER_DIVERGENCE} order */
+export function setRadialStatementOrder(order) {
+	radialStatementOrder.set(
+		order === STATEMENT_ORDER_DIVERGENCE ? STATEMENT_ORDER_DIVERGENCE : STATEMENT_ORDER_SUBSCALE
+	);
 }
 
 export function setSelectedViewMode(mode) {

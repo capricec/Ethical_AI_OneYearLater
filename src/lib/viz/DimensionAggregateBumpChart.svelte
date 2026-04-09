@@ -9,6 +9,8 @@
 	import { scaleTextForValue } from '$lib/viz/valuePalette.js';
 	import { modelColor } from '$lib/viz/modelColors.js';
 	import VizTooltip from '$lib/ui/VizTooltip.svelte';
+	import { compiled } from '$lib/data/dataset.js';
+	import { dailySeriesForStatementModel } from '$lib/data/statementDailySeries.js';
 
 	const PANEL_BG = '#ebebeb';
 
@@ -29,9 +31,39 @@ const DETAIL_ROW_H = 80;
 	 * @property {{ aggregate: { left: string, right: string }, item: { left: string, right: string } }} labels
 	 */
 
-	/** @type {{ width: number, viz: Viz, selectedModel: (string|null), selectedStatementId?: (string|null), rowHeights?: number[] }} */
-	let { width, viz, selectedModel, selectedStatementId = null, rowHeights = [] } = $props();
-	/** @type {{ x: number, y: number, model: string, responseText: string, responseLabel?: string, percentOfTotalText?: string } | null} */
+	/** @type {{ width: number, viz: Viz, selectedModel: (string|null), selectedStatementId?: (string|null), rowHeights?: number[], highlightSubscaleKey?: (string|null) }} */
+	let {
+		width,
+		viz,
+		selectedModel,
+		selectedStatementId = null,
+		rowHeights = [],
+		highlightSubscaleKey = null
+	} = $props();
+
+	const HIGHLIGHT_DIM_OPACITY = 0;
+
+	/** @param {unknown} k */
+	function normSubscaleKey(k) {
+		const s = String(k ?? '').trim();
+		return s || '__none__';
+	}
+
+	const subscaleHighlightLocked = $derived(
+		highlightSubscaleKey != null && String(highlightSubscaleKey).trim() !== ''
+	);
+
+	/**
+	 * @param {object} item
+	 * @param {number} baseOpacity
+	 */
+	function opacityForSubscaleRow(item, baseOpacity) {
+		if (!subscaleHighlightLocked) return baseOpacity;
+		return normSubscaleKey(item?.subscaleKey) === normSubscaleKey(highlightSubscaleKey)
+			? baseOpacity
+			: baseOpacity * HIGHLIGHT_DIM_OPACITY;
+	}
+	/** @type {{ x: number, y: number, model: string, responseText: string, responseLabel?: string, percentOfTotalText?: string, metaLine?: string } | null} */
 	let tooltip = $state(null);
 
 	const margin = { top: CHART_MARGIN_TOP, bottom: CHART_MARGIN_BOTTOM, side: CHART_SIDE_GUTTER };
@@ -239,6 +271,62 @@ const selectedDetail = $derived.by(() => {
 	return { chartX0, chartW, chartX1, centerX, rows };
 });
 
+	const drillDownLayout = $derived.by(() => {
+		if (!viz || !selectedStatementId || !selectedModel || selectedRowIndex < 0) return null;
+		if (!rowBounds[selectedRowIndex] || !xScales[selectedRowIndex]) return null;
+		const item = viz.dim.items[selectedRowIndex];
+		const series = dailySeriesForStatementModel(
+			compiled,
+			item.dimensionId,
+			item,
+			selectedModel
+		);
+		if (!series.length) return null;
+		const bounds = rowBounds[selectedRowIndex];
+		const xScale = xScales[selectedRowIndex];
+		const centerX = rowTickX[selectedRowIndex] ?? innerWidth / 2;
+		const yTop = bounds.top + DETAIL_TOP_PAD;
+		const yBottom = bounds.top + bounds.height - 10;
+		const h = Math.max(40, yBottom - yTop);
+		const n = series.length;
+		const points = series.map((d, i) => {
+			const py = n <= 1 ? yTop + h / 2 : yTop + (i / (n - 1)) * h;
+			return { date: d.date, value: d.value, px: xScale(d.value), py };
+		});
+		const smin = Number(item.scaleMin);
+		const smax = Number(item.scaleMax);
+		const nBins = Math.max(
+			1,
+			Number.isFinite(smin) && Number.isFinite(smax)
+				? Math.floor(smax) - Math.floor(smin) + 1
+				: 1
+		);
+		const lineHue = modelColor(selectedModel);
+		/** One segment per consecutive pair: model hue + heatmap-style bin opacity. */
+		const segments = [];
+		for (let i = 0; i < points.length - 1; i++) {
+			const a = points[i];
+			const b = points[i + 1];
+			const midVal = (a.value + b.value) / 2;
+			const bi = binIndexForValue(midVal, smin, smax);
+			const strokeOpacity = heatmapAlphaForBinIndex(nBins, bi);
+			segments.push({
+				d: `M ${a.px} ${a.py} L ${b.px} ${b.py}`,
+				color: lineHue,
+				strokeOpacity,
+				hoverDate: b.date,
+				hoverValue: b.value
+			});
+		}
+		return {
+			points,
+			segments,
+			centerX,
+			yTop,
+			yBottom
+		};
+	});
+
 	function clampTooltipPosition(rawX, rawY) {
 		const maxX = Math.max(TOOLTIP_PADDING, width - TOOLTIP_WIDTH - TOOLTIP_PADDING);
 		const maxY = Math.max(TOOLTIP_PADDING, height - TOOLTIP_HEIGHT - TOOLTIP_PADDING);
@@ -265,6 +353,24 @@ const selectedDetail = $derived.by(() => {
 		tooltip = null;
 	}
 
+	/** Matches heatmap rect opacity: strongest at scale extremes, ~0.2 at center bin(s). */
+	function heatmapAlphaForBinIndex(nBins, bi) {
+		const center = (nBins - 1) / 2;
+		const centerOffset = nBins % 2 === 0 ? 0.5 : 0;
+		const distFromCenter = Math.max(0, Math.abs(bi - center) - centerOffset);
+		const maxDistFromCenter = Math.max(0, center - centerOffset);
+		return maxDistFromCenter > 0 ? 0.2 + 0.8 * (distFromCenter / maxDistFromCenter) : 1;
+	}
+
+	/** Same bin index as `computeStatementsViz` / heatmap (`Math.round` then offset from floor(scaleMin)). */
+	function binIndexForValue(value, scaleMin, scaleMax) {
+		const floorMin = Math.floor(Number(scaleMin));
+		const floorMax = Math.floor(Number(scaleMax));
+		const binCount = Math.max(1, floorMax - floorMin + 1);
+		const rounded = Math.round(value);
+		return Math.max(0, Math.min(binCount - 1, rounded - floorMin));
+	}
+
 	function heatmapResponseTextForBin(item, binIndex) {
 		const scaleTexts = Array.isArray(item?.statement_scale) ? item.statement_scale : [];
 		if (scaleTexts.length) {
@@ -289,6 +395,31 @@ const selectedDetail = $derived.by(() => {
 			percentOfTotalText: `${(percent * 100).toFixed(1)}%`
 		};
 	}
+
+	/** @param {object} item */
+	function setDrillHover(event, item, date, value) {
+		const rect = event.currentTarget?.ownerSVGElement?.getBoundingClientRect();
+		const localX = rect ? event.clientX - rect.left : 0;
+		const localY = rect ? event.clientY - rect.top : 0;
+		const pos = clampTooltipPosition(localX + 12, localY - TOOLTIP_HEIGHT - 8);
+		const scaleTexts = Array.isArray(item?.statement_scale) ? item.statement_scale : [];
+		const responseText =
+			scaleTextForValue(
+				value,
+				scaleTexts,
+				Number(item?.scaleMin),
+				Number(item?.scaleMax),
+				Boolean(item?.reverse)
+			) || String(value);
+		tooltip = {
+			x: pos.x,
+			y: pos.y,
+			model: selectedModel ?? '',
+			responseText,
+			responseLabel: 'Response',
+			metaLine: `Date: ${date}`
+		};
+	}
 </script>
 
 {#if !viz}
@@ -309,6 +440,7 @@ const selectedDetail = $derived.by(() => {
 				{#each viz.dim.items as item, ri (item.item_id)}
 					{@const isSelectedRow = selectedStatementId === item.item_id}
 					{@const isDimmed = selectedStatementId && !isSelectedRow}
+					{@const axisOpacity = opacityForSubscaleRow(item, isDimmed ? 0.5 : 1)}
 					{@const yi = rowCentersY[ri]}
 					{@const tickX = rowTickX[ri] ?? innerWidth / 2}
 					{@const baseMin = endpointTextForSide(item, 'min')}
@@ -322,7 +454,7 @@ const selectedDetail = $derived.by(() => {
 						y2={yi}
 						stroke={ITEM_LINE_STROKE}
 						stroke-width="1"
-						opacity={isDimmed ? 0.5 : 1}
+						opacity={axisOpacity}
 					/>
 					<line
 						x1={tickX}
@@ -331,7 +463,7 @@ const selectedDetail = $derived.by(() => {
 						y2={yi + TICK_HALF_HEIGHT}
 						stroke={SCALE_TICK_STROKE}
 						stroke-width="1.5"
-						opacity={isDimmed ? 0.5 : 1}
+						opacity={axisOpacity}
 					/>
 					<text
 						x={-10}
@@ -341,7 +473,7 @@ const selectedDetail = $derived.by(() => {
 						font-weight="400"
 						text-anchor="end"
 						dominant-baseline="middle"
-						opacity={isDimmed ? 0.5 : 1}>
+						opacity={axisOpacity}>
 						{rowLeft}
 					</text>
 					<text
@@ -352,16 +484,20 @@ const selectedDetail = $derived.by(() => {
 						font-weight="400"
 						text-anchor="start"
 						dominant-baseline="middle"
-						opacity={isDimmed ? 0.5 : 1}>
+						opacity={axisOpacity}>
 						{rowRight}
 					</text>
 				{/each}
 
 				{#each spikeRenderRows as row (`row-${row.rowIndex}`)}
+					{@const itemForRow = viz.dim.items[row.rowIndex]}
 					{@const isSelectedRow = selectedStatementId
-						? viz.dim.items[row.rowIndex]?.item_id === selectedStatementId
+						? itemForRow?.item_id === selectedStatementId
 						: false}
-					{@const rowOpacity = selectedStatementId && !isSelectedRow ? 0.5 : 1}
+					{@const rowOpacity = opacityForSubscaleRow(
+						itemForRow ?? {},
+						selectedStatementId && !isSelectedRow ? 0.5 : 1
+					)}
 					{#if row.sharedTip !== null}
 						<path
 							d={spikePathD(row.baseX, row.sharedTip, row.y, spikeHalfHSelected)}
@@ -403,7 +539,60 @@ const selectedDetail = $derived.by(() => {
 					{/each}
 				{/each}
 
-				{#if selectedDetail}
+				{#if drillDownLayout}
+					{@const dd = drillDownLayout}
+					{@const drillItem = viz.dim.items[selectedRowIndex]}
+					<line
+						x1={dd.centerX}
+						x2={dd.centerX}
+						y1={dd.yTop}
+						y2={dd.yBottom}
+						stroke="#64748b"
+						stroke-width="1"
+						stroke-opacity="0.6"
+					/>
+					{#each dd.segments as seg, si (`${seg.hoverDate}-${si}`)}
+						<path
+							d={seg.d}
+							fill="none"
+							stroke={seg.color}
+							stroke-opacity={seg.strokeOpacity}
+							stroke-width="2.5"
+							stroke-linejoin="round"
+							stroke-linecap="round"
+						/>
+					{/each}
+					{#each dd.segments as seg, si (`hit-${seg.hoverDate}-${si}`)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<path
+							d={seg.d}
+							fill="none"
+							stroke="transparent"
+							stroke-width="12"
+							stroke-linecap="round"
+							role="presentation"
+							onmouseenter={(e) =>
+								setDrillHover(e, drillItem, seg.hoverDate, seg.hoverValue)}
+							onmousemove={(e) =>
+								setDrillHover(e, drillItem, seg.hoverDate, seg.hoverValue)}
+							onmouseleave={clearHover}
+						/>
+					{/each}
+					{#each dd.points as p (`tip-${p.date}-${p.value}`)}
+						<!-- svelte-ignore a11y_no_static_element_interactions — invisible hit target, not a visible dot -->
+						<circle
+							cx={p.px}
+							cy={p.py}
+							r="8"
+							fill="transparent"
+							stroke="none"
+							role="presentation"
+							onmouseenter={(e) => setDrillHover(e, drillItem, p.date, p.value)}
+							onmousemove={(e) => setDrillHover(e, drillItem, p.date, p.value)}
+							onmouseleave={clearHover}
+						/>
+					{/each}
+				{:else if selectedDetail}
 					{#each selectedDetail.rows as d (`detail-${d.model}`)}
 						{@const selectedItem = viz.dim.items[selectedRowIndex]}
 						{@const nBins = Math.max(1, d.bins.length)}
@@ -482,6 +671,7 @@ const selectedDetail = $derived.by(() => {
 				responseText={tooltip.responseText}
 				responseLabel={tooltip.responseLabel ?? 'Average response'}
 				percentOfTotalText={tooltip.percentOfTotalText ?? ''}
+				metaLine={tooltip.metaLine ?? ''}
 			/>
 		{/if}
 	</div>
