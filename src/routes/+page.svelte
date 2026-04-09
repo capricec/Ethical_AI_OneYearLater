@@ -123,7 +123,7 @@
 												class="shrink-0 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 hover:bg-slate-100"
 												onclick={clearSubscaleHighlight}
 											>
-												All subscales
+												All dimensions
 											</button>
 										{/if}
 									</div>

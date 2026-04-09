@@ -35,6 +35,9 @@
 	/** Served from `static/Group 77.png` (SvelteKit root). */
 	const RADIAL_LEGEND_SRC = '/Group%2077.png';
 
+	/** Extra radial reach for spike tips vs the nominal value band (± px from `scaleInnerR` / `plotOuterR`). */
+	const SPIKE_RADIUS_EXTENSION_PX = 20;
+
 	/** Gap between spike outer limit and inner edge of the grey subscale ring (px). */
 	const LABEL_BAND = 30;
 	/** Radial thickness of the grey subscale ring (`fullOuterR − dimensionInnerR`). */
@@ -161,6 +164,7 @@
 	 * @param {number} innerR — inner pole arc radius (bottleneck for arc length)
 	 * @param {string[]} texts
 	 */
+	/* Selected-subscale high/low pole labels — restore with `focusedSubscalePoleLabels` markup below
 	function poleLabelSpanAngles(t0, t1, innerR, texts) {
 		const mid = (t0 + t1) / 2;
 		const wedgeSpan = sectorSpan(t0, t1);
@@ -178,6 +182,7 @@
 			t1p: mid + span / 2
 		};
 	}
+	*/
 
 	/**
 	 * @param {object[]} items
@@ -213,6 +218,8 @@
 				dimensionLabelR: 38,
 				hubR: 14,
 				scaleInnerR: 28,
+				spikeRangeInner: 28,
+				spikeRangeOuter: 32,
 				clipEdgeR: 30,
 				angles: /** @type {number[]} */ ([]),
 				rScales: /** @type {import('d3').ScaleLinear<number, number>[]} */ ([]),
@@ -257,12 +264,23 @@
 			dimensionLabelR = (dimensionInnerR + fullOuterR) / 2;
 		}
 
+		const spikeRangeInner = Math.max(hubR + 2, scaleInnerR - SPIKE_RADIUS_EXTENSION_PX);
+		let spikeRangeOuter = plotOuterR + SPIKE_RADIUS_EXTENSION_PX;
+		if (divergenceMode) {
+			spikeRangeOuter = Math.min(fullOuterR - 2, spikeRangeOuter);
+		} else {
+			spikeRangeOuter = Math.min(dimensionInnerR - 2, spikeRangeOuter);
+		}
+		if (spikeRangeInner >= spikeRangeOuter - 1e-6) {
+			spikeRangeOuter = spikeRangeInner + Math.max(4, SPIKE_RADIUS_EXTENSION_PX);
+		}
+
 		const angles = [];
 		const rScales = [];
 		for (let i = 0; i < n; i++) {
 			angles.push(-Math.PI / 2 + (i / n) * 2 * Math.PI);
 			const ext = viz.itemExtents[i] ?? [0, 1];
-			rScales.push(d3.scaleLinear().domain(ext).range([scaleInnerR, plotOuterR]));
+			rScales.push(d3.scaleLinear().domain(ext).range([spikeRangeInner, spikeRangeOuter]));
 		}
 
 		const items = viz.dim.items;
@@ -297,6 +315,8 @@
 			dimensionLabelR,
 			hubR,
 			scaleInnerR,
+			spikeRangeInner,
+			spikeRangeOuter,
 			clipEdgeR: dimensionInnerR,
 			angles,
 			rScales,
@@ -320,6 +340,7 @@
 	 * endpoints: `plotOuterR` (domain max) and `scaleInnerR` (domain min). Arc span widens as needed
 	 * so long strings are not truncated on the inner ring (may extend past the wedge angle).
 	 */
+	/* Restore with pole paths in <defs> and `.subscale-pole-label` group below
 	const focusedSubscalePoleLabels = $derived.by(() => {
 		if (!subscaleHighlightLocked || !viz?.dim?.items?.length || !layout?.n) return null;
 		const want = normSubscaleKey(highlightSubscaleKey);
@@ -374,6 +395,7 @@
 			twoPoles: Boolean(low && high)
 		};
 	});
+	*/
 
 	/** Local (0,0-centered) arc path for statement bump caps. */
 	function arcPathLocalD(r, t0, t1) {
@@ -1123,6 +1145,7 @@
 				{#each layout.subscaleArcs as arc (arc.id)}
 					<path id={arc.id} d={arc.textPathD} fill="none" />
 				{/each}
+				<!-- Selected-subscale high/low pole label paths — restore with `focusedSubscalePoleLabels` + `.subscale-pole-label` group
 				{#if focusedSubscalePoleLabels}
 					{#if focusedSubscalePoleLabels.twoPoles}
 						<path id="radial-pole-outer" d={focusedSubscalePoleLabels.outerPathD} fill="none" />
@@ -1131,6 +1154,7 @@
 						<path id="radial-pole-single" d={focusedSubscalePoleLabels.singlePathD} fill="none" />
 					{/if}
 				{/if}
+				-->
 			</defs>
 
 			<g clip-path="url(#radial-plot-disc-clip)">
@@ -1147,7 +1171,7 @@
 				<circle
 					cx={layout.cx}
 					cy={layout.cy}
-					r={(layout.scaleInnerR + layout.plotOuterR) / 2}
+					r={(layout.spikeRangeInner + layout.spikeRangeOuter) / 2}
 					fill="none"
 					stroke={DIMENSION_RING_FILL}
 					stroke-width={SUBSCALE_RIM_WIDTH}
@@ -1299,6 +1323,7 @@
 					{/each}
 				</g>
 			{/if}
+			<!--
 			{#if focusedSubscalePoleLabels}
 				<g aria-hidden="true" class="subscale-pole-labels" pointer-events="none">
 					{#if focusedSubscalePoleLabels.twoPoles}
@@ -1321,6 +1346,7 @@
 					{/if}
 				</g>
 			{/if}
+			-->
 		</svg>
 		</div>
 
@@ -1431,12 +1457,14 @@
 		letter-spacing: 0.02em;
 	}
 
+	/* Restore with pole label markup
 	.subscale-pole-label {
 		fill: #475569;
 		font-size: 8px;
 		font-weight: 600;
 		letter-spacing: 0.02em;
 	}
+	*/
 
 	.radial-legend {
 		position: absolute;
