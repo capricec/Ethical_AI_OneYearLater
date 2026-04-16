@@ -17,8 +17,8 @@
 	const WEDGE_BORDER_STROKE = '#ebebeb';
 	const SUBSCALE_SPOKE_WIDTH = 1;
 	const SUBSCALE_RIM_WIDTH = 1;
-	const DIMENSION_SPOKE_WIDTH = 5;
-	const DIMENSION_RING_FILL = '#8e8e8e';
+	const DIMENSION_SPOKE_WIDTH = 1;
+	const DIMENSION_RING_FILL = 'darkgrey';
 	const DIMENSION_RING_SEPARATOR = '#ebebeb';
 	const SELECTED_PATH_STROKE = '#0a0a0a';
 	const INACTIVE_MODEL_PATH_STROKE = '#a8a29e';
@@ -1468,8 +1468,8 @@
 
 	.radial-legend {
 		position: absolute;
-		right: 4px;
-		bottom: 8px;
+		right: -40px;
+		bottom: -20px;
 		width: 200px;
 		height: auto;
 		z-index: 4;

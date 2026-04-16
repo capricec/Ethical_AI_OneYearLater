@@ -24,12 +24,12 @@ export const selectedModel = writable(/** @type {string | null} */ (null));
 /** `null` means no statement is selected yet (selection is explicit in Bump). */
 export const selectedStatementId = writable(/** @type {string | null} */ (null));
 
-export const selectedViewMode = writable(VIEW_MODE_DIMENSION_BUMP);
+export const selectedViewMode = writable(VIEW_MODE_RADIAL);
 
 /** `null` = all dimensions; otherwise filter to this dimension id */
 export const selectedDimensionFilter = writable(/** @type {number | null} */ (null));
 
-/** `null` = all subscales. In bump view, narrows the statement list; in radial, highlight-only (viz ignores this for filtering). */
+/** `null` = all subscales. UI-only: left tray + radial wedge highlight; does not filter `statementsViz`. */
 export const selectedSubscaleFilter = writable(/** @type {string | null} */ (null));
 
 /**
@@ -46,23 +46,18 @@ export const leftTrayOpen = writable(true);
 
 export const rightTrayOpen = writable(true);
 
-let previousViewMode = VIEW_MODE_DIMENSION_BUMP;
 selectedViewMode.subscribe((mode) => {
 	leftTrayOpen.set(mode === VIEW_MODE_DIMENSION_BUMP);
-	// Entering Bump should start with no default row selected.
-	if (mode === VIEW_MODE_DIMENSION_BUMP && previousViewMode !== VIEW_MODE_DIMENSION_BUMP) {
-		selectedStatementId.set(null);
-	}
-	previousViewMode = mode;
 });
 
 export const statementsViz = derived(
-	[rawDataset, selectedDimensionFilter, selectedViewMode, selectedSubscaleFilter, radialStatementOrder],
-	([$raw, $filter, $mode, $subscale, $radialOrder]) => {
+	[rawDataset, selectedDimensionFilter, selectedViewMode, radialStatementOrder],
+	([$raw, $filter, $mode, $radialOrder]) => {
 		const isRadial = $mode === VIEW_MODE_RADIAL;
 		const order = isRadial ? $radialOrder : STATEMENT_ORDER_DIVERGENCE;
-		const subscaleFilter = isRadial ? null : $subscale;
-		return computeStatementsViz($raw.encoding, $raw.compiled, $filter, order, subscaleFilter);
+		// Never filter viz by subscale: dimension highlight is independent of statement selection,
+		// and bump mode must keep all statements so any `selectedStatementId` stays valid.
+		return computeStatementsViz($raw.encoding, $raw.compiled, $filter, order, null);
 	}
 );
 
@@ -88,6 +83,7 @@ export function setSelectedModel(fundModel) {
 	selectedModel.set(fundModel ?? null);
 }
 
+/** @param {string | null} itemId */
 export function setSelectedStatementId(itemId) {
 	selectedStatementId.set(itemId);
 }
