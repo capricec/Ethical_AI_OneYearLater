@@ -32,8 +32,6 @@
 		}
 	}
 
-	/** Fixed statements column when Bump tray is open. */
-	const LEFT_TRAY_W = 360;
 	/** Fixed context / subscale rail (matches left tray width). */
 	/** Dimension pills removed for now; avoid a stuck dimension-only filter. */
 	onMount(() => {
@@ -166,7 +164,7 @@
 	<title>Ethical AI — One Year Later</title>
 </svelte:head>
 
-<div class="min-h-screen bg-slate-100 text-slate-900">
+<div class="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900">
 	<div class="">
 		{#if $statementsViz}
 			{@const isStatementView =
@@ -182,13 +180,15 @@
 			{@const bumpViz = $selectedStatementId
 				? sliceVizToSingleStatement($statementsViz, $selectedStatementId)
 				: null}
+			<!-- Min row height must fit all model heatmap/timeline rows (matches compact vs desktop spacing in DimensionAggregateBumpChart). -->
+			<!-- Matches compact detailTopPad + model rows + heatmap bar (see DimensionAggregateBumpChart). -->
+			{@const stmtDetailMinH = bumpViz
+				? chartWidth === 0 || chartWidth < 768
+					? 95 + bumpViz.modelSeries.length * 54
+					: 214 + bumpViz.modelSeries.length * 100
+				: 0}
 			{@const bumpSingleRowHeights = bumpViz
-				? [
-						Math.max(
-							180,
-							statementBumpSlotH > 0 ? statementBumpSlotH : 360
-						)
-					]
+				? [Math.max(statementBumpSlotH > 0 ? statementBumpSlotH : 360, stmtDetailMinH)]
 				: []}
 
 			<div
@@ -197,8 +197,7 @@
 				<div class="flex min-h-0 flex-1 flex-col md:flex-row overflow-hidden">
 					<!-- Dashboard: models, dimensions, statements -->
 					<aside
-						class="box-border flex w-full md:w-auto shrink-0 flex-col overflow-hidden md:overflow-hidden border-t md:border-t-0 md:border-r border-slate-200 bg-[#F7F7F7] order-2 md:order-1 h-[35vh] md:h-auto"
-						style="width: {LEFT_TRAY_W}px;"
+						class="box-border flex w-full max-w-full shrink-0 flex-col overflow-hidden border-t border-slate-200 bg-[#F7F7F7] order-2 md:order-1 h-[35vh] md:h-auto md:w-[360px] md:max-w-none md:border-r md:border-t-0"
 					>
 						<div class="flex min-h-0 flex-1 flex-col overflow-y-auto md:overflow-visible">
 							<div class="shrink-0 border-b border-slate-200 px-4 pb-4 pt-4">
@@ -317,13 +316,16 @@
 								</div>
 							</div>
 						</div>
+						</div>
 					</aside>
 
 					<div
-						class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white order-1 md:order-2 h-[65vh] md:h-auto"
+						class="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-white order-1 md:order-2 h-[65vh] md:h-auto"
 					>
 						<header
-							class="flex min-w-0 shrink-0 flex-wrap items-center justify-center gap-3 bg-white px-4 py-5"
+							class="flex min-w-0 shrink-0 flex-wrap items-center justify-center gap-2 bg-white px-3 md:gap-3 md:px-4 md:py-5 {isStatementView
+								? 'pt-2.5 pb-3'
+								: 'py-2.5'}"
 						>
 							<div class="flex min-w-0 w-full max-w-4xl flex-1 justify-center">
 								<QuestionBar
@@ -338,20 +340,20 @@
 							{#if isStatementView}
 								{#if bumpViz}
 									<div
-										class="flex min-h-0 flex-1 flex-col overflow-hidden overflow-x-hidden bg-white"
+										class="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden bg-white -mt-1.5 md:mt-0"
 									>
 										<div
-											class="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-4 pb-4 pt-3"
+											class="mx-auto flex min-h-0 min-w-0 w-full max-w-6xl flex-1 flex-col pl-4 pr-2 pb-2 pt-0 md:px-4 md:pb-4 md:pt-3"
 										>
 											<h2
-												class="mb-2 max-w-4xl shrink-0 self-center text-center text-base font-bold leading-snug text-slate-900 sm:text-lg"
+												class="mb-2 hidden max-w-4xl shrink-0 self-center text-center text-base font-bold leading-snug text-slate-900 sm:text-lg md:block"
 											>
 												{statementLabel(bumpViz.dim.items[0])}
 											</h2>
 											<div
 												bind:clientWidth={chartWidth}
 												bind:clientHeight={statementBumpSlotH}
-												class="box-border flex min-h-0 min-w-0 w-full max-w-5xl flex-1 flex-col"
+												class="box-border flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col self-stretch md:max-w-5xl"
 											>
 												<DimensionAggregateBumpChart
 													width={Math.max(chartWidth, 280)}

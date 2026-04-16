@@ -77,7 +77,37 @@ import {
 	/** @type {{ x: number, y: number, model: string, responseText: string, responseLabel?: string, percentOfTotalText?: string, metaLine?: string } | null} */
 	let tooltip = $state(null);
 
-	const margin = { top: CHART_MARGIN_TOP, bottom: CHART_MARGIN_BOTTOM, side: CHART_SIDE_GUTTER };
+	/** Narrow viewports: smaller side gutter so the scale isn’t crushed; labels sit just inside the gutter. */
+	const isCompactWidth = $derived(width < 768);
+	const sideGutter = $derived(
+		isCompactWidth
+			? Math.max(32, Math.min(80, Math.round(width * 0.14)))
+			: CHART_SIDE_GUTTER
+	);
+	const margin = $derived({
+		top: CHART_MARGIN_TOP,
+		bottom: CHART_MARGIN_BOTTOM,
+		side: sideGutter
+	});
+	/**
+	 * Vertical position of the bump row midline (spike + horizontal axis). Single-row compact
+	 * statement view uses a higher line so the spike sits closer to the top of the chart.
+	 */
+	const bumpRowCenterOffset = $derived(
+		isCompactWidth && viz && viz.dim.items.length === 1
+			? Math.round(ROW_ITEM_HEIGHT * 0.32)
+			: ROW_ITEM_HEIGHT / 2
+	);
+	/**
+	 * Compact: heatmaps / timeline start below under-plot axis labels (hanging).
+	 * Trailing constant is clearance under caption glyphs + extra gap before first detail row.
+	 */
+	const detailTopPad = $derived(
+		isCompactWidth ? bumpRowCenterOffset + TICK_HALF_HEIGHT + 3 + 24 : DETAIL_TOP_PAD
+	);
+	const detailRowH = $derived(isCompactWidth ? 54 : DETAIL_ROW_H);
+	const modelLabelX = $derived(isCompactWidth ? -4 : DETAIL_MODEL_LABEL_X);
+	const detailModelFontWeight = $derived(isCompactWidth ? '500' : '600');
 	const TOOLTIP_WIDTH = 170;
 	const TOOLTIP_HEIGHT = 56;
 	const TOOLTIP_PADDING = 8;
@@ -92,7 +122,7 @@ import {
 			: 120
 	);
 
-	const innerWidth = $derived(Math.max(120, width - margin.side * 2));
+	const innerWidth = $derived(Math.max(80, width - margin.side * 2));
 	const activeModel = $derived(selectedModel);
 
 	const rowCentersY = $derived.by(() => {
@@ -101,8 +131,8 @@ import {
 		let y = margin.top;
 		for (let i = 0; i < viz.dim.items.length; i++) {
 			const h = rowHeights?.[i] ?? ROW_ITEM_HEIGHT;
-		// Keep bump marks top-aligned even when a row expands.
-		ys.push(y + ROW_ITEM_HEIGHT / 2);
+			// Keep bump marks top-aligned even when a row expands.
+			ys.push(y + bumpRowCenterOffset);
 			y += h;
 		}
 		return ys;
@@ -296,7 +326,15 @@ const selectedDetail = $derived.by(() => {
 	const chartW = Math.max(120, innerWidth);
 	const chartX1 = chartX0 + chartW;
 	const centerX = rowTickX[selectedRowIndex] ?? chartX0 + chartW / 2;
-	const maxRows = Math.max(1, Math.floor((bounds.height - DETAIL_TOP_PAD - 10) / DETAIL_ROW_H));
+	const maxRows = Math.max(
+		1,
+		Math.min(
+			viz.modelSeries.length,
+			Math.floor(
+				(bounds.height - detailTopPad - AGGREGATE_DETAIL_BAR_H - 4) / detailRowH
+			) + 1
+		)
+	);
 	const rows = viz.modelSeries.slice(0, maxRows).map((ms, idx) => {
 		const bins = Array.isArray(ms.itemDistributions?.[selectedRowIndex])
 			? ms.itemDistributions[selectedRowIndex]
@@ -305,7 +343,7 @@ const selectedDetail = $derived.by(() => {
 			model: ms.fundModel,
 			color: modelColor(ms.fundModel),
 			bins,
-			y: bounds.top + DETAIL_TOP_PAD + idx * DETAIL_ROW_H
+			y: bounds.top + detailTopPad + idx * detailRowH
 		};
 	});
 	return { chartX0, chartW, chartX1, centerX, rows };
@@ -325,13 +363,21 @@ const selectedDetail = $derived.by(() => {
 		const bounds = rowBounds[selectedRowIndex];
 		const xScale = xScales[selectedRowIndex];
 		const centerX = rowTickX[selectedRowIndex] ?? innerWidth / 2;
-		const maxRows = Math.max(1, Math.floor((bounds.height - DETAIL_TOP_PAD - 10) / DETAIL_ROW_H));
+		const maxRows = Math.max(
+			1,
+			Math.min(
+				viz.modelSeries.length,
+				Math.floor(
+					(bounds.height - detailTopPad - AGGREGATE_DETAIL_BAR_H - 4) / detailRowH
+				) + 1
+			)
+		);
 		const yTop =
-			bounds.top + DETAIL_TOP_PAD - AGGREGATE_GUIDE_LINE_INSET;
+			bounds.top + detailTopPad - AGGREGATE_GUIDE_LINE_INSET;
 		const yBottom =
 			bounds.top +
-			DETAIL_TOP_PAD +
-			(maxRows - 1) * DETAIL_ROW_H +
+			detailTopPad +
+			(maxRows - 1) * detailRowH +
 			AGGREGATE_DETAIL_BAR_H +
 			AGGREGATE_GUIDE_LINE_INSET;
 		const h = Math.max(40, yBottom - yTop);
@@ -615,7 +661,10 @@ const selectedDetail = $derived.by(() => {
 {#if !viz}
 	<p class="text-sm text-slate-500">No data.</p>
 {:else}
-	<div class="chart-wrap" style="width: {width}px; height: {height}px;">
+	<div
+		class="chart-wrap box-border max-w-full"
+		style="width: {width}px; max-width: 100%; height: {height}px;"
+	>
 		<svg
 			width={width}
 			height={height}
@@ -655,28 +704,32 @@ const selectedDetail = $derived.by(() => {
 						stroke-width="1.5"
 						opacity={axisOpacity}
 					/>
-					<text
-						x={-10}
-						y={yi}
-						fill="#57534e"
-						font-size="11"
-						font-weight="400"
-						text-anchor="end"
-						dominant-baseline="middle"
-						opacity={axisOpacity}>
-						{rowLeft}
-					</text>
-					<text
-						x={innerWidth + 10}
-						y={yi}
-						fill="#57534e"
-						font-size="11"
-						font-weight="400"
-						text-anchor="start"
-						dominant-baseline="middle"
-						opacity={axisOpacity}>
-						{rowRight}
-					</text>
+					{#if !(isCompactWidth && viz.dim.items.length === 1)}
+						<text
+							x={-10}
+							y={yi}
+							fill="#57534e"
+							font-size="11"
+							font-weight="400"
+							text-anchor="end"
+							dominant-baseline="middle"
+							opacity={axisOpacity}
+						>
+							{rowLeft}
+						</text>
+						<text
+							x={innerWidth + 10}
+							y={yi}
+							fill="#57534e"
+							font-size="11"
+							font-weight="400"
+							text-anchor="start"
+							dominant-baseline="middle"
+							opacity={axisOpacity}
+						>
+							{rowRight}
+						</text>
+					{/if}
 				{/each}
 
 				{#each spikeRenderRows as row (`row-${row.rowIndex}`)}
@@ -726,11 +779,11 @@ const selectedDetail = $derived.by(() => {
 					{@const drillItem = viz.dim.items[selectedRowIndex]}
 					{@const drillLabelY = (dd.yTop + dd.yBottom) / 2}
 					<text
-						x={DETAIL_MODEL_LABEL_X}
+						x={modelLabelX}
 						y={drillLabelY}
 						fill="#0f172a"
 						font-size="12"
-						font-weight="600"
+						font-weight={detailModelFontWeight}
 						text-anchor="end"
 						dominant-baseline="middle"
 					>
@@ -816,11 +869,11 @@ const selectedDetail = $derived.by(() => {
 							{@const leftSpan = Math.max(0, selectedDetail.centerX - selectedDetail.chartX0)}
 							{@const rightSpan = Math.max(0, selectedDetail.chartX1 - selectedDetail.centerX)}
 							<text
-								x={DETAIL_MODEL_LABEL_X}
+								x={modelLabelX}
 								y={barY + barH / 2}
 								fill="#0f172a"
 								font-size="12"
-								font-weight="600"
+								font-weight={detailModelFontWeight}
 								text-anchor="end"
 								dominant-baseline="middle"
 							>
@@ -886,11 +939,11 @@ const selectedDetail = $derived.by(() => {
 						{@const adl = aggregateDotsLayout}
 						{#each adl.rows as row (`dots-row-${row.model}`)}
 							<text
-								x={DETAIL_MODEL_LABEL_X}
+								x={modelLabelX}
 								y={row.barY + row.barH / 2}
 								fill="#0f172a"
 								font-size="12"
-								font-weight="600"
+								font-weight={detailModelFontWeight}
 								text-anchor="end"
 								dominant-baseline="middle"
 							>
@@ -932,6 +985,40 @@ const selectedDetail = $derived.by(() => {
 							{/each}
 						{/each}
 					{/if}
+				{/if}
+
+				{#if isCompactWidth && viz.dim.items.length === 1}
+					{@const axisItem0 = viz.dim.items[0]}
+					{@const epMin = endpointTextForSide(axisItem0, 'min')}
+					{@const epMax = endpointTextForSide(axisItem0, 'max')}
+					{@const capLeft = axisItem0?.reverse ? epMax : epMin}
+					{@const capRight = axisItem0?.reverse ? epMin : epMax}
+					{@const yi0 = rowCentersY[0]}
+					<!-- Tight under bump midline tick; x inset pulls captions toward the vertical center line. -->
+					{@const epY = yi0 + TICK_HALF_HEIGHT + 3}
+					{@const capXInset = Math.max(6, Math.min(56, Math.round(innerWidth * 0.14)))}
+					<text
+						x={-20}
+						y={epY - 10}
+						fill="#57534e"
+						font-size="10"
+						font-weight="400"
+						text-anchor="start"
+						dominant-baseline="hanging"
+					>
+						← {capLeft}
+					</text>
+					<text
+						x={innerWidth + 20 }
+						y={epY - 10}
+						fill="#57534e"
+						font-size="10"
+						font-weight="400"
+						text-anchor="end"
+						dominant-baseline="hanging"
+					>
+						{capRight} →
+					</text>
 				{/if}
 			</g>
 		</svg>

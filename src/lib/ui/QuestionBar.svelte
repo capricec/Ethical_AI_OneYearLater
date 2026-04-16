@@ -105,7 +105,7 @@
 				type="text"
 				autocomplete="off"
 				placeholder={PLACEHOLDER}
-				class="box-border min-h-[2.75rem] w-full min-w-0 flex-1 rounded-full border-0 bg-transparent py-2.5 pl-6 text-center text-base font-medium leading-snug text-slate-900 outline-none ring-0 placeholder:font-normal placeholder:text-[#595959] focus:outline-none focus:ring-0 {hasSelection
+				class="box-border min-h-[2.75rem] w-full min-w-0 flex-1 rounded-full border-0 bg-transparent py-2.5 pl-6 text-center text-sm font-medium leading-snug text-slate-900 outline-none ring-0 placeholder:font-normal placeholder:text-[#595959] focus:outline-none focus:ring-0 md:text-base {hasSelection
 					? 'pr-12'
 					: 'pr-6'}"
 				bind:value={filterText}
@@ -141,7 +141,7 @@
 					<li role="presentation">
 						<button
 							type="button"
-							class="w-full px-4 py-3 text-left text-base text-slate-800 hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:outline-none {selectedItemId === q.item_id
+							class="w-full px-4 py-3 text-left text-sm text-slate-800 hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:outline-none md:text-base {selectedItemId === q.item_id
 								? 'bg-slate-50 font-semibold'
 								: 'font-normal'}"
 							role="option"
@@ -156,7 +156,7 @@
 			</ul>
 		{:else if open && normalizedQuery !== '' && filteredQuestions.length === 0}
 			<div
-				class="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-500 shadow-lg"
+				class="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-lg md:text-base"
 			>
 				No questions match.
 			</div>
