@@ -11,9 +11,11 @@
 	import VizTooltip from '$lib/ui/VizTooltip.svelte';
 	import { compiled } from '$lib/data/dataset.js';
 	import { dailySeriesForStatementModel } from '$lib/data/statementDailySeries.js';
-	import {
+import {
 		STATEMENT_DETAIL_AGGREGATE_MODE,
-		DOT_STRIP_CONFIG
+		DOT_STRIP_CONFIG,
+		SINGLE_MODEL_DOT_RADIUS_PX,
+		SINGLE_MODEL_JITTER_SCALE_UNITS
 	} from '$lib/viz/statementAggregateDetailVizConfig.js';
 
 	const PANEL_BG = '#ffffff';
@@ -24,9 +26,13 @@
 	/** Inner-SVG x for model names beside heatmap/dot rows (text-anchor end). */
 	const DETAIL_MODEL_LABEL_X = -138;
 	const spikeHalfHOther = 25;
-const DETAIL_TOP_PAD = ROW_ITEM_HEIGHT + 40;
-/** Vertical spacing between model heatmap/dot rows (must stay in sync with `EXPANDED_ROW_HEIGHT` on the page). */
-const DETAIL_ROW_H = 100;
+	const DETAIL_TOP_PAD = ROW_ITEM_HEIGHT + 40;
+	/** Vertical spacing between model heatmap/dot rows (page passes row height to match). */
+	const DETAIL_ROW_H = 100;
+	/** Must match heatmap / aggregate dot row strip (`barH` in template). */
+	const AGGREGATE_DETAIL_BAR_H = 30;
+	/** Matches `barY ± 2` vertical guide lines in aggregate views. */
+	const AGGREGATE_GUIDE_LINE_INSET = 2;
 
 	/**
 	 * @typedef {object} Viz
@@ -197,6 +203,24 @@ const DETAIL_ROW_H = 100;
 			}
 			if (!spikes.length) continue;
 
+			/** One solid triangle from center to tip — no multi-model band cutouts. */
+			if (selectedModel) {
+				const s = spikes.find((sp) => sp.model === selectedModel);
+				if (!s) continue;
+				const layers = [
+					{
+						key: `solo-${rowIndex}-${s.model}`,
+						model: s.model,
+						pathD: spikePathD(baseX, s.tipX, y, spikeHalfHOther),
+						isBand: false,
+						responseText: s.responseText,
+						area: Math.abs(s.tipX - baseX)
+					}
+				];
+				out.push({ rowIndex, y, baseX, sharedTip: null, layers });
+				continue;
+			}
+
 			const allRight = spikes.every((s) => s.tipX >= baseX - 1e-6);
 			const allLeft = spikes.every((s) => s.tipX <= baseX + 1e-6);
 			let sharedTip = null;
@@ -301,14 +325,17 @@ const selectedDetail = $derived.by(() => {
 		const bounds = rowBounds[selectedRowIndex];
 		const xScale = xScales[selectedRowIndex];
 		const centerX = rowTickX[selectedRowIndex] ?? innerWidth / 2;
-		const yTop = bounds.top + DETAIL_TOP_PAD;
-		const yBottom = bounds.top + bounds.height - 10;
+		const maxRows = Math.max(1, Math.floor((bounds.height - DETAIL_TOP_PAD - 10) / DETAIL_ROW_H));
+		const yTop =
+			bounds.top + DETAIL_TOP_PAD - AGGREGATE_GUIDE_LINE_INSET;
+		const yBottom =
+			bounds.top +
+			DETAIL_TOP_PAD +
+			(maxRows - 1) * DETAIL_ROW_H +
+			AGGREGATE_DETAIL_BAR_H +
+			AGGREGATE_GUIDE_LINE_INSET;
 		const h = Math.max(40, yBottom - yTop);
 		const n = series.length;
-		const points = series.map((d, i) => {
-			const py = n <= 1 ? yTop + h / 2 : yTop + (i / (n - 1)) * h;
-			return { date: d.date, value: d.value, px: xScale(d.value), py };
-		});
 		const smin = Number(item.scaleMin);
 		const smax = Number(item.scaleMax);
 		const nBins = Math.max(
@@ -318,28 +345,105 @@ const selectedDetail = $derived.by(() => {
 				: 1
 		);
 		const lineHue = modelColor(selectedModel);
-		/** One segment per consecutive pair: model hue + heatmap-style bin opacity. */
-		const segments = [];
-		for (let i = 0; i < points.length - 1; i++) {
-			const a = points[i];
-			const b = points[i + 1];
-			const midVal = (a.value + b.value) / 2;
-			const bi = binIndexForValue(midVal, smin, smax);
-			const strokeOpacity = heatmapAlphaForBinIndex(nBins, bi);
-			segments.push({
-				d: `M ${a.px} ${a.py} L ${b.px} ${b.py}`,
-				color: lineHue,
-				strokeOpacity,
-				hoverDate: b.date,
-				hoverValue: b.value
+		const ext = viz.itemExtents[selectedRowIndex] ?? [0, 1];
+		const vMin = Math.min(ext[0], ext[1]);
+		const vMax = Math.max(ext[0], ext[1]);
+
+		// Time domain for vertical axis: at least Mar 1 2025 → Mar 1 2026.
+		const seriesTimes = series.map((d) => {
+			const dt = timelineDate(d.date);
+			return dt ? dt.getTime() : NaN;
+		});
+		let tMin = Infinity;
+		let tMax = -Infinity;
+		for (const t of seriesTimes) {
+			if (!Number.isFinite(t)) continue;
+			if (t < tMin) tMin = t;
+			if (t > tMax) tMax = t;
+		}
+		const tAnchorStart = timelineDate('2025-03-01')?.getTime() ?? NaN;
+		const tAnchorEnd = timelineDate('2026-03-01')?.getTime() ?? NaN;
+		if (Number.isFinite(tAnchorStart)) tMin = Math.min(tMin, tAnchorStart);
+		if (Number.isFinite(tAnchorEnd)) tMax = Math.max(tMax, tAnchorEnd);
+		if (!Number.isFinite(tMin) || !Number.isFinite(tMax) || tMax <= tMin) {
+			tMin = 0;
+			tMax = 1;
+		}
+
+		function yForTimeOnAxis(tMs, fallbackIndex) {
+			if (!Number.isFinite(tMs)) {
+				// Fall back to index-based placement when date is invalid.
+				const fracIdx = n <= 1 ? 0.5 : fallbackIndex / Math.max(1, n - 1);
+				return yTop + fracIdx * h;
+			}
+			const clamped = Math.max(tMin, Math.min(tMax, tMs));
+			const frac = (clamped - tMin) / (tMax - tMin || 1);
+			return yTop + frac * h;
+		}
+
+		const points = series.map((d, i) => {
+			const py = yForTimeOnAxis(seriesTimes[i], i);
+			const delta = detJitter(
+				seedFrom(selectedModel, d.date, i),
+				SINGLE_MODEL_JITTER_SCALE_UNITS
+			);
+			const v = Math.min(vMax, Math.max(vMin, d.value + delta));
+			const pxRaw = xScale(v);
+			const px = Math.max(
+				SINGLE_MODEL_DOT_RADIUS_PX,
+				Math.min(innerWidth - SINGLE_MODEL_DOT_RADIUS_PX, pxRaw)
+			);
+			const bi = binIndexForValue(d.value, smin, smax);
+			const fillOpacity = heatmapAlphaForBinIndex(nBins, bi);
+			return { date: d.date, value: d.value, model: d.model, px, py, fillOpacity };
+		});
+
+		/**
+		 * Dots use y = f(index), not literal calendar time. Place a calendar instant on that axis by
+		 * linear interpolation in time between consecutive samples, then map fractional index → y.
+		 * (So Mar 2025 / Mar 2026 always show, even with zero observations in March.)
+		 */
+		/** @param {number} tMs */
+		function yForCalendarOnDotAxis(tMs) {
+			return yForTimeOnAxis(tMs, 0.5 * (n - 1));
+		}
+
+		/** @type {{ y: number, label: string }[]} */
+		const monthMarkers = [];
+		for (const iso of ['2025-03-01', '2026-03-01']) {
+			const dt = timelineDate(iso);
+			if (!dt) continue;
+			monthMarkers.push({
+				y: yForCalendarOnDotAxis(dt.getTime()),
+				label: dt.toLocaleString('en-US', { month: 'short', year: 'numeric' })
 			});
 		}
+		monthMarkers.sort((a, b) => a.y - b.y);
+
+		/** Model-version markers: first sample and any time `model` changes. */
+		/** @type {{ y: number, label: string }[]} */
+		const modelMarkers = [];
+		let lastModel = /** @type {string | null} */ (null);
+		for (let i = 0; i < n; i++) {
+			const m = String(series[i].model ?? '').trim();
+			if (!m) continue;
+			if (lastModel === null || m !== lastModel) {
+				const t = seriesTimes[i];
+				const y = yForTimeOnAxis(t, i);
+				modelMarkers.push({ y, label: m });
+				lastModel = m;
+			}
+		}
+
 		return {
 			points,
-			segments,
 			centerX,
 			yTop,
-			yBottom
+			yBottom,
+			lineHue,
+			radiusPx: SINGLE_MODEL_DOT_RADIUS_PX,
+			monthMarkers,
+			modelMarkers
 		};
 	});
 
@@ -367,6 +471,15 @@ const selectedDetail = $derived.by(() => {
 
 	function clearHover() {
 		tooltip = null;
+	}
+
+	/** @param {string} dateStr */
+	function timelineDate(/** @type {string} */ dateStr) {
+		const s = String(dateStr ?? '').trim();
+		if (!s) return null;
+		const isoDay = /^\d{4}-\d{2}-\d{2}$/.test(s);
+		const d = new Date(isoDay ? `${s}T12:00:00` : s);
+		return Number.isNaN(d.getTime()) ? null : d;
 	}
 
 	/** Matches heatmap rect opacity: strongest at scale extremes, ~0.2 at center bin(s). */
@@ -517,7 +630,7 @@ const selectedDetail = $derived.by(() => {
 				{#each viz.dim.items as item, ri (item.item_id)}
 					{@const isSelectedRow = selectedStatementId === item.item_id}
 					{@const isDimmed = selectedStatementId && !isSelectedRow}
-					{@const axisOpacity = opacityForSubscaleRow(item, isDimmed ? 0.5 : 1)}
+					{@const axisOpacity = opacityForSubscaleRow(item, isDimmed ? 0.25 : 0.6)}
 					{@const yi = rowCentersY[ri]}
 					{@const tickX = rowTickX[ri] ?? innerWidth / 2}
 					{@const baseMin = endpointTextForSide(item, 'min')}
@@ -632,35 +745,52 @@ const selectedDetail = $derived.by(() => {
 						stroke-width="1"
 						stroke-opacity="0.6"
 					/>
-					{#each dd.segments as seg, si (`${seg.hoverDate}-${si}`)}
-						<path
-							d={seg.d}
-							fill="none"
-							stroke={seg.color}
-							stroke-opacity={seg.strokeOpacity}
-							stroke-width="2.5"
-							stroke-linejoin="round"
-							stroke-linecap="round"
+					{#each dd.monthMarkers as m, mi (`${m.label}-${mi}`)}
+						<line
+							x1={dd.centerX - 5}
+							x2={dd.centerX + 5}
+							y1={m.y}
+							y2={m.y}
+							stroke="#64748b"
+							stroke-width="1"
+							stroke-opacity="0.85"
 						/>
+						<text
+							x={dd.centerX + 8}
+							y={m.y}
+							fill="#64748b"
+							font-size="10"
+							font-weight="500"
+							text-anchor="start"
+							dominant-baseline="middle"
+						>
+							{m.label}
+						</text>
 					{/each}
-					{#each dd.segments as seg, si (`hit-${seg.hoverDate}-${si}`)}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<path
-							d={seg.d}
-							fill="none"
-							stroke="transparent"
-							stroke-width="12"
-							stroke-linecap="round"
+					{#each dd.modelMarkers as mm, mi (`${mm.label}-${mi}`)}
+						<text
+							x={dd.centerX - 8}
+							y={mm.y}
+							fill="#0f172a"
+							font-size="9"
+							font-weight="500"
+							text-anchor="end"
+							dominant-baseline="middle"
+						>
+							{mm.label}
+						</text>
+					{/each}
+					{#each dd.points as p (`dot-${p.date}-${p.value}`)}
+						<circle
+							cx={p.px}
+							cy={p.py}
+							r={dd.radiusPx}
+							fill={dd.lineHue}
+							fill-opacity={p.fillOpacity}
+							stroke="none"
 							role="presentation"
-							onmouseenter={(e) =>
-								setDrillHover(e, drillItem, seg.hoverDate, seg.hoverValue)}
-							onmousemove={(e) =>
-								setDrillHover(e, drillItem, seg.hoverDate, seg.hoverValue)}
-							onmouseleave={clearHover}
 						/>
-					{/each}
-					{#each dd.points as p (`tip-${p.date}-${p.value}`)}
-						<!-- svelte-ignore a11y_no_static_element_interactions — invisible hit target, not a visible dot -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<circle
 							cx={p.px}
 							cy={p.py}

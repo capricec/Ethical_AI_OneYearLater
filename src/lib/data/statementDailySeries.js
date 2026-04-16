@@ -24,7 +24,7 @@ export function reverseNumericValue(v, scaleMin, scaleMax) {
  * @param {number} dimensionId
  * @param {{ item_id: string, reverse?: boolean, scaleMin: number, scaleMax: number }} item
  * @param {string} fundModel
- * @returns {{ date: string, value: number }[]}
+ * @returns {{ date: string, value: number, model?: string }[]}
  */
 export function dailySeriesForStatementModel(compiled, dimensionId, item, fundModel) {
 	if (!Array.isArray(compiled) || !item) return [];
@@ -33,7 +33,7 @@ export function dailySeriesForStatementModel(compiled, dimensionId, item, fundMo
 	const scaleMax = Number(item.scaleMax);
 	const shouldReverse = Boolean(item.reverse);
 
-	/** @type {{ date: string, value: number, runIndex: number }[]} */
+	/** @type {{ date: string, value: number, model?: string, runIndex: number }[]} */
 	const candidates = [];
 	for (let i = 0; i < compiled.length; i++) {
 		const row = compiled[i];
@@ -45,7 +45,7 @@ export function dailySeriesForStatementModel(compiled, dimensionId, item, fundMo
 		if (typeof raw !== 'number' || Number.isNaN(raw)) continue;
 		let v = raw;
 		if (shouldReverse) v = reverseNumericValue(v, scaleMin, scaleMax);
-		candidates.push({ date: String(date), value: v, runIndex: i });
+		candidates.push({ date: String(date), value: v, model: String(row.model ?? ''), runIndex: i });
 	}
 
 	candidates.sort((a, b) => {
@@ -53,12 +53,15 @@ export function dailySeriesForStatementModel(compiled, dimensionId, item, fundMo
 		return a.runIndex - b.runIndex;
 	});
 
-	/** @type {Map<string, number>} */
+	/** @type {Map<string, { value: number, model?: string }>} */
 	const lastByDate = new Map();
 	for (const c of candidates) {
-		lastByDate.set(c.date, c.value);
+		lastByDate.set(c.date, { value: c.value, model: c.model });
 	}
 
 	const dates = [...lastByDate.keys()].sort();
-	return dates.map((date) => ({ date, value: /** @type {number} */ (lastByDate.get(date)) }));
+	return dates.map((date) => {
+		const rec = /** @type {{ value: number, model?: string }} */ (lastByDate.get(date));
+		return { date, value: rec.value, model: rec.model };
+	});
 }

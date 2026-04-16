@@ -1,7 +1,8 @@
 /**
  * Developer controls: statement **aggregate** detail when **All** models is selected
- * (the horizontal strip that was heatmap bins). Single-model selection still uses the
- * daily line chart in `DimensionAggregateBumpChart`.
+ * (the horizontal strip that was heatmap bins). Single-model selection uses daily values
+ * as **dots** on the statement scale (same jitter + radius as `DOT_STRIP_CONFIG`, opacity
+ * from heatmap bin strength) in `DimensionAggregateBumpChart`.
  *
  * For production, set `STATEMENT_DETAIL_AGGREGATE_MODE` to `'heatmap'` or `'dots'`
  * (or wire from env / feature flag later).
@@ -13,7 +14,8 @@
 export const STATEMENT_DETAIL_AGGREGATE_MODE = /** @type {StatementAggregateDetailMode} */ ('dots');
 
 /**
- * Dot strip tuning (only used when mode is `'dots'`).
+ * Dot strip tuning for the aggregate (All models) detail strip when
+ * `STATEMENT_DETAIL_AGGREGATE_MODE === 'dots'`.
  * - `jitterXMaxScaleUnits`: max offset in **scale/domain units** (same units as the response value
  *   before `xScale`). Jitter is applied in data space then mapped with `xScale`, so it grows/shrinks
  *   with the chart width. For integer scales (e.g. 1–7), `0.45` is on the order of half the gap
@@ -26,3 +28,9 @@ export const DOT_STRIP_CONFIG = {
 	fillOpacity: 0.05,
 	radiusPx: 10
 };
+
+/** Radius (px) for the single-model daily timeline dots. */
+export const SINGLE_MODEL_DOT_RADIUS_PX = 4;
+
+/** Horizontal jitter (in scale units) for the single-model timeline dots. */
+export const SINGLE_MODEL_JITTER_SCALE_UNITS = 0.0;

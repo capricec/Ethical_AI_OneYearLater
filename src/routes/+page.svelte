@@ -35,9 +35,6 @@
 	/** Fixed statements column when Bump tray is open. */
 	const LEFT_TRAY_W = 360;
 	/** Fixed context / subscale rail (matches left tray width). */
-	/** Must fit spike block + detail rows (`DETAIL_TOP_PAD` + n × `DETAIL_ROW_H` in bump chart). */
-	const EXPANDED_ROW_HEIGHT = 700;
-
 	/** Dimension pills removed for now; avoid a stuck dimension-only filter. */
 	onMount(() => {
 		setDimensionFilter(null);
@@ -46,6 +43,8 @@
 	let chartWidth = $state(0);
 	let radialCellW = $state(0);
 	let radialCellH = $state(0);
+	/** Bump statement view: flex slot height so the SVG row fills the viewport. */
+	let statementBumpSlotH = $state(0);
 
 	/** @param {unknown} k */
 	function normSubscaleKey(k) {
@@ -120,13 +119,31 @@
 		});
 	});
 
+	/** Stable `id` per statement tray row (scroll into view). */
+	function trayStatementRowId(/** @type {unknown} */ itemId) {
+		return `tray-statement-${String(itemId ?? '')
+			.trim()
+			.replace(/[^a-zA-Z0-9_-]+/g, '-')}`;
+	}
+
+	$effect(() => {
+		const id = $selectedStatementId;
+		if (id == null || String(id).trim() === '') return;
+		const domId = trayStatementRowId(id);
+		tick().then(() => {
+			const el = document.getElementById(domId);
+			el?.scrollIntoView({ block: 'center', behavior: 'smooth', inline: 'nearest' });
+		});
+	});
+
 	/**
-	 * Left-tray statement list: same filters as before, ordered by cross-model divergence (high → low).
+	 * Left-tray statement list: ordered by cross-model divergence (high → low).
+	 * Only filters by **subscale** when a subscale is chosen; statement selection
+	 * never hides other rows (the selected one just scrolls into view).
 	 * @param {{ dim?: { items?: { item_id: string, subscaleKey?: string }[] }, statementDivergence?: { item_id: string, divergence: number }[] } | null | undefined} viz
-	 * @param {string | null} selectedStmtId
 	 * @param {string | null} subscaleF
 	 */
-	function trayStatementItems(viz, selectedStmtId, subscaleF) {
+	function trayStatementItems(viz, subscaleF) {
 		if (!viz?.dim?.items?.length) return [];
 		const divMap = new Map(
 			(viz.statementDivergence ?? []).map((d) => [
@@ -134,12 +151,7 @@
 				typeof d.divergence === 'number' && !Number.isNaN(d.divergence) ? d.divergence : 0
 			])
 		);
-		const sid =
-			selectedStmtId != null && String(selectedStmtId).trim() !== ''
-				? String(selectedStmtId)
-				: null;
 		const filtered = viz.dim.items.filter((it) => {
-			if (sid) return it.item_id === sid;
 			if (subscaleF != null && String(subscaleF).trim() !== '')
 				return normSubscaleKey(it.subscaleKey) === normSubscaleKey(subscaleF);
 			return true;
@@ -166,15 +178,18 @@
 				)
 			)}
 			{@const subscaleRail = $statementsViz.subscalesInOrder ?? []}
-			{@const trayStatements = trayStatementItems(
-				$statementsViz,
-				$selectedStatementId,
-				$selectedSubscaleFilter
-			)}
+			{@const trayStatements = trayStatementItems($statementsViz, $selectedSubscaleFilter)}
 			{@const bumpViz = $selectedStatementId
 				? sliceVizToSingleStatement($statementsViz, $selectedStatementId)
 				: null}
-			{@const bumpSingleRowHeights = bumpViz ? [EXPANDED_ROW_HEIGHT] : []}
+			{@const bumpSingleRowHeights = bumpViz
+				? [
+						Math.max(
+							180,
+							statementBumpSlotH > 0 ? statementBumpSlotH : 360
+						)
+					]
+				: []}
 
 			<div
 				class="flex h-[calc(100vh)] min-h-0 flex-col overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-300"
@@ -255,7 +270,7 @@
 									{#each trayStatements as item (item.item_id)}
 										{@const selectedRow = $selectedStatementId === item.item_id}
 										{@const ctx = STATEMENT_CONTEXT_BY_ID.get(String(item.item_id)) ?? ''}
-										<div class="relative">
+										<div class="relative" id={trayStatementRowId(item.item_id)}>
 											<button
 												type="button"
 												class="w-full rounded-md border px-3 py-2.5 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 {selectedRow
@@ -318,19 +333,20 @@
 							{#if isStatementView}
 								{#if bumpViz}
 									<div
-										class="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-white"
+										class="flex min-h-0 flex-1 flex-col overflow-hidden overflow-x-hidden bg-white"
 									>
 										<div
-											class="my-auto mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-8"
+											class="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-4 pb-4 pt-3"
 										>
 											<h2
-												class="mt-3 mb-3 max-w-4xl text-center text-base font-bold leading-snug text-slate-900 sm:text-lg"
+												class="mb-2 max-w-4xl shrink-0 self-center text-center text-base font-bold leading-snug text-slate-900 sm:text-lg"
 											>
 												{statementLabel(bumpViz.dim.items[0])}
 											</h2>
 											<div
 												bind:clientWidth={chartWidth}
-												class="box-border flex w-full min-w-0 max-w-5xl flex-col items-center"
+												bind:clientHeight={statementBumpSlotH}
+												class="box-border flex min-h-0 min-w-0 w-full max-w-5xl flex-1 flex-col"
 											>
 												<DimensionAggregateBumpChart
 													width={Math.max(chartWidth, 280)}

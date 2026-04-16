@@ -1292,9 +1292,6 @@
 						aria-hidden="true"
 						pointer-events="none"
 					>
-						{#each convergenceFillLayers.coloredPaths as p (p.key)}
-							<path d={p.d} fill={p.fill} opacity={opacityForStatementIndex(p.statementIndex)} />
-						{/each}
 						{#each convergenceFillLayers.greyPaths as g (g.key)}
 							<path
 								d={g.d}
@@ -1302,6 +1299,9 @@
 								fill-opacity="0.78"
 								opacity={opacityForStatementIndex(g.statementIndex)}
 							/>
+						{/each}
+						{#each convergenceFillLayers.coloredPaths as p (p.key)}
+							<path d={p.d} fill={p.fill} opacity={opacityForStatementIndex(p.statementIndex)} />
 						{/each}
 					</g>
 				{/if}
