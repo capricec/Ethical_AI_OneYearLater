@@ -129,6 +129,13 @@ function subscaleRankMapForDimension(dim) {
 	return map;
 }
 
+/** Encoding index → subscale rank → item index (matches `STATEMENT_ORDER_SUBSCALE`). */
+function compareEntriesSubscaleOrder(a, b) {
+	if (a.encodingIndex !== b.encodingIndex) return a.encodingIndex - b.encodingIndex;
+	if (a.subscaleRankInDim !== b.subscaleRankInDim) return a.subscaleRankInDim - b.subscaleRankInDim;
+	return a.itemIndexInDim - b.itemIndexInDim;
+}
+
 export const STATEMENT_ORDER_DIVERGENCE = 'divergence';
 export const STATEMENT_ORDER_DIMENSION = 'dimension';
 /** Radial: encoding dimension order, then first-appearance subscale order within dimension, then item index. */
@@ -198,6 +205,33 @@ export function computeStatementsViz(
 		});
 	}
 
+	/**
+	 * Left tray + radial wedge rail: stable key order must not depend on statement sort
+	 * (`divergence` in bump vs `subscale` in radial) or the selected row jumps when the view toggles.
+	 */
+	const railEntries =
+		dimensionFilter === null || dimensionFilter === undefined
+			? [...entries]
+			: entries.filter((e) => e.dim.id === dimensionFilter);
+	railEntries.sort(compareEntriesSubscaleOrder);
+
+	/** Unique subscale keys in encoding/subscale order (UI rail only). */
+	const seenSubscale = new Set();
+	/** @type {{ key: string, label: string, description: string }[]} */
+	const subscalesInOrder = [];
+	for (const e of railEntries) {
+		const key = e.subscaleKey;
+		if (seenSubscale.has(key)) continue;
+		seenSubscale.add(key);
+		const interp = interpretationForSubscale(e.dim.id, key);
+		subscalesInOrder.push({
+			key,
+			label:
+				interp?.label ?? (key === '__none__' ? 'Uncategorized' : subscaleDisplayName(key)),
+			description: interp?.description ? String(interp.description) : ''
+		});
+	}
+
 	entries.sort((a, b) => {
 		if (order === STATEMENT_ORDER_SUBSCALE) {
 			if (a.encodingIndex !== b.encodingIndex) return a.encodingIndex - b.encodingIndex;
@@ -223,23 +257,6 @@ export function computeStatementsViz(
 	}
 
 	if (!filtered.length) return null;
-
-	/** Unique subscale keys in final list order (for radial rail). */
-	const seenSubscale = new Set();
-	/** @type {{ key: string, label: string, description: string }[]} */
-	const subscalesInOrder = [];
-	for (const e of filtered) {
-		const key = e.subscaleKey;
-		if (seenSubscale.has(key)) continue;
-		seenSubscale.add(key);
-		const interp = interpretationForSubscale(e.dim.id, key);
-		subscalesInOrder.push({
-			key,
-			label:
-				interp?.label ?? (key === '__none__' ? 'Uncategorized' : subscaleDisplayName(key)),
-			description: interp?.description ? String(interp.description) : ''
-		});
-	}
 
 	/** @type {object[]} */
 	const enrichedItems = filtered.map((e) => {

@@ -1,7 +1,8 @@
 /** Shared layout metrics so the page table rows match the SVG rows (margins 0 = heights line up). */
 export const CHART_MARGIN_TOP = 0;
 export const CHART_MARGIN_BOTTOM = 0;
-export const CHART_SIDE_GUTTER = 150;
+/** Horizontal inset for SVG content; larger values add space between left tray and model labels. */
+export const CHART_SIDE_GUTTER = 200;
 
 /** One row per statement (aligned with left/center/right table rows). */
 export const ROW_ITEM_HEIGHT = 120;

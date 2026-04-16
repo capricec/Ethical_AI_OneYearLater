@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import {
 		selectedModel,
@@ -35,7 +35,8 @@
 	/** Fixed statements column when Bump tray is open. */
 	const LEFT_TRAY_W = 360;
 	/** Fixed context / subscale rail (matches left tray width). */
-	const EXPANDED_ROW_HEIGHT = 620;
+	/** Must fit spike block + detail rows (`DETAIL_TOP_PAD` + n × `DETAIL_ROW_H` in bump chart). */
+	const EXPANDED_ROW_HEIGHT = 700;
 
 	/** Dimension pills removed for now; avoid a stuck dimension-only filter. */
 	onMount(() => {
@@ -92,6 +93,32 @@
 	function handleQuestionSelect(itemId) {
 		applyStatementSelection(itemId);
 	}
+
+	/** Stable `id` for dimension-rail rows (scroll into view). */
+	function subscaleRailRowId(/** @type {unknown} */ key) {
+		return `subscale-rail-${String(key ?? '')
+			.trim()
+			.replace(/[^a-zA-Z0-9_-]+/g, '-')}`;
+	}
+
+	/** Same toggle behavior as the statement list in the left tray. */
+	function handleRadialStatementSelect(/** @type {string} */ itemId) {
+		const id = String(itemId ?? '').trim();
+		if (!id) return;
+		const next = $selectedStatementId === id ? null : id;
+		if (next) applyStatementSelection(next);
+		else setSelectedStatementId(null);
+	}
+
+	$effect(() => {
+		const key = $selectedSubscaleFilter;
+		if (key == null || String(key).trim() === '') return;
+		const domId = subscaleRailRowId(key);
+		tick().then(() => {
+			const el = document.getElementById(domId);
+			el?.scrollIntoView({ block: 'center', behavior: 'smooth', inline: 'center' });
+		});
+	});
 
 	/**
 	 * Left-tray statement list: same filters as before, ordered by cross-model divergence (high → low).
@@ -150,12 +177,12 @@
 			{@const bumpSingleRowHeights = bumpViz ? [EXPANDED_ROW_HEIGHT] : []}
 
 			<div
-				class="flex h-[calc(100vh)] min-h-0 flex-col overflow-hidden rounded-lg bg-white ring-1 ring-slate-300"
+				class="flex h-[calc(100vh)] min-h-0 flex-col overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-300"
 			>
 				<div class="flex min-h-0 flex-1 flex-row overflow-hidden">
 					<!-- Dashboard: models, dimensions, statements -->
 					<aside
-						class="box-border flex shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white"
+						class="box-border flex shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-[#F7F7F7]"
 						style="width: {LEFT_TRAY_W}px;"
 					>
 						<div class="shrink-0 border-b border-slate-200 px-4 pb-4 pt-4">
@@ -176,18 +203,18 @@
 									Dimensions
 								</div>
 							</div>
-							<div class="min-h-0 overflow-y-auto border-b border-b-20 border-white bg-white">
+							<div class="min-h-0 overflow-y-auto border-b border-slate-200">
 								<div class="space-y-2 px-4 pb-1 pt-1 mb-4">
 									{#each subscaleRail as s (s.key)}
 										{@const dimSelected =
 											$selectedSubscaleFilter != null &&
 											normSubscaleKey($selectedSubscaleFilter) === normSubscaleKey(s.key)}
-										<div class="relative">
+										<div class="relative" id={subscaleRailRowId(s.key)}>
 											<button
 												type="button"
 												class="w-full rounded-md border px-3 py-2.5 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 {dimSelected
-													? 'border-slate-900 bg-slate-50 pr-10 ring-2 ring-slate-400'
-													: 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}"
+													? 'border-slate-900 bg-white pr-10 ring-2 ring-slate-400'
+													: 'border-slate-200 bg-white/50 hover:border-slate-300 hover:bg-white'}"
 												onclick={() => handleSubscaleRailSelect(s.key)}
 											>
 												<div
@@ -218,7 +245,7 @@
 									{/each}
 								</div>
 							</div>
-							<div class="shrink-0 bg-white px-4 pb-2 pt-3 border-t border-t-1 border-slate-200">
+							<div class="shrink-0 border-t border-slate-200 px-4 pb-2 pt-3">
 								<div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
 									Statements
 								</div>
@@ -232,8 +259,8 @@
 											<button
 												type="button"
 												class="w-full rounded-md border px-3 py-2.5 text-left shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 {selectedRow
-													? 'border-slate-900 bg-slate-50 pr-10 ring-2 ring-slate-400'
-													: 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}"
+													? 'border-slate-900 bg-white pr-10 ring-2 ring-slate-400'
+													: 'border-slate-200 bg-white/50 hover:border-slate-300 hover:bg-white'}"
 												onclick={() => {
 													const next =
 														$selectedStatementId === item.item_id ? null : item.item_id;
@@ -272,11 +299,13 @@
 						</div>
 					</aside>
 
-					<div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+					<div
+						class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
+					>
 						<header
-							class="flex min-w-0 shrink-0 flex-wrap items-center gap-3 border-b border-slate-200 bg-[#ebebeb] px-4 py-4"
+							class="flex min-w-0 shrink-0 flex-wrap items-center justify-center gap-3 bg-white px-4 py-5"
 						>
-							<div class="flex min-w-0 flex-1">
+							<div class="flex min-w-0 w-full max-w-4xl flex-1 justify-center">
 								<QuestionBar
 									{questions}
 									selectedItemId={$selectedStatementId}
@@ -288,33 +317,44 @@
 						<div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
 							{#if isStatementView}
 								{#if bumpViz}
-									<div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#ebebeb]">
+									<div
+										class="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-white"
+									>
 										<div
-											bind:clientWidth={chartWidth}
-											class="box-border flex min-h-0 flex-1 flex-col px-2 py-2"
+											class="my-auto mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-8"
 										>
-											<DimensionAggregateBumpChart
-												width={Math.max(chartWidth, 280)}
-												viz={bumpViz}
-												selectedModel={$selectedModel}
-												selectedStatementId={$selectedStatementId}
-												rowHeights={bumpSingleRowHeights}
-												highlightSubscaleKey={$selectedSubscaleFilter}
-											/>
+											<h2
+												class="mt-3 mb-3 max-w-4xl text-center text-base font-bold leading-snug text-slate-900 sm:text-lg"
+											>
+												{statementLabel(bumpViz.dim.items[0])}
+											</h2>
+											<div
+												bind:clientWidth={chartWidth}
+												class="box-border flex w-full min-w-0 max-w-5xl flex-col items-center"
+											>
+												<DimensionAggregateBumpChart
+													width={Math.max(chartWidth, 280)}
+													viz={bumpViz}
+													selectedModel={$selectedModel}
+													selectedStatementId={$selectedStatementId}
+													rowHeights={bumpSingleRowHeights}
+													highlightSubscaleKey={$selectedSubscaleFilter}
+												/>
+											</div>
 										</div>
 									</div>
 								{:else}
 									<div
 										class="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-slate-500"
 									>
-										Choose a question above or a statement on the left to see model heatmaps.
+										Choose a question above or a statement on the left to see model responses.
 									</div>
 								{/if}
 							{:else}
 								<div
 									bind:clientWidth={radialCellW}
 									bind:clientHeight={radialCellH}
-									class="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#ebebeb] p-2"
+									class="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white p-2"
 								>
 									<div class="relative min-h-0 w-full flex-1">
 										<StatementsRadialChart
@@ -326,6 +366,7 @@
 											onRadialSortModeChange={setRadialStatementOrder}
 											highlightSubscaleKey={$selectedSubscaleFilter}
 											onSubscaleWedgeClick={handleRadialSubscaleClick}
+											onStatementSelect={handleRadialStatementSelect}
 										/>
 									</div>
 								</div>

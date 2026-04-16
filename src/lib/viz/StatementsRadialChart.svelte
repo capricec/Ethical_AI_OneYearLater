@@ -13,17 +13,26 @@
 	const DISC_CLIP_OUTSET = 0;
 	/** White ring between grey hub and inner end of value scale (spike bases). */
 	const INNER_SCALE_WHITE_PAD = 14;
-	/** Subscale wedge rims + wide radial separators (matches surrounding grey panels). */
-	const WEDGE_BORDER_STROKE = '#ebebeb';
+	/** Inner hub disc fill. */
+	const HUB_FILL = '#ffffff';
+	/** Radial spokes from hub toward plot (white on dark subscale ring). */
+	const RADIAL_SPOKE_STROKE = '#ffffff';
 	const SUBSCALE_SPOKE_WIDTH = 1;
 	const SUBSCALE_RIM_WIDTH = 1;
 	const DIMENSION_SPOKE_WIDTH = 1;
-	const DIMENSION_RING_FILL = 'darkgrey';
-	const DIMENSION_RING_SEPARATOR = '#ebebeb';
+	/** Outer subscale annulus fill + midpoint reference ring stroke. */
+	const DIMENSION_RING_FILL = '#595959';
+	/** Arc and radial separators on the outer subscale annulus. */
+	const DIMENSION_RING_SEPARATOR = '#ffffff';
 	const SELECTED_PATH_STROKE = '#0a0a0a';
 	const INACTIVE_MODEL_PATH_STROKE = '#a8a29e';
-	const SUBSCALE_LABEL_FONT_PX = 5;
-	const SUBSCALE_LABEL_CHAR_PX = SUBSCALE_LABEL_FONT_PX * 0.6;
+	/**
+	 * Wedge “fits” check: keep lenient so long names (e.g. Redistribution, Restricted Democracy) still show.
+	 * (Previously raising a single constant broke `labelFits` for many subscales.)
+	 */
+	const SUBSCALE_LABEL_CHAR_PX_FIT = 3.5;
+	/** Conservative px/char when computing expanded arcs for Immigration / Environment (avoid clipping). */
+	const SUBSCALE_LABEL_CHAR_PX_EXPAND = 6.5;
 	const SUBSCALE_LABEL_ARC_PAD_PX = 1;
 	/** Inset pole label arcs slightly from hub / outer clip so glyphs stay inside the value band. */
 	const POLE_LABEL_OUTER_INSET = 2;
@@ -51,7 +60,7 @@
 	 * @property {{ aggregate: object, item: object }} labels
 	 */
 
-	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void) }} */
+	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void), onStatementSelect?: ((itemId: string) => void) }} */
 	let {
 		width,
 		height,
@@ -60,7 +69,8 @@
 		radialSortMode = STATEMENT_ORDER_SUBSCALE,
 		onRadialSortModeChange = () => {},
 		highlightSubscaleKey = null,
-		onSubscaleWedgeClick = () => {}
+		onSubscaleWedgeClick = () => {},
+		onStatementSelect = () => {}
 	} = $props();
 	const showGroupingMarkers = $derived(radialSortMode !== STATEMENT_ORDER_DIVERGENCE);
 
@@ -83,7 +93,7 @@
 	const DIVERGENCE_OUTER_R_PAD = 6;
 
 	/**
-	 * @type { { kind: 'dot', x: number, y: number, placeLeft: boolean, model: string, subscaleLabel: string, statementText: string, responseText: string }
+	 * @type { { kind: 'dot', x: number, y: number, placeLeft: boolean, allModelsMode: boolean, model: string, statementText: string, responseText: string }
 	 *   | null }
 	 */
 	let tooltip = $state(null);
@@ -91,7 +101,9 @@
 	/** Inset from SVG edge to plot (spokes use full usable side = min(w,h) − 2×PAD). */
 	const PAD = 8;
 	const TOOLTIP_PAD = 8;
-	const TOOLTIP_MAX_W = 320;
+	/** Fixed width for radial hover tooltip (shell-relative positioning). */
+	const RADIAL_TOOLTIP_W = 280;
+	const RADIAL_TOOLTIP_EST_H = 148;
 
 	/** Positive minor angular span from boundary t0 to t1 (radians, ≤ 2π). */
 	function sectorSpan(t0, t1) {
@@ -153,6 +165,33 @@
 	function labelPathReverse(mid) {
 		if (Math.sin(mid) > 1e-10) return true;
 		return Math.cos(mid) < -1e-9 && Math.abs(Math.sin(mid)) < 0.22;
+	}
+
+	/** @param {number} mid @param {unknown} subscaleKey */
+	function labelPathReverseForArc(mid, subscaleKey) {
+		let rev = labelPathReverse(mid);
+		const k = String(subscaleKey ?? '').trim().toLowerCase();
+		if (k === 'technocracy' || k === 'environment') rev = !rev;
+		return rev;
+	}
+
+	/**
+	 * Widen angular span so long subscale names fit on the label radius (used when Immigration/Environment is selected).
+	 * @param {number} t0
+	 * @param {number} t1
+	 * @param {number} labelR
+	 * @param {string} label
+	 */
+	function expandedSubscaleLabelArc(t0, t1, labelR, label) {
+		const mid = (t0 + t1) / 2;
+		const wedgeSpan = sectorSpan(t0, t1);
+		const estTextPx = String(label).trim().length * SUBSCALE_LABEL_CHAR_PX_EXPAND;
+		const needSpanRad = Math.min(
+			Math.PI * 1.55,
+			(estTextPx * 1.5 + SUBSCALE_LABEL_ARC_PAD_PX * 4) / Math.max(labelR, 1e-6)
+		);
+		const span = Math.max(wedgeSpan, needSpanRad);
+		return { t0: mid - span / 2, t1: mid + span / 2 };
 	}
 
 	/**
@@ -286,23 +325,50 @@
 		const items = viz.dim.items;
 		const runs = subscaleRuns(items, n);
 		const tau = 2 * Math.PI;
+		const hlNorm = normSubscaleKey(highlightSubscaleKey);
+		const hlActive = hlNorm !== '__none__';
+
 		const subscaleArcs = runs.map((run, idx) => {
 			const t0 = -Math.PI / 2 + ((run.i0 - 0.5) / n) * tau;
 			const t1 = -Math.PI / 2 + ((run.i1 + 0.5) / n) * tau;
-			const mid = (t0 + t1) / 2;
 			const label = run.label;
+			const itemSk = items[run.i0]?.subscaleKey;
+			const skLower = String(itemSk ?? '').trim().toLowerCase();
 			const arcLenPx = sectorSpan(t0, t1) * dimensionLabelR;
-			const estTextPx = String(label).trim().length * SUBSCALE_LABEL_CHAR_PX;
-			const labelFits = estTextPx + SUBSCALE_LABEL_ARC_PAD_PX <= arcLenPx;
+			const estTextPxFit = String(label).trim().length * SUBSCALE_LABEL_CHAR_PX_FIT;
+			const labelFits = estTextPxFit + SUBSCALE_LABEL_ARC_PAD_PX <= arcLenPx;
+
+			const mustExpand =
+				hlActive &&
+				(skLower === 'immigration' || skLower === 'environment') &&
+				normSubscaleKey(itemSk) === hlNorm;
+
+			let pathT0 = t0;
+			let pathT1 = t1;
+			if (mustExpand) {
+				const ex = expandedSubscaleLabelArc(t0, t1, dimensionLabelR, label);
+				pathT0 = ex.t0;
+				pathT1 = ex.t1;
+			}
+			const pathMid = (pathT0 + pathT1) / 2;
+
 			return {
 				id: `subscale-tp-${idx}`,
 				label,
 				labelFits,
+				subscaleKey: itemSk,
 				i0: run.i0,
 				i1: run.i1,
 				t0,
 				t1,
-				textPathD: labelCircleArcD(cx, cy, dimensionLabelR, t0, t1, labelPathReverse(mid))
+				textPathD: labelCircleArcD(
+					cx,
+					cy,
+					dimensionLabelR,
+					pathT0,
+					pathT1,
+					labelPathReverseForArc(pathMid, itemSk)
+				)
 			};
 		});
 
@@ -334,6 +400,26 @@
 	const subscaleHighlightLocked = $derived(
 		highlightSubscaleKey != null && String(highlightSubscaleKey).trim() !== ''
 	);
+
+	/**
+	 * Immigration / Environment: only when that subscale is selected (path uses expanded arc then).
+	 * Other subscales: show when they fit unless rail highlight hides them.
+	 * @param {{ labelFits: boolean, i0: number }} arc
+	 */
+	function shouldShowSubscaleOuterLabel(arc) {
+		if (!viz?.dim?.items?.[arc.i0]) return false;
+		const itemSk = viz.dim.items[arc.i0]?.subscaleKey;
+		const skLower = String(itemSk ?? '').trim().toLowerCase();
+
+		if (skLower === 'immigration' || skLower === 'environment') {
+			if (!subscaleHighlightLocked) return false;
+			return normSubscaleKey(highlightSubscaleKey) === normSubscaleKey(itemSk);
+		}
+
+		if (!arc.labelFits) return false;
+		if (!subscaleHighlightLocked) return true;
+		return normSubscaleKey(highlightSubscaleKey) === normSubscaleKey(itemSk);
+	}
 
 	/**
 	 * Pole copy from `statement_encoding.json` (`statement_values`), on arcs at the spike axis
@@ -1070,15 +1156,6 @@
 		return targets;
 	});
 
-	function clampTooltip(rawX, rawY, tw, th) {
-		const maxX = Math.max(TOOLTIP_PAD, width - tw - TOOLTIP_PAD);
-		const maxY = Math.max(TOOLTIP_PAD, height - th - TOOLTIP_PAD);
-		return {
-			x: Math.max(TOOLTIP_PAD, Math.min(maxX, rawX)),
-			y: Math.max(TOOLTIP_PAD, Math.min(maxY, rawY))
-		};
-	}
-
 	/**
 	 * @param {MouseEvent} event
 	 * @param {string} model
@@ -1086,25 +1163,44 @@
 	 * @param {string} responseText
 	 */
 	function setDotHover(event, model, item, responseText) {
-		const rect = event.currentTarget?.ownerSVGElement?.getBoundingClientRect();
-		const localX = rect ? event.clientX - rect.left : 0;
-		const localY = rect ? event.clientY - rect.top : 0;
-		const placeLeft = localX > width / 2;
-		// Anchor the nearest tooltip edge near cursor so short tooltips don't sit far away.
-		const rightEdgeX = Math.max(TOOLTIP_PAD + TOOLTIP_MAX_W, Math.min(width - TOOLTIP_PAD, localX - 12));
-		const leftEdgeX = Math.max(
+		const shell = event.currentTarget?.closest?.('.radial-chart-shell');
+		if (!shell) return;
+		const shellRect = shell.getBoundingClientRect();
+		const xInShell = event.clientX - shellRect.left;
+		const yInShell = event.clientY - shellRect.top;
+
+		const W = RADIAL_TOOLTIP_W;
+		const offset = 14;
+		/** Past horizontal midline of chart shell → show tooltip to the left of cursor. */
+		const placeLeft = xInShell > shellRect.width / 2;
+
+		let x;
+		if (placeLeft) {
+			x = xInShell - offset;
+			x = Math.min(x, shellRect.width - TOOLTIP_PAD);
+			x = Math.max(x, W + TOOLTIP_PAD);
+		} else {
+			x = xInShell + offset;
+			x = Math.max(x, TOOLTIP_PAD);
+			x = Math.min(x, shellRect.width - W - TOOLTIP_PAD);
+		}
+
+		let y = yInShell - RADIAL_TOOLTIP_EST_H / 2;
+		y = Math.max(
 			TOOLTIP_PAD,
-			Math.min(width - TOOLTIP_MAX_W - TOOLTIP_PAD, localX + 12)
+			Math.min(shellRect.height - RADIAL_TOOLTIP_EST_H - TOOLTIP_PAD, y)
 		);
-		const x = placeLeft ? rightEdgeX : leftEdgeX;
-		const y = clampTooltip(localX, localY - 52, TOOLTIP_MAX_W, 120).y;
+
+		const allModelsMode =
+			selectedModel == null || String(selectedModel).trim() === '';
+
 		tooltip = {
 			kind: 'dot',
 			x,
 			y,
 			placeLeft,
+			allModelsMode,
 			model,
-			subscaleLabel: String(item?.subscaleLabel ?? ''),
 			statementText: statementLabel(item),
 			responseText: responseText || ''
 		};
@@ -1112,6 +1208,16 @@
 
 	function clearDotHover() {
 		tooltip = null;
+	}
+
+	/** @param {MouseEvent | KeyboardEvent} event */
+	/** @param {object} item */
+	function handleSpikeClick(event, item) {
+		event.preventDefault();
+		event.stopPropagation();
+		const id = item?.item_id;
+		if (id == null || String(id).trim() === '') return;
+		onStatementSelect(String(id));
 	}
 
 	/** @param {string} subscaleKey */
@@ -1163,7 +1269,7 @@
 					cx={layout.cx}
 					cy={layout.cy}
 					r={layout.hubR}
-					fill={WEDGE_BORDER_STROKE}
+					fill={HUB_FILL}
 					aria-hidden="true"
 				/>
 
@@ -1200,9 +1306,10 @@
 					</g>
 				{/if}
 
-				<!-- Hover target overlays for statement spikes -->
+				<!-- Hover + click targets for statement spikes -->
 				<g transform="translate({layout.cx},{layout.cy})" class="spike-hit-targets">
 					{#each spikeHoverTargets as t (t.key)}
+						<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 						<path
 							d={t.d}
 							fill="none"
@@ -1211,11 +1318,19 @@
 							stroke-linecap="round"
 							stroke-linejoin="round"
 							opacity={opacityForStatementIndex(t.statementIndex)}
-							role="presentation"
-							aria-hidden="true"
+							role="button"
+							tabindex="0"
+							aria-label={`Select statement: ${statementLabel(t.item)}`}
 							onmouseenter={(event) => setDotHover(event, t.model, t.item, t.responseText)}
 							onmousemove={(event) => setDotHover(event, t.model, t.item, t.responseText)}
 							onmouseleave={clearDotHover}
+							onclick={(event) => handleSpikeClick(event, t.item)}
+							onkeydown={(event) => {
+								if (event.key === 'Enter' || event.key === ' ') {
+									event.preventDefault();
+									handleSpikeClick(event, t.item);
+								}
+							}}
 						/>
 					{/each}
 				</g>
@@ -1235,7 +1350,7 @@
 									y1={y0}
 									x2={x1}
 									y2={y1}
-									stroke={WEDGE_BORDER_STROKE}
+									stroke={RADIAL_SPOKE_STROKE}
 									stroke-width={SUBSCALE_SPOKE_WIDTH}
 									stroke-linecap="butt"
 								/>
@@ -1266,7 +1381,7 @@
 									arc.t1
 								)}
 								fill="none"
-								stroke={DIMENSION_RING_SEPARATOR}
+								stroke={subscaleHighlightLocked ? 'transparent' : DIMENSION_RING_SEPARATOR}
 								stroke-width={SUBSCALE_RIM_WIDTH}
 							/>
 						{/each}
@@ -1281,7 +1396,7 @@
 								y1={y0}
 								x2={x1}
 								y2={y1}
-								stroke={DIMENSION_RING_SEPARATOR}
+								stroke={subscaleHighlightLocked ? 'transparent' : DIMENSION_RING_SEPARATOR}
 								stroke-width={DIMENSION_SPOKE_WIDTH}
 								stroke-linecap="butt"
 							/>
@@ -1313,7 +1428,7 @@
 			{#if showGroupingMarkers}
 				<g aria-hidden="true" class="subscale-labels" pointer-events="none">
 					{#each layout.subscaleArcs as arc (arc.id)}
-						{#if arc.labelFits && (!subscaleHighlightLocked || normSubscaleKey(viz.dim.items[arc.i0]?.subscaleKey) === normSubscaleKey(highlightSubscaleKey))}
+						{#if shouldShowSubscaleOuterLabel(arc)}
 							<text class="subscale-label-text" dominant-baseline="middle">
 								<textPath href={`#${arc.id}`} startOffset="50%" text-anchor="middle">
 									{arc.label}
@@ -1373,9 +1488,10 @@
 			<VizTooltip
 				x={tooltip.x}
 				y={tooltip.y}
-				maxWidth={TOOLTIP_MAX_W}
+				fixedWidth={RADIAL_TOOLTIP_W}
+				maxWidth={RADIAL_TOOLTIP_W}
 				placeLeft={tooltip.placeLeft}
-				subscaleLabel={tooltip.subscaleLabel}
+				variant={tooltip.allModelsMode ? 'radial-all' : 'radial-model'}
 				statementText={tooltip.statementText}
 				model={tooltip.model}
 				responseText={tooltip.responseText}
@@ -1410,6 +1526,16 @@
 	.radial-interactive-svg {
 		pointer-events: auto;
 		overflow: visible;
+	}
+
+	.spike-hit-targets path {
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	/* Pointer focus should not show the browser’s default focus ring on SVG paths. */
+	.spike-hit-targets path:focus:not(:focus-visible) {
+		outline: none;
 	}
 
 	/* Radial sort toggle styles — restore with the commented markup block above
@@ -1453,7 +1579,7 @@
 	.subscale-label-text {
 		fill: #ffffff;
 		font-size: 10px;
-		font-weight: 700;
+		font-weight: 400;
 		letter-spacing: 0.02em;
 	}
 

@@ -14,11 +14,12 @@
 		])
 	);
 
-	/** Matches dimension / statement tray cards: light surface, ring when selected. */
+	/** Matches dimension / statement tray cards: semi-transparent white; solid white on hover or when selected. */
 	const basePill =
 		'flex min-h-0 w-full min-w-0 items-center justify-start gap-2 rounded-md border px-3 py-2.5 text-left text-sm leading-snug shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2';
-	const selectedPill = 'border-slate-900 bg-slate-50 ring-2 ring-slate-400';
-	const idlePill = 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50';
+	const selectedPill = 'border-slate-900 bg-white ring-2 ring-slate-400';
+	const idlePill =
+		'border-slate-200 bg-white/50 hover:border-slate-300 hover:bg-white';
 </script>
 
 <div class="w-full min-w-0">

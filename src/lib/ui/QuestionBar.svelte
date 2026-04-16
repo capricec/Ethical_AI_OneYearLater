@@ -6,6 +6,10 @@
 
 	let filterText = $state('');
 	let open = $state(false);
+	/** When true, clearing `selectedItemId` in the sync effect must not close the dropdown (bar clear + reopen). */
+	let skipCloseDropdownOnClear = $state(false);
+	/** @type {HTMLInputElement | null} */
+	let inputEl = $state(null);
 	/** @type {ReturnType<typeof setTimeout> | null} */
 	let blurCloseTimer = null;
 
@@ -22,7 +26,7 @@
 		} else {
 			// Tray / elsewhere cleared statement — reset bar to match (empty + no typed query).
 			filterText = '';
-			open = false;
+			if (!skipCloseDropdownOnClear) open = false;
 		}
 	});
 
@@ -45,9 +49,15 @@
 	}
 
 	function clearSelection() {
+		cancelBlurClose();
+		skipCloseDropdownOnClear = true;
 		filterText = '';
-		open = false;
 		onSelect?.(null);
+		open = true;
+		queueMicrotask(() => {
+			inputEl?.focus();
+			skipCloseDropdownOnClear = false;
+		});
 	}
 
 	function handleInput() {
@@ -83,28 +93,47 @@
 	}
 </script>
 
-<div class="relative flex min-w-0 flex-1 items-stretch gap-2">
-	<label class="relative min-w-0 flex-1">
+<div class="relative w-full min-w-0">
+	<label class="relative block w-full min-w-0">
 		<span class="sr-only">Ethical question</span>
-		<input
-			type="text"
-			autocomplete="off"
-			placeholder={PLACEHOLDER}
-			class="box-border w-full min-w-0 rounded-lg border border-slate-300 bg-white py-2.5 pl-3 pr-3 text-sm font-normal text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-400"
-			bind:value={filterText}
-			oninput={handleInput}
-			onfocus={handleFocus}
-			onblur={handleBlur}
-			onkeydown={handleKeydown}
-			aria-autocomplete="list"
-			aria-expanded={open}
-			aria-controls="question-bar-listbox"
-			role="combobox"
-		/>
+		<div
+			class="relative flex min-h-[2.75rem] items-center rounded-full border-2 border-[#595959] bg-white transition"
+		>
+			<input
+				bind:this={inputEl}
+				id="question-bar-input"
+				type="text"
+				autocomplete="off"
+				placeholder={PLACEHOLDER}
+				class="box-border min-h-[2.75rem] w-full min-w-0 flex-1 rounded-full border-0 bg-transparent py-2.5 pl-6 text-center text-base font-medium leading-snug text-slate-900 outline-none ring-0 placeholder:font-normal placeholder:text-[#595959] focus:outline-none focus:ring-0 {hasSelection
+					? 'pr-12'
+					: 'pr-6'}"
+				bind:value={filterText}
+				oninput={handleInput}
+				onfocus={handleFocus}
+				onblur={handleBlur}
+				onkeydown={handleKeydown}
+				aria-autocomplete="list"
+				aria-expanded={open}
+				aria-controls="question-bar-listbox"
+				role="combobox"
+			/>
+			{#if hasSelection}
+				<button
+					type="button"
+					class="absolute right-1.5 top-1/2 z-10 flex h-9 w-9 shrink-0 -translate-y-1/2 items-center justify-center rounded-full text-xl font-light leading-none text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:outline-none"
+					aria-label="Clear question selection"
+					onmousedown={(e) => e.preventDefault()}
+					onclick={clearSelection}
+				>
+					×
+				</button>
+			{/if}
+		</div>
 		{#if open && filteredQuestions.length > 0}
 			<ul
 				id="question-bar-listbox"
-				class="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+				class="absolute left-0 right-0 top-full z-20 mt-2 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
 				role="listbox"
 				onmousedown={cancelBlurClose}
 			>
@@ -112,8 +141,8 @@
 					<li role="presentation">
 						<button
 							type="button"
-							class="w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:outline-none {selectedItemId === q.item_id
-								? 'bg-slate-50 font-medium'
+							class="w-full px-4 py-3 text-left text-base text-slate-800 hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:outline-none {selectedItemId === q.item_id
+								? 'bg-slate-50 font-semibold'
 								: 'font-normal'}"
 							role="option"
 							aria-selected={selectedItemId === q.item_id}
@@ -127,20 +156,10 @@
 			</ul>
 		{:else if open && normalizedQuery !== '' && filteredQuestions.length === 0}
 			<div
-				class="absolute left-0 right-0 top-full z-20 mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg"
+				class="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-500 shadow-lg"
 			>
 				No questions match.
 			</div>
 		{/if}
 	</label>
-	{#if hasSelection}
-		<button
-			type="button"
-			class="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-lg font-light leading-none text-slate-500 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-			aria-label="Clear question selection"
-			onclick={clearSelection}
-		>
-			×
-		</button>
-	{/if}
 </div>

@@ -11,17 +11,22 @@
 	import VizTooltip from '$lib/ui/VizTooltip.svelte';
 	import { compiled } from '$lib/data/dataset.js';
 	import { dailySeriesForStatementModel } from '$lib/data/statementDailySeries.js';
+	import {
+		STATEMENT_DETAIL_AGGREGATE_MODE,
+		DOT_STRIP_CONFIG
+	} from '$lib/viz/statementAggregateDetailVizConfig.js';
 
-	const PANEL_BG = '#ebebeb';
+	const PANEL_BG = '#ffffff';
 
 	const ITEM_LINE_STROKE = '#cfcfcf';
 	const SCALE_TICK_STROKE = '#78716c';
 	const TICK_HALF_HEIGHT = 30;
-	const GREY_SPIKE_FILL = '#cecece';
-	const spikeHalfHSelected = 25;
+	/** Inner-SVG x for model names beside heatmap/dot rows (text-anchor end). */
+	const DETAIL_MODEL_LABEL_X = -138;
 	const spikeHalfHOther = 25;
 const DETAIL_TOP_PAD = ROW_ITEM_HEIGHT + 40;
-const DETAIL_ROW_H = 80;
+/** Vertical spacing between model heatmap/dot rows (must stay in sync with `EXPANDED_ROW_HEIGHT` on the page). */
+const DETAIL_ROW_H = 100;
 
 	/**
 	 * @typedef {object} Viz
@@ -202,18 +207,29 @@ const DETAIL_ROW_H = 80;
 			const layers = [];
 			for (const s of spikes) {
 				if (sharedTip !== null) {
-					const area = Math.abs(s.tipX - sharedTip);
-					if (area <= 1e-6) continue;
-					const outerTip = allRight ? Math.max(s.tipX, sharedTip) : Math.min(s.tipX, sharedTip);
-					const innerTip = allRight ? Math.min(s.tipX, sharedTip) : Math.max(s.tipX, sharedTip);
-					layers.push({
-						key: `band-${rowIndex}-${s.model}`,
-						model: s.model,
-						pathD: spikeBandPathD(baseX, outerTip, innerTip, y, spikeHalfHOther),
-						isBand: true,
-						responseText: s.responseText,
-						area
-					});
+					const gap = Math.abs(s.tipX - sharedTip);
+					/** Innermost model (tip at sharedTip): band has zero width — use full spike from center to tip so that wedge isn’t left unfilled and the model isn’t skipped. */
+					if (gap <= 1e-6) {
+						layers.push({
+							key: `inner-${rowIndex}-${s.model}`,
+							model: s.model,
+							pathD: spikePathD(baseX, s.tipX, y, spikeHalfHOther),
+							isBand: false,
+							responseText: s.responseText,
+							area: Math.abs(s.tipX - baseX)
+						});
+					} else {
+						const outerTip = allRight ? Math.max(s.tipX, sharedTip) : Math.min(s.tipX, sharedTip);
+						const innerTip = allRight ? Math.min(s.tipX, sharedTip) : Math.max(s.tipX, sharedTip);
+						layers.push({
+							key: `band-${rowIndex}-${s.model}`,
+							model: s.model,
+							pathD: spikeBandPathD(baseX, outerTip, innerTip, y, spikeHalfHOther),
+							isBand: true,
+							responseText: s.responseText,
+							area: gap
+						});
+					}
 				} else {
 					layers.push({
 						key: `full-${rowIndex}-${s.model}`,
@@ -397,7 +413,68 @@ const selectedDetail = $derived.by(() => {
 	}
 
 	/** @param {object} item */
-	function setDrillHover(event, item, date, value) {
+	/** @param {...unknown} parts */
+	function seedFrom(...parts) {
+		let h = 0;
+		for (const p of parts) {
+			const s = String(p);
+			for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+		}
+		return h;
+	}
+
+	/** Deterministic jitter in [-maxMag, maxMag] (stable across renders). */
+	function detJitter(seed, maxMag) {
+		if (maxMag <= 0) return 0;
+		const x = Math.sin(seed * 12.9898) * 43758.5453;
+		const u = x - Math.floor(x);
+		return (u * 2 - 1) * maxMag;
+	}
+
+	/** Daily-response dots on the statement x-scale (All models); null when heatmap mode or no selection. */
+	const aggregateDotsLayout = $derived.by(() => {
+		if (STATEMENT_DETAIL_AGGREGATE_MODE !== 'dots' || !selectedDetail || !viz || selectedRowIndex < 0)
+			return null;
+		const item = viz.dim.items[selectedRowIndex];
+		const xScale = xScales[selectedRowIndex];
+		if (!xScale || !item) return null;
+
+		const { jitterXMaxScaleUnits, radiusPx } = DOT_STRIP_CONFIG;
+		const ext = viz.itemExtents[selectedRowIndex] ?? [0, 1];
+		const vMin = Math.min(ext[0], ext[1]);
+		const vMax = Math.max(ext[0], ext[1]);
+		const barH = 30;
+		/** @type {{ model: string, color: string, barY: number, barH: number, dots: { cx: number, cy: number, date: string, value: number }[] }[]} */
+		const rows = [];
+		for (const d of selectedDetail.rows) {
+			const series = dailySeriesForStatementModel(
+				compiled,
+				item.dimensionId,
+				item,
+				d.model
+			);
+			const dots = [];
+			let i = 0;
+			for (const pt of series) {
+				const delta = detJitter(seedFrom(d.model, pt.date, i), jitterXMaxScaleUnits);
+				const v = Math.min(vMax, Math.max(vMin, pt.value + delta));
+				const pxRaw = xScale(v);
+				const px = Math.max(radiusPx, Math.min(innerWidth - radiusPx, pxRaw));
+				const py = d.y + barH / 2;
+				dots.push({ cx: px, cy: py, date: pt.date, value: pt.value });
+				i++;
+			}
+			rows.push({ model: d.model, color: d.color, barY: d.y, barH, dots });
+		}
+		return {
+			centerX: selectedDetail.centerX,
+			rows,
+			drillItem: item
+		};
+	});
+
+	/** @param {string | null} [modelOverride] — e.g. row model when `selectedModel` is null (All). */
+	function setDrillHover(event, item, date, value, modelOverride = null) {
 		const rect = event.currentTarget?.ownerSVGElement?.getBoundingClientRect();
 		const localX = rect ? event.clientX - rect.left : 0;
 		const localY = rect ? event.clientY - rect.top : 0;
@@ -414,7 +491,7 @@ const selectedDetail = $derived.by(() => {
 		tooltip = {
 			x: pos.x,
 			y: pos.y,
-			model: selectedModel ?? '',
+			model: modelOverride ?? selectedModel ?? '',
 			responseText,
 			responseLabel: 'Response',
 			metaLine: `Date: ${date}`
@@ -498,14 +575,6 @@ const selectedDetail = $derived.by(() => {
 						itemForRow ?? {},
 						selectedStatementId && !isSelectedRow ? 0.5 : 1
 					)}
-					{#if row.sharedTip !== null}
-						<path
-							d={spikePathD(row.baseX, row.sharedTip, row.y, spikeHalfHSelected)}
-							fill={GREY_SPIKE_FILL}
-							fill-opacity={0.78 * rowOpacity}
-						/>
-					{/if}
-
 					{@const visibleLayers = selectedModel
 						? row.layers.filter((layer) => layer.model === selectedModel)
 						: row.layers}
@@ -542,6 +611,18 @@ const selectedDetail = $derived.by(() => {
 				{#if drillDownLayout}
 					{@const dd = drillDownLayout}
 					{@const drillItem = viz.dim.items[selectedRowIndex]}
+					{@const drillLabelY = (dd.yTop + dd.yBottom) / 2}
+					<text
+						x={DETAIL_MODEL_LABEL_X}
+						y={drillLabelY}
+						fill="#0f172a"
+						font-size="12"
+						font-weight="600"
+						text-anchor="end"
+						dominant-baseline="middle"
+					>
+						{selectedModel ?? ''}
+					</text>
 					<line
 						x1={dd.centerX}
 						x2={dd.centerX}
@@ -593,72 +674,134 @@ const selectedDetail = $derived.by(() => {
 						/>
 					{/each}
 				{:else if selectedDetail}
-					{#each selectedDetail.rows as d (`detail-${d.model}`)}
-						{@const selectedItem = viz.dim.items[selectedRowIndex]}
-						{@const nBins = Math.max(1, d.bins.length)}
-						{@const center = (nBins - 1) / 2}
-						{@const barY = d.y}
-						{@const barH = 30}
-						{@const safeTotal = d.bins.reduce((a, b) => a + Math.max(0, b || 0), 0) || 1}
-						{@const binsNorm = d.bins.map((v) => Math.max(0, v || 0) / safeTotal)}
-						{@const leftSpan = Math.max(0, selectedDetail.centerX - selectedDetail.chartX0)}
-						{@const rightSpan = Math.max(0, selectedDetail.chartX1 - selectedDetail.centerX)}
-						{#each d.bins as rawPct, bi (`${d.model}-${bi}`)}
-							{@const pct = Math.max(0, rawPct || 0) / safeTotal}
-							{@const isLeft = bi <= center}
-							{@const leftOffsetPct = isLeft
-								? binsNorm
-									.slice(bi + 1, Math.floor(center) + 1)
-									.reduce((a, b) => a + b, 0)
-								: 0}
-							{@const rightStart = Math.floor(center) + 1}
-							{@const rightOffsetPct = !isLeft
-								? binsNorm.slice(rightStart, bi).reduce((a, b) => a + b, 0)
-								: 0}
-							{@const sidePct = pct}
-							{@const sideOffsetPct = isLeft ? leftOffsetPct : rightOffsetPct}
-							{@const rawX0 = isLeft
-								? selectedDetail.centerX - (sideOffsetPct + sidePct) * leftSpan
-								: selectedDetail.centerX + sideOffsetPct * rightSpan}
-							{@const rawX1 = isLeft
-								? selectedDetail.centerX - sideOffsetPct * leftSpan
-								: selectedDetail.centerX + (sideOffsetPct + sidePct) * rightSpan}
-							{@const x0 = Math.round(rawX0)}
-							{@const x1 = Math.round(rawX1)}
-							{@const x = Math.min(x0, x1)}
-							{@const w = Math.max(0, Math.abs(x1 - x0))}
-							{@const centerOffset = nBins % 2 === 0 ? 0.5 : 0}
-							{@const distFromCenter = Math.max(0, Math.abs(bi - center) - centerOffset)}
-							{@const maxDistFromCenter = Math.max(0, center - centerOffset)}
-							{@const alpha = maxDistFromCenter > 0 ? 0.2 + 0.8 * (distFromCenter / maxDistFromCenter) : 1}
-							{@const responseText = heatmapResponseTextForBin(selectedItem, bi)}
-							{#if w > 0.75}
-								<rect
-									x={x}
-									y={barY}
-									width={w}
-									height={barH}
-									fill={d.color}
-									fill-opacity={alpha}
-									rx="0"
-									shape-rendering="crispEdges"
+					{#if STATEMENT_DETAIL_AGGREGATE_MODE === 'heatmap'}
+						{#each selectedDetail.rows as d (`detail-${d.model}`)}
+							{@const selectedItem = viz.dim.items[selectedRowIndex]}
+							{@const barY = d.y}
+							{@const barH = 30}
+							{@const nBins = Math.max(1, d.bins.length)}
+							{@const center = (nBins - 1) / 2}
+							{@const safeTotal = d.bins.reduce((a, b) => a + Math.max(0, b || 0), 0) || 1}
+							{@const binsNorm = d.bins.map((v) => Math.max(0, v || 0) / safeTotal)}
+							{@const leftSpan = Math.max(0, selectedDetail.centerX - selectedDetail.chartX0)}
+							{@const rightSpan = Math.max(0, selectedDetail.chartX1 - selectedDetail.centerX)}
+							<text
+								x={DETAIL_MODEL_LABEL_X}
+								y={barY + barH / 2}
+								fill="#0f172a"
+								font-size="12"
+								font-weight="600"
+								text-anchor="end"
+								dominant-baseline="middle"
+							>
+								{d.model}
+							</text>
+							{#each d.bins as rawPct, bi (`${d.model}-${bi}`)}
+								{@const pct = Math.max(0, rawPct || 0) / safeTotal}
+								{@const isLeft = bi <= center}
+								{@const leftOffsetPct = isLeft
+									? binsNorm
+										.slice(bi + 1, Math.floor(center) + 1)
+										.reduce((a, b) => a + b, 0)
+									: 0}
+								{@const rightStart = Math.floor(center) + 1}
+								{@const rightOffsetPct = !isLeft
+									? binsNorm.slice(rightStart, bi).reduce((a, b) => a + b, 0)
+									: 0}
+								{@const sidePct = pct}
+								{@const sideOffsetPct = isLeft ? leftOffsetPct : rightOffsetPct}
+								{@const rawX0 = isLeft
+									? selectedDetail.centerX - (sideOffsetPct + sidePct) * leftSpan
+									: selectedDetail.centerX + sideOffsetPct * rightSpan}
+								{@const rawX1 = isLeft
+									? selectedDetail.centerX - sideOffsetPct * leftSpan
+									: selectedDetail.centerX + (sideOffsetPct + sidePct) * rightSpan}
+								{@const x0 = Math.round(rawX0)}
+								{@const x1 = Math.round(rawX1)}
+								{@const x = Math.min(x0, x1)}
+								{@const w = Math.max(0, Math.abs(x1 - x0))}
+								{@const centerOffset = nBins % 2 === 0 ? 0.5 : 0}
+								{@const distFromCenter = Math.max(0, Math.abs(bi - center) - centerOffset)}
+								{@const maxDistFromCenter = Math.max(0, center - centerOffset)}
+								{@const alpha = maxDistFromCenter > 0 ? 0.2 + 0.8 * (distFromCenter / maxDistFromCenter) : 1}
+								{@const responseText = heatmapResponseTextForBin(selectedItem, bi)}
+								{#if w > 0.75}
+									<rect
+										x={x}
+										y={barY}
+										width={w}
+										height={barH}
+										fill={d.color}
+										fill-opacity={alpha}
+										rx="0"
+										shape-rendering="crispEdges"
+										role="presentation"
+										onmouseenter={(event) => setHeatHover(event, d.model, responseText, pct)}
+										onmousemove={(event) => setHeatHover(event, d.model, responseText, pct)}
+										onmouseleave={clearHover}
+									/>
+								{/if}
+							{/each}
+							<line
+								x1={selectedDetail.centerX}
+								x2={selectedDetail.centerX}
+								y1={barY - 2}
+								y2={barY + barH + 2}
+								stroke="#64748b"
+								stroke-width="1"
+								stroke-opacity="0.6"
+							/>
+						{/each}
+					{:else if aggregateDotsLayout}
+						{@const adl = aggregateDotsLayout}
+						{#each adl.rows as row (`dots-row-${row.model}`)}
+							<text
+								x={DETAIL_MODEL_LABEL_X}
+								y={row.barY + row.barH / 2}
+								fill="#0f172a"
+								font-size="12"
+								font-weight="600"
+								text-anchor="end"
+								dominant-baseline="middle"
+							>
+								{row.model}
+							</text>
+							<line
+								x1={adl.centerX}
+								x2={adl.centerX}
+								y1={row.barY - 2}
+								y2={row.barY + row.barH + 2}
+								stroke="#64748b"
+								stroke-width="1"
+								stroke-opacity="0.6"
+							/>
+							{#each row.dots as dot, di (`${row.model}-${dot.date}-${di}`)}
+								<circle
+									cx={dot.cx}
+									cy={dot.cy}
+									r={DOT_STRIP_CONFIG.radiusPx}
+									fill={row.color}
+									fill-opacity={DOT_STRIP_CONFIG.fillOpacity}
+									stroke="none"
 									role="presentation"
-									onmouseenter={(event) => setHeatHover(event, d.model, responseText, pct)}
-									onmousemove={(event) => setHeatHover(event, d.model, responseText, pct)}
+								/>
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<circle
+									cx={dot.cx}
+									cy={dot.cy}
+									r="8"
+									fill="transparent"
+									stroke="none"
+									role="presentation"
+									onmouseenter={(e) =>
+										setDrillHover(e, adl.drillItem, dot.date, dot.value, row.model)}
+									onmousemove={(e) =>
+										setDrillHover(e, adl.drillItem, dot.date, dot.value, row.model)}
 									onmouseleave={clearHover}
 								/>
-							{/if}
+							{/each}
 						{/each}
-						<line
-							x1={selectedDetail.centerX}
-							x2={selectedDetail.centerX}
-							y1={barY - 2}
-							y2={barY + barH + 2}
-							stroke="#64748b"
-							stroke-width="1"
-							stroke-opacity="0.6"
-						/>
-					{/each}
+					{/if}
 				{/if}
 			</g>
 		</svg>
