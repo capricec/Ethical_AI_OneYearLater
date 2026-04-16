@@ -192,33 +192,38 @@
 				: []}
 
 			<div
-				class="flex h-[calc(100vh)] min-h-0 flex-col overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-300"
+				class="flex h-[100vh] min-h-0 flex-col overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-300"
 			>
-				<div class="flex min-h-0 flex-1 flex-row overflow-hidden">
+				<div class="flex min-h-0 flex-1 flex-col md:flex-row overflow-hidden">
 					<!-- Dashboard: models, dimensions, statements -->
 					<aside
-						class="box-border flex shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-[#F7F7F7]"
+						class="box-border flex w-full md:w-auto shrink-0 flex-col overflow-hidden md:overflow-hidden border-t md:border-t-0 md:border-r border-slate-200 bg-[#F7F7F7] order-2 md:order-1 h-[35vh] md:h-auto"
 						style="width: {LEFT_TRAY_W}px;"
 					>
-						<div class="shrink-0 border-b border-slate-200 px-4 pb-4 pt-4">
-							<div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Models</div>
-							<div class="mt-3 w-full min-w-0">
-								<ModelPills
-									models={$statementsViz.modelSeries.map((m) => m.fundModel)}
-									selected={$selectedModel}
-									onSelect={setSelectedModel}
-								/>
-							</div>
-						</div>
-						<div
-							class="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,3fr)_auto_minmax(0,2fr)] overflow-hidden"
-						>
-							<div class="shrink-0 px-4 pb-2 pt-4">
+						<div class="flex min-h-0 flex-1 flex-col overflow-y-auto md:overflow-visible">
+							<div class="shrink-0 border-b border-slate-200 px-4 pb-4 pt-4">
 								<div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-									Dimensions
+									Models
+								</div>
+								<div class="mt-3 w-full min-w-0">
+									<ModelPills
+										models={$statementsViz.modelSeries.map((m) => m.fundModel)}
+										selected={$selectedModel}
+										onSelect={setSelectedModel}
+									/>
 								</div>
 							</div>
-							<div class="min-h-0 overflow-y-auto border-b border-slate-200">
+							<div
+								class="flex min-h-0 flex-1 flex-col md:grid md:grid-rows-[auto_minmax(0,3fr)_auto_minmax(0,2fr)] md:overflow-hidden"
+							>
+								<div class="shrink-0 px-4 pb-2 pt-4">
+									<div class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+										Dimensions
+									</div>
+								</div>
+							<div
+								class="min-h-0 shrink-0 overflow-visible border-b border-slate-200 md:min-h-0 md:shrink md:overflow-y-auto"
+							>
 								<div class="space-y-2 px-4 pb-1 pt-1 mb-4">
 									{#each subscaleRail as s (s.key)}
 										{@const dimSelected =
@@ -265,7 +270,7 @@
 									Statements
 								</div>
 							</div>
-							<div class="min-h-0 overflow-y-auto">
+							<div class="min-h-0 shrink-0 overflow-visible md:min-h-0 md:shrink md:overflow-y-auto">
 								<div class="space-y-2 px-4 pb-4 pt-1">
 									{#each trayStatements as item (item.item_id)}
 										{@const selectedRow = $selectedStatementId === item.item_id}
@@ -315,7 +320,7 @@
 					</aside>
 
 					<div
-						class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
+						class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white order-1 md:order-2 h-[65vh] md:h-auto"
 					>
 						<header
 							class="flex min-w-0 shrink-0 flex-wrap items-center justify-center gap-3 bg-white px-4 py-5"

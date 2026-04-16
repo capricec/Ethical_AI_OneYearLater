@@ -72,7 +72,10 @@
 		onSubscaleWedgeClick = () => {},
 		onStatementSelect = () => {}
 	} = $props();
+	let legendOpen = $state(false);
 	const showGroupingMarkers = $derived(radialSortMode !== STATEMENT_ORDER_DIVERGENCE);
+	/** Mobile breakpoint heuristic: hide dense outer labels on smaller charts. */
+	const hideSubscaleLabels = $derived(Math.min(width, height) < 520);
 
 	const HIGHLIGHT_DIM_OPACITY = 0.0;
 
@@ -271,9 +274,11 @@
 		const n = viz.dim.items.length;
 		const cx = width / 2;
 		const cy = height / 2;
-		const side = Math.max(120, Math.min(width, height) - 2 * PAD);
+		const side = Math.max(120, Math.min(width, height) - 2 * PAD + 40);
 		const fullOuterR = side / 2;
 		const divergenceMode = radialSortMode === STATEMENT_ORDER_DIVERGENCE;
+		/** Subscale label ring is hidden: reclaim that band so the value plot uses the full disc. */
+		const expandPlotToFullDisc = divergenceMode || hideSubscaleLabels;
 
 		let dimensionInnerR;
 		let plotOuterR;
@@ -281,9 +286,12 @@
 		let scaleInnerR;
 		let dimensionLabelR;
 
-		if (divergenceMode) {
-			/** Outer plot limit: nearly to clip circle (was label + dimension annuli in dimension mode). */
-			plotOuterR = Math.max(28, fullOuterR - DIVERGENCE_OUTER_R_PAD);
+		if (expandPlotToFullDisc) {
+			/**
+			 * Outer plot limit: nearly to clip circle (was label + dimension annuli in dimension mode).
+			 * Push 20px farther out to reclaim even more of the freed subscale-label band on mobile.
+			 */
+			plotOuterR = Math.max(28, fullOuterR - DIVERGENCE_OUTER_R_PAD + 20);
 			hubR = Math.max(14, plotOuterR * 0.17);
 			scaleInnerR = Math.max(
 				hubR + 2,
@@ -304,8 +312,8 @@
 		}
 
 		const spikeRangeInner = Math.max(hubR + 2, scaleInnerR - SPIKE_RADIUS_EXTENSION_PX);
-		let spikeRangeOuter = plotOuterR + SPIKE_RADIUS_EXTENSION_PX;
-		if (divergenceMode) {
+		let spikeRangeOuter = plotOuterR + SPIKE_RADIUS_EXTENSION_PX + (expandPlotToFullDisc ? 20 : 0);
+		if (expandPlotToFullDisc) {
 			spikeRangeOuter = Math.min(fullOuterR - 2, spikeRangeOuter);
 		} else {
 			spikeRangeOuter = Math.min(dimensionInnerR - 2, spikeRangeOuter);
@@ -1360,6 +1368,7 @@
 
 					<!-- Outer grey annulus: one sector per subscale (former dimension-ring styling). -->
 					<g aria-hidden="true" class="subscale-ring-grid" pointer-events="none">
+					{#if !hideSubscaleLabels}
 						{#each layout.subscaleArcs as arc (arc.id)}
 							<path
 								d={annularSectorPathD(
@@ -1401,6 +1410,7 @@
 								stroke-linecap="butt"
 							/>
 						{/each}
+					{/if}
 					</g>
 
 					<g class="subscale-hit-targets">
@@ -1424,8 +1434,8 @@
 				{/if}
 			</g>
 
-			<!-- Subscale names on the outer grey annulus (Dimension view). -->
-			{#if showGroupingMarkers}
+			<!-- Subscale names on the outer grey annulus (Dimension view, desktop-only). -->
+			{#if showGroupingMarkers && !hideSubscaleLabels}
 				<g aria-hidden="true" class="subscale-labels" pointer-events="none">
 					{#each layout.subscaleArcs as arc (arc.id)}
 						{#if shouldShowSubscaleOuterLabel(arc)}
@@ -1497,7 +1507,36 @@
 				responseText={tooltip.responseText}
 			/>
 		{/if}
-		<img class="radial-legend" src={RADIAL_LEGEND_SRC} alt="Radial chart legend" />
+
+		<div class="radial-legend-toggle">
+			<button
+				type="button"
+				class="legend-button"
+				aria-label="Show radial legend"
+				onclick={() => (legendOpen = !legendOpen)}
+			>
+				?
+			</button>
+			{#if legendOpen}
+				<div class="legend-popover" role="dialog" aria-label="Radial chart legend">
+					<button
+						type="button"
+						class="legend-close"
+						aria-label="Close legend"
+						onclick={() => (legendOpen = false)}
+					>
+						×
+					</button>
+					<img
+						class="radial-legend h-auto"
+						src={RADIAL_LEGEND_SRC}
+						alt="Radial chart legend"
+						width="auto"
+						height="auto"
+					/>
+				</div>
+			{/if}
+		</div>
 	</div>
 {/if}
 
@@ -1526,6 +1565,64 @@
 	.radial-interactive-svg {
 		pointer-events: auto;
 		overflow: visible;
+	}
+
+	.radial-legend-toggle {
+		position: absolute;
+		right: 8px;
+		bottom: 8px;
+		z-index: 10;
+	}
+
+	.radial-legend {
+		height:200px;
+	}
+
+	.legend-button {
+		width: 28px;
+		height: 28px;
+		border-radius: 9999px;
+		border: 1px solid #cbd5e1;
+		background: #ffffff;
+		color: #0f172a;
+		font-size: 16px;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		box-shadow: 0 1px 2px rgba(15, 23, 42, 0.15);
+	}
+
+	.legend-button:hover {
+		background: #f1f5f9;
+	}
+
+	.legend-popover {
+		position: absolute;
+		right: 0;
+		bottom: 40px;
+		padding: 0px;
+		padding-top: 32px;
+		background: #ffffff;
+		border-radius: 8px;
+		box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+		max-width: min(320px, 80vw);
+		z-index: 50;
+		overflow: visible;
+		height: 230px;
+		width: 190px;
+	}
+
+	.legend-close {
+		position: absolute;
+		top: 10px;
+		right: 18px;
+		border: none;
+		background: transparent;
+		color: #64748b;
+		font-size: 20px;
+		cursor: pointer;
 	}
 
 	.spike-hit-targets path {
@@ -1592,14 +1689,19 @@
 	}
 	*/
 
+	/* Default: corner legend (unused when only shown in popover). */
 	.radial-legend {
-		position: absolute;
-		right: -40px;
-		bottom: -20px;
-		width: 200px;
+		display: block;
+		max-width: 100%;
 		height: auto;
-		z-index: 4;
 		pointer-events: none;
 		user-select: none;
+	}
+
+	/* Popover: old absolute offsets were for the corner layout and hid the image outside the box. */
+	.legend-popover .radial-legend {
+		position: static;
+		width: 100%;
+		max-width: min(300px, 75vw);
 	}
 </style>
