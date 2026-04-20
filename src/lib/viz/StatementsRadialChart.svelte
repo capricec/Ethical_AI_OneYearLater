@@ -1508,35 +1508,43 @@
 			/>
 		{/if}
 
-		<div class="radial-legend-toggle">
-			<button
-				type="button"
-				class="legend-button"
-				aria-label="Show radial legend"
-				onclick={() => (legendOpen = !legendOpen)}
-			>
-				?
-			</button>
-			{#if legendOpen}
-				<div class="legend-popover" role="dialog" aria-label="Radial chart legend">
-					<button
-						type="button"
-						class="legend-close"
-						aria-label="Close legend"
-						onclick={() => (legendOpen = false)}
-					>
-						×
-					</button>
-					<img
-						class="radial-legend h-auto"
-						src={RADIAL_LEGEND_SRC}
-						alt="Radial chart legend"
-						width="auto"
-						height="auto"
-					/>
-				</div>
-			{/if}
-		</div>
+		{#if hideSubscaleLabels}
+			<div class="radial-legend-toggle">
+				<button
+					type="button"
+					class="legend-button"
+					aria-label="Show radial legend"
+					onclick={() => (legendOpen = !legendOpen)}
+				>
+					?
+				</button>
+				{#if legendOpen}
+					<div class="legend-popover" role="dialog" aria-label="Radial chart legend">
+						<button
+							type="button"
+							class="legend-close"
+							aria-label="Close legend"
+							onclick={() => (legendOpen = false)}
+						>
+							×
+						</button>
+						<img
+							class="radial-legend-popover-img"
+							src={RADIAL_LEGEND_SRC}
+							alt="Radial chart legend"
+							width="260"
+							height="160"
+						/>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<img
+				class="radial-legend-desktop"
+				src={RADIAL_LEGEND_SRC}
+				alt="Radial chart legend"
+			/>
+		{/if}
 	</div>
 {/if}
 
@@ -1572,10 +1580,6 @@
 		right: 8px;
 		bottom: 8px;
 		z-index: 10;
-	}
-
-	.radial-legend {
-		height:200px;
 	}
 
 	.legend-button {
@@ -1689,19 +1693,23 @@
 	}
 	*/
 
-	/* Default: corner legend (unused when only shown in popover). */
-	.radial-legend {
-		display: block;
-		max-width: 100%;
+	/* Desktop / large chart: fixed legend in the shell corner (original layout). */
+	.radial-legend-desktop {
+		position: absolute;
+		right: -40px;
+		bottom: -20px;
+		width: 200px;
 		height: auto;
+		z-index: 4;
 		pointer-events: none;
 		user-select: none;
 	}
 
-	/* Popover: old absolute offsets were for the corner layout and hid the image outside the box. */
-	.legend-popover .radial-legend {
-		position: static;
+	/* Mobile popover image */
+	.radial-legend-popover-img {
+		display: block;
 		width: 100%;
 		max-width: min(300px, 75vw);
+		height: auto;
 	}
 </style>
