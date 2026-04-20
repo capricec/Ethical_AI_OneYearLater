@@ -8,6 +8,7 @@
 		STATEMENT_ORDER_DIVERGENCE,
 		STATEMENT_ORDER_SUBSCALE
 	} from '$lib/data/computeStatementsViz.js';
+	import { subscaleInterpretation } from '$lib/data/dataset.js';
 
 	/** Pixels beyond outer label ring; keeps curved labels inside the clip. */
 	const DISC_CLIP_OUTSET = 0;
@@ -77,20 +78,53 @@
 	/** Mobile breakpoint heuristic: hide dense outer labels on smaller charts. */
 	const hideSubscaleLabels = $derived(Math.min(width, height) < 520);
 
+	/** Preview the same highlight/card as a wedge click while pointer is over the ring or its label. */
+	let hoverSubscaleKey = $state(/** @type {string | null} */ (null));
+	let hoverClearTimeoutId = 0;
+	function armClearSubscaleHover() {
+		if (hoverClearTimeoutId) clearTimeout(hoverClearTimeoutId);
+		hoverClearTimeoutId = setTimeout(() => {
+			hoverClearTimeoutId = 0;
+			hoverSubscaleKey = null;
+		}, 50);
+	}
+	/** @param {unknown} key */
+	function setSubscaleHoverKey(key) {
+		if (hoverClearTimeoutId) {
+			clearTimeout(hoverClearTimeoutId);
+			hoverClearTimeoutId = 0;
+		}
+		hoverSubscaleKey = key == null ? null : String(key);
+	}
+	function clearSubscaleHoverKey() {
+		armClearSubscaleHover();
+	}
+
+	const effectiveHighlightSubscaleKey = $derived.by(() => {
+		const h = hoverSubscaleKey;
+		if (h != null && String(h).trim() !== '') return h;
+		return highlightSubscaleKey;
+	});
+
+	/** Subscales whose center card sits over dense spikes; nudge up in SVG coords. */
+	const CENTER_CARD_Y_OFFSET_UP = 30;
+	const centerCardExtraYOffset = (normalizedLabel) => {
+		const k = normalizedLabel.toLowerCase();
+		if (k === 'civic violation tolerance' || k === 'authoritarianism') return CENTER_CARD_Y_OFFSET_UP;
+		return 0;
+	};
+
 	const HIGHLIGHT_DIM_OPACITY = 0.0;
 
 	/** When a subscale is highlighted from the context rail, dim other statements (all stay visible). */
 	function opacityForStatementIndex(i) {
-		if (
-			highlightSubscaleKey === null ||
-			highlightSubscaleKey === undefined ||
-			highlightSubscaleKey === ''
-		) {
+		const eff = effectiveHighlightSubscaleKey;
+		if (eff == null || String(eff).trim() === '') {
 			return 1;
 		}
 		const item = viz?.dim?.items?.[i];
 		const k = String(item?.subscaleKey ?? '').trim() || '__none__';
-		return k === highlightSubscaleKey ? 1 : HIGHLIGHT_DIM_OPACITY;
+		return normSubscaleKey(k) === normSubscaleKey(eff) ? 1 : HIGHLIGHT_DIM_OPACITY;
 	}
 	/** In divergence mode, spikes extend much farther — space that was label + dimension rings in dimension mode. */
 	const DIVERGENCE_OUTER_R_PAD = 6;
@@ -333,7 +367,7 @@
 		const items = viz.dim.items;
 		const runs = subscaleRuns(items, n);
 		const tau = 2 * Math.PI;
-		const hlNorm = normSubscaleKey(highlightSubscaleKey);
+		const hlNorm = normSubscaleKey(effectiveHighlightSubscaleKey);
 		const hlActive = hlNorm !== '__none__';
 
 		const subscaleArcs = runs.map((run, idx) => {
@@ -404,9 +438,52 @@
 		return s || '__none__';
 	}
 
+	/**
+	 * @param {Viz | null | undefined} vizIn
+	 * @param {unknown} key
+	 */
+	function centerCardForSubscaleKey(vizIn, key) {
+		const kn = normSubscaleKey(key);
+		if (kn === '__none__') return null;
+		const items = vizIn?.dim?.items;
+		if (!items?.length) return null;
+		const item = items.find((it) => normSubscaleKey(it.subscaleKey) === kn);
+		if (!item) return null;
+		const dimId = item.dimensionId;
+		const sk = String(item.subscaleKey ?? '').trim();
+		const byDim = /** @type {Record<string, Record<string, { label?: string, description?: string }>>} */ (
+			subscaleInterpretation
+		);
+		const interp = byDim[String(dimId)]?.[sk];
+		const label = String(interp?.label ?? item.subscaleLabel ?? '').trim();
+		const description = String(interp?.description ?? '').trim();
+		if (!label) return null;
+		return { label, description };
+	}
+
+	const centerCardLayout = $derived.by(() => {
+		const card = centerCardForSubscaleKey(viz, effectiveHighlightSubscaleKey);
+		if (!card?.label) return null;
+		const label = String(card.label ?? '').trim();
+		const description = String(card.description ?? '').trim();
+		const cardW = hideSubscaleLabels
+			? Math.max(150, Math.min(240, width * 0.58))
+			: Math.max(170, Math.min(260, width * 0.45));
+		const cardH = description ? 96 : 62;
+		const yUp = centerCardExtraYOffset(label);
+		return {
+			label,
+			description,
+			cardW,
+			cardH,
+			x: layout.cx - cardW / 2,
+			y: layout.cy - cardH / 2 - yUp
+		};
+	});
+
 	/** Context rail highlights one subscale: hide other subscale wedge labels (option B). */
 	const subscaleHighlightLocked = $derived(
-		highlightSubscaleKey != null && String(highlightSubscaleKey).trim() !== ''
+		effectiveHighlightSubscaleKey != null && String(effectiveHighlightSubscaleKey).trim() !== ''
 	);
 
 	/**
@@ -421,12 +498,12 @@
 
 		if (skLower === 'immigration' || skLower === 'environment') {
 			if (!subscaleHighlightLocked) return false;
-			return normSubscaleKey(highlightSubscaleKey) === normSubscaleKey(itemSk);
+			return normSubscaleKey(effectiveHighlightSubscaleKey) === normSubscaleKey(itemSk);
 		}
 
 		if (!arc.labelFits) return false;
 		if (!subscaleHighlightLocked) return true;
-		return normSubscaleKey(highlightSubscaleKey) === normSubscaleKey(itemSk);
+		return normSubscaleKey(effectiveHighlightSubscaleKey) === normSubscaleKey(itemSk);
 	}
 
 	/**
@@ -1247,6 +1324,7 @@
 				role="img"
 				aria-label="Radial chart of model convergence by statement."
 				focusable="false"
+				onmouseleave={clearSubscaleHoverKey}
 			>
 			<defs>
 				<clipPath id="radial-plot-disc-clip">
@@ -1427,6 +1505,9 @@
 									arc.t1
 								)}
 								fill="transparent"
+								onmouseenter={() =>
+									setSubscaleHoverKey(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
+								onmouseleave={clearSubscaleHoverKey}
 								onclick={() => handleSubscaleWedgeClick(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
 							/>
 						{/each}
@@ -1434,12 +1515,38 @@
 				{/if}
 			</g>
 
+			{#if centerCardLayout}
+				<foreignObject
+					x={centerCardLayout.x}
+					y={centerCardLayout.y}
+					width={centerCardLayout.cardW}
+					height={centerCardLayout.cardH}
+					aria-hidden="true"
+					pointer-events="none"
+				>
+					<div xmlns="http://www.w3.org/1999/xhtml" class="radial-center-card">
+						<div class="radial-center-card-title">{centerCardLayout.label}</div>
+						{#if centerCardLayout.description}
+							<p class="radial-center-card-description">{centerCardLayout.description}</p>
+						{/if}
+					</div>
+				</foreignObject>
+			{/if}
+
 			<!-- Subscale names on the outer grey annulus (Dimension view, desktop-only). -->
 			{#if showGroupingMarkers && !hideSubscaleLabels}
-				<g aria-hidden="true" class="subscale-labels" pointer-events="none">
+				<g aria-hidden="true" class="subscale-labels">
 					{#each layout.subscaleArcs as arc (arc.id)}
 						{#if shouldShowSubscaleOuterLabel(arc)}
-							<text class="subscale-label-text" dominant-baseline="middle">
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<text
+								class="subscale-label-text"
+								dominant-baseline="middle"
+								pointer-events="auto"
+								onmouseenter={() =>
+									setSubscaleHoverKey(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
+								onmouseleave={clearSubscaleHoverKey}
+							>
 								<textPath href={`#${arc.id}`} startOffset="50%" text-anchor="middle">
 									{arc.label}
 								</textPath>
@@ -1682,6 +1789,40 @@
 		font-size: 10px;
 		font-weight: 400;
 		letter-spacing: 0.02em;
+	}
+
+	.radial-center-card {
+		box-sizing: border-box;
+		width: 100%;
+		height: 100%;
+		border: 1px solid #cbd5e1;
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.96);
+		padding: 8px 10px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 4px;
+		box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+	}
+
+	.radial-center-card-title {
+		font-size: 12px;
+		font-weight: 600;
+		line-height: 1.25;
+		color: #0f172a;
+	}
+
+	.radial-center-card-description {
+		margin: 0;
+		font-size: 11px;
+		line-height: 1.35;
+		color: #475569;
+		display: -webkit-box;
+		line-clamp: 3;
+		-webkit-line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
 
 	/* Restore with pole label markup

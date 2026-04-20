@@ -29,7 +29,7 @@
 			{@const isSelected = pill.model === null ? selected === null : selected === pill.model}
 			<button
 				type="button"
-				class="{basePill} {isSelected ? selectedPill : idlePill}"
+				class="{basePill} {isSelected ? selectedPill : idlePill} {isSelected ? 'opacity-100' : 'opacity-50'}"
 				onclick={() => onSelect(pill.model)}
 			>
 				{#if pill.model === null}
