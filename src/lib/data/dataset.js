@@ -3,5 +3,15 @@ import encoding from '../../../data/statement_encoding.json';
 import subscaleInterpretation from '../../../data/subscale_interpretation.json';
 import statementContext from '../../../data/statement_context.json';
 import questions from '../../../data/questions.json';
+import debates from '../../../data/debates.json';
+import debateTranscripts from '../../../data/debate_transcripts.json';
 
-export { compiled, encoding, subscaleInterpretation, statementContext, questions };
+export {
+	compiled,
+	encoding,
+	subscaleInterpretation,
+	statementContext,
+	questions,
+	debates,
+	debateTranscripts
+};

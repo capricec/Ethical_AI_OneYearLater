@@ -10,6 +10,10 @@
 	import { modelColor } from '$lib/viz/modelColors.js';
 	import VizTooltip from '$lib/ui/VizTooltip.svelte';
 	import { compiled } from '$lib/data/dataset.js';
+	import {
+		getFollowupResponseText,
+		followupScaleStepFromConsensus
+	} from '$lib/data/followupResponses.js';
 	import { dailySeriesForStatementModel } from '$lib/data/statementDailySeries.js';
 import {
 		STATEMENT_DETAIL_AGGREGATE_MODE,
@@ -26,6 +30,11 @@ import {
 	/** Inner-SVG x for model names beside heatmap/dot rows (text-anchor end). */
 	const DETAIL_MODEL_LABEL_X = -138;
 	const spikeHalfHOther = 25;
+	/** Vertical connector from follow-up caret to spike band: extends slightly above SVG top to meet the triangle. */
+	const FOLLOWUP_LINE_TOP_Y = -14;
+	const FOLLOWUP_LINE_STROKE_PX = 5;
+	/** Extra length below the spike band toward the bottom of the chart. */
+	const FOLLOWUP_LINE_BOTTOM_EXTEND_PX = 20;
 	const DETAIL_TOP_PAD = ROW_ITEM_HEIGHT + 40;
 	/** Vertical spacing between model heatmap/dot rows (page passes row height to match). */
 	const DETAIL_ROW_H = 100;
@@ -42,14 +51,31 @@ import {
 	 * @property {{ aggregate: { left: string, right: string }, item: { left: string, right: string } }} labels
 	 */
 
-	/** @type {{ width: number, viz: Viz, selectedModel: (string|null), selectedStatementId?: (string|null), rowHeights?: number[], highlightSubscaleKey?: (string|null) }} */
+	/**
+	 * @type {{
+	 *   width: number,
+	 *   viz: Viz,
+	 *   selectedModel: (string|null),
+	 *   selectedModels?: string[],
+	 *   showFollowupText?: boolean,
+	 *   showFollowupLine?: boolean,
+	 *   selectedStatementId?: (string|null),
+	 *   rowHeights?: number[],
+	 *   highlightSubscaleKey?: (string|null),
+	 *   onSelectModel?: (fundModel: string) => void
+	 * }}
+	 */
 	let {
 		width,
 		viz,
 		selectedModel,
+		selectedModels = [],
+		showFollowupText = true,
+		showFollowupLine = true,
 		selectedStatementId = null,
 		rowHeights = [],
-		highlightSubscaleKey = null
+		highlightSubscaleKey = null,
+		onSelectModel
 	} = $props();
 
 	const HIGHLIGHT_DIM_OPACITY = 0;
@@ -124,6 +150,14 @@ import {
 
 	const innerWidth = $derived(Math.max(80, width - margin.side * 2));
 	const activeModel = $derived(selectedModel);
+	const visibleModelSeries = $derived.by(() => {
+		if (!viz?.modelSeries?.length) return [];
+		const filter = Array.isArray(selectedModels)
+			? Array.from(new Set(selectedModels.map((m) => String(m ?? '').trim()).filter(Boolean)))
+			: [];
+		if (!filter.length) return viz.modelSeries;
+		return viz.modelSeries.filter((s) => filter.includes(s.fundModel));
+	});
 
 	const rowCentersY = $derived.by(() => {
 		if (!viz) return [];
@@ -210,7 +244,7 @@ import {
 			const baseX = rowTickX[rowIndex] ?? innerWidth / 2;
 			/** @type {{ model: string, tipX: number, responseText: string }[]} */
 			const spikes = [];
-			for (const ms of viz.modelSeries) {
+			for (const ms of visibleModelSeries) {
 				const value = ms.itemMeans[rowIndex];
 				if (value === null || value === undefined || Number.isNaN(value)) continue;
 				const item = viz.dim.items[rowIndex];
@@ -232,24 +266,6 @@ import {
 				});
 			}
 			if (!spikes.length) continue;
-
-			/** One solid triangle from center to tip — no multi-model band cutouts. */
-			if (selectedModel) {
-				const s = spikes.find((sp) => sp.model === selectedModel);
-				if (!s) continue;
-				const layers = [
-					{
-						key: `solo-${rowIndex}-${s.model}`,
-						model: s.model,
-						pathD: spikePathD(baseX, s.tipX, y, spikeHalfHOther),
-						isBand: false,
-						responseText: s.responseText,
-						area: Math.abs(s.tipX - baseX)
-					}
-				];
-				out.push({ rowIndex, y, baseX, sharedTip: null, layers });
-				continue;
-			}
 
 			const allRight = spikes.every((s) => s.tipX >= baseX - 1e-6);
 			const allLeft = spikes.every((s) => s.tipX <= baseX + 1e-6);
@@ -319,7 +335,7 @@ const selectedRowIndex = $derived.by(() => {
 	return viz.dim.items.findIndex((it) => it.item_id === selectedStatementId);
 });
 
-const selectedDetail = $derived.by(() => {
+	const selectedDetail = $derived.by(() => {
 	if (!viz || selectedRowIndex < 0 || !rowBounds[selectedRowIndex]) return null;
 	const bounds = rowBounds[selectedRowIndex];
 	const chartX0 = 0;
@@ -329,13 +345,13 @@ const selectedDetail = $derived.by(() => {
 	const maxRows = Math.max(
 		1,
 		Math.min(
-			viz.modelSeries.length,
+			visibleModelSeries.length,
 			Math.floor(
 				(bounds.height - detailTopPad - AGGREGATE_DETAIL_BAR_H - 4) / detailRowH
 			) + 1
 		)
 	);
-	const rows = viz.modelSeries.slice(0, maxRows).map((ms, idx) => {
+	const rows = visibleModelSeries.slice(0, maxRows).map((ms, idx) => {
 		const bins = Array.isArray(ms.itemDistributions?.[selectedRowIndex])
 			? ms.itemDistributions[selectedRowIndex]
 			: [];
@@ -366,7 +382,7 @@ const selectedDetail = $derived.by(() => {
 		const maxRows = Math.max(
 			1,
 			Math.min(
-				viz.modelSeries.length,
+				visibleModelSeries.length,
 				Math.floor(
 					(bounds.height - detailTopPad - AGGREGATE_DETAIL_BAR_H - 4) / detailRowH
 				) + 1
@@ -590,6 +606,92 @@ const selectedDetail = $derived.by(() => {
 		return (u * 2 - 1) * maxMag;
 	}
 
+	/**
+	 * Follow-up bubble + aggregate line (single-statement view).
+	 * - **All models:** Same “consensus” rule as spike bands: if every tip is on one side of center, use the innermost tip’s value (min when all right, max when all left). If tips split both sides, use the scale midpoint in display space (e.g. 3.5 on 1–6). Follow-up copy uses the rounded step from that value via `followupScaleStepFromConsensus`.
+	 * - **Single model:** line at that model’s spike tip.
+	 */
+	const statementFollowupLayout = $derived.by(() => {
+		if (!viz || selectedRowIndex < 0 || !selectedStatementId || viz.dim.items.length !== 1)
+			return null;
+		const item = viz.dim.items[selectedRowIndex];
+		const scale = xScales[selectedRowIndex];
+		const ext = viz.itemExtents[selectedRowIndex] ?? [0, 1];
+		if (!item || !scale) return null;
+
+		const domainMid = (ext[0] + ext[1]) / 2;
+		const centerLineX = rowTickX[selectedRowIndex] ?? scale(domainMid);
+
+		/** Value passed to followup bin helper (null → midpoint copy). */
+		let valueForRoundedText = /** @type {number | null} */ (null);
+
+		/** @type {number} */
+		let lineX;
+
+		const isAllModels =
+			selectedModel == null ||
+			(typeof selectedModel === 'string' && selectedModel.trim() === '');
+
+		if (!isAllModels) {
+			const ms = visibleModelSeries.find((m) => m.fundModel === selectedModel);
+			const mv = ms?.itemMeans[selectedRowIndex];
+			if (mv !== null && mv !== undefined && Number.isFinite(mv)) {
+				lineX = scale(mv);
+				valueForRoundedText = mv;
+			} else {
+				lineX = centerLineX;
+				valueForRoundedText = null;
+			}
+		} else {
+			const baseX = rowTickX[selectedRowIndex] ?? innerWidth / 2;
+			/** @type {{ value: number, tipX: number }[]} */
+			const spikes = [];
+			for (const ms of visibleModelSeries) {
+				const v = ms.itemMeans[selectedRowIndex];
+				if (v !== null && v !== undefined && Number.isFinite(v)) {
+					spikes.push({ value: v, tipX: scale(v) });
+				}
+			}
+			if (spikes.length === 0) {
+				lineX = centerLineX;
+				valueForRoundedText = null;
+			} else {
+				const allRight = spikes.every((s) => s.tipX >= baseX - 1e-6);
+				const allLeft = spikes.every((s) => s.tipX <= baseX + 1e-6);
+				/** @type {number} */
+				let aggregateDisplayValue;
+				if (allRight) aggregateDisplayValue = Math.min(...spikes.map((s) => s.value));
+				else if (allLeft) aggregateDisplayValue = Math.max(...spikes.map((s) => s.value));
+				else aggregateDisplayValue = domainMid;
+				lineX = scale(aggregateDisplayValue);
+				valueForRoundedText = aggregateDisplayValue;
+			}
+		}
+
+		lineX = Math.max(0, Math.min(innerWidth, lineX));
+
+		const step = followupScaleStepFromConsensus(valueForRoundedText, item);
+		const text = getFollowupResponseText(String(item.item_id), step, activeModel);
+		const tailPct = width > 0 ? ((margin.side + lineX) / width) * 100 : 50;
+
+		const rb = rowBounds[selectedRowIndex];
+		if (!rb) return null;
+		const rowCy = rowCentersY[selectedRowIndex] ?? rb.top + rb.height / 2;
+		/** Short thick bar: from just under the response caret into the spike band (not full detail pad). */
+		const lineY1 = rb.top + FOLLOWUP_LINE_TOP_Y;
+		const lineY2 = rb.top + (rowCy - rb.top) + spikeHalfHOther + FOLLOWUP_LINE_BOTTOM_EXTEND_PX;
+
+		return {
+			text,
+			lineX,
+			tailPct,
+			lineY1,
+			lineY2,
+			lineStrokeWidth: FOLLOWUP_LINE_STROKE_PX,
+			hasLine: Number.isFinite(lineX)
+		};
+	});
+
 	/** Daily-response dots on the statement x-scale (All models); null when heatmap mode or no selection. */
 	const aggregateDotsLayout = $derived.by(() => {
 		if (STATEMENT_DETAIL_AGGREGATE_MODE !== 'dots' || !selectedDetail || !viz || selectedRowIndex < 0)
@@ -662,14 +764,30 @@ const selectedDetail = $derived.by(() => {
 	<p class="text-sm text-slate-500">No data.</p>
 {:else}
 	<div
-		class="chart-wrap box-border max-w-full"
-		style="width: {width}px; max-width: 100%; height: {height}px;"
+		class="chart-wrap followup-chart-shell box-border flex max-w-full flex-col gap-0 overflow-visible"
+		style="width: {width}px; max-width: 100%;"
 	>
+		{#if showFollowupText && statementFollowupLayout?.text}
+			<div
+				class="followup-bubble relative z-10 mx-auto box-border flex h-[4.5rem] w-full max-w-full items-center justify-center rounded-md border-2 border-[#595959] bg-[#212121] px-6 text-center text-sm font-medium leading-snug text-white md:h-[4.75rem] md:text-base"
+				aria-live="polite"
+			>
+				<p
+					class="m-0 line-clamp-2 max-h-full w-full overflow-hidden break-words text-center [overflow-wrap:anywhere]"
+				>
+					{statementFollowupLayout.text}
+				</p>
+				<div
+					class="followup-bubble-caret pointer-events-none absolute -bottom-2 h-0 w-0 -translate-x-1/2"
+					style="left: {statementFollowupLayout.tailPct}%; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #212121;"
+				></div>
+			</div>
+		{/if}
 		<svg
 			width={width}
 			height={height}
 			style="overflow: visible"
-			class="block max-w-full shrink-0 self-start"
+			class="-mt-2 block max-w-full shrink-0 self-start"
 			role="img"
 		>
 			<title>Model positions by statement</title>
@@ -741,10 +859,7 @@ const selectedDetail = $derived.by(() => {
 						itemForRow ?? {},
 						selectedStatementId && !isSelectedRow ? 0.5 : 1
 					)}
-					{@const visibleLayers = selectedModel
-						? row.layers.filter((layer) => layer.model === selectedModel)
-						: row.layers}
-					{#each [...visibleLayers].sort((a, b) => {
+					{#each [...row.layers].sort((a, b) => {
 						const aSel = a.model === activeModel;
 						const bSel = b.model === activeModel;
 						if (aSel && !bSel) return 1;
@@ -767,9 +882,23 @@ const selectedDetail = $derived.by(() => {
 							stroke="transparent"
 							stroke-width="8"
 							stroke-linejoin="round"
+							class="cursor-pointer"
+							role="button"
+							tabindex="0"
 							onmouseenter={(event) => setHover(event, layer.model, layer.responseText)}
 							onmousemove={(event) => setHover(event, layer.model, layer.responseText)}
 							onmouseleave={clearHover}
+							onclick={(e) => {
+								e.stopPropagation();
+								onSelectModel?.(layer.model);
+							}}
+							onkeydown={(e) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									e.stopPropagation();
+									onSelectModel?.(layer.model);
+								}
+							}}
 						/>
 					{/each}
 				{/each}
@@ -1020,6 +1149,18 @@ const selectedDetail = $derived.by(() => {
 						{capRight} →
 					</text>
 				{/if}
+
+				{#if showFollowupLine && statementFollowupLayout?.hasLine}
+					<line
+						x1={statementFollowupLayout.lineX}
+						x2={statementFollowupLayout.lineX}
+						y1={statementFollowupLayout.lineY1}
+						y2={statementFollowupLayout.lineY2}
+						stroke="#0a0a0a"
+						stroke-width={statementFollowupLayout.lineStrokeWidth}
+						pointer-events="none"
+					/>
+				{/if}
 			</g>
 		</svg>
 		{#if tooltip}
@@ -1040,5 +1181,10 @@ const selectedDetail = $derived.by(() => {
 <style>
 	.chart-wrap {
 		position: relative;
+	}
+
+	/* Reserve space for caret; future sprint: draggable bubble via pointer events on shell. */
+	.followup-chart-shell {
+		padding-top: 0;
 	}
 </style>

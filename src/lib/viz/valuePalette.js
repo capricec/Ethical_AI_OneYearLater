@@ -70,8 +70,10 @@ export function scaleTextForValue(value, scaleTexts, min, max, reverse = false) 
 	if (!Array.isArray(scaleTexts) || scaleTexts.length === 0) return '';
 	if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max)) return '';
 	const clamped = Math.max(min, Math.min(max, value));
-	// Use nearest-bin mapping for tooltip labels; floor systematically biases means downward.
-	let bin = Math.round(clamped);
+	// Midpoint-split mapping: lower half floors, upper half ceils.
+	// Example 1-6: [1-2), [2-3), [3-3.5), [3.5-4), [4-5), [5-6]
+	const mid = (min + max) / 2;
+	let bin = clamped < mid ? Math.floor(clamped) : Math.ceil(clamped);
 	if (reverse) {
 		bin = min + max - bin;
 	}

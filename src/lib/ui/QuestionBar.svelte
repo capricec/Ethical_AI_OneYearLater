@@ -1,4 +1,6 @@
 <script>
+	import { tick, untrack } from 'svelte';
+
 	/** @type {{ item_id: string, question: string }[]} */
 	let { questions, selectedItemId = null, onSelect } = $props();
 
@@ -26,7 +28,9 @@
 		} else {
 			// Tray / elsewhere cleared statement — reset bar to match (empty + no typed query).
 			filterText = '';
-			if (!skipCloseDropdownOnClear) open = false;
+			// Read skip without subscribing: when bar-clear sets skip true then false, we must not
+			// re-run this effect and close the dropdown (that was killing open after clear).
+			if (!untrack(() => skipCloseDropdownOnClear)) open = false;
 		}
 	});
 
@@ -48,16 +52,15 @@
 		onSelect?.(q.item_id);
 	}
 
-	function clearSelection() {
+	async function clearSelection() {
 		cancelBlurClose();
 		skipCloseDropdownOnClear = true;
 		filterText = '';
 		onSelect?.(null);
+		await tick();
 		open = true;
-		queueMicrotask(() => {
-			inputEl?.focus();
-			skipCloseDropdownOnClear = false;
-		});
+		// Do not focus the input: avoids a stuck caret with no visible list; list shows open above.
+		skipCloseDropdownOnClear = false;
 	}
 
 	function handleInput() {
@@ -97,7 +100,7 @@
 	<label class="relative block w-full min-w-0">
 		<span class="sr-only">Ethical question</span>
 		<div
-			class="relative flex min-h-[2.75rem] items-center rounded-full border-2 border-[#595959] bg-white transition"
+			class="relative flex min-h-[2.75rem] items-center rounded-md border-2 border-[#595959] bg-white transition"
 		>
 			<input
 				bind:this={inputEl}
@@ -105,7 +108,7 @@
 				type="text"
 				autocomplete="off"
 				placeholder={PLACEHOLDER}
-				class="box-border min-h-[2.75rem] w-full min-w-0 flex-1 rounded-full border-0 bg-transparent py-2.5 pl-6 text-center text-sm font-medium leading-snug text-slate-900 outline-none ring-0 placeholder:font-normal placeholder:text-[#595959] focus:outline-none focus:ring-0 md:text-base {hasSelection
+				class="box-border min-h-[2.75rem] w-full min-w-0 flex-1 rounded-md border-0 bg-transparent py-2.5 pl-6 text-center text-sm font-medium leading-snug text-slate-900 outline-none ring-0 placeholder:font-normal placeholder:text-[#595959] focus:outline-none focus:ring-0 md:text-base {hasSelection
 					? 'pr-12'
 					: 'pr-6'}"
 				bind:value={filterText}
@@ -121,7 +124,7 @@
 			{#if hasSelection}
 				<button
 					type="button"
-					class="absolute right-1.5 top-1/2 z-10 flex h-9 w-9 shrink-0 -translate-y-1/2 items-center justify-center rounded-full text-xl font-light leading-none text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:outline-none"
+					class="absolute right-1.5 top-1/2 z-10 flex h-9 w-9 shrink-0 -translate-y-1/2 items-center justify-center rounded-md text-xl font-light leading-none text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:outline-none"
 					aria-label="Clear question selection"
 					onmousedown={(e) => e.preventDefault()}
 					onclick={clearSelection}

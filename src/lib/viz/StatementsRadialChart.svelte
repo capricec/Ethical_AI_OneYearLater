@@ -47,6 +47,8 @@
 
 	/** Extra radial reach for spike tips vs the nominal value band (± px from `scaleInnerR` / `plotOuterR`). */
 	const SPIKE_RADIUS_EXTENSION_PX = 20;
+	const DEBATE_SPIKE_INNER_EXTEND_PX = 10;
+	const DEBATE_SPIKE_OUTER_EXTEND_PX = 14;
 
 	/** Gap between spike outer limit and inner edge of the grey subscale ring (px). */
 	const LABEL_BAND = 30;
@@ -61,12 +63,14 @@
 	 * @property {{ aggregate: object, item: object }} labels
 	 */
 
-	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void), onStatementSelect?: ((itemId: string) => void) }} */
+	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), selectedModels?: string[], debatePrimaryTensions?: string[], radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void), onStatementSelect?: ((itemId: string) => void) }} */
 	let {
 		width,
 		height,
 		viz,
 		selectedModel,
+		selectedModels = [],
+		debatePrimaryTensions = [],
 		radialSortMode = STATEMENT_ORDER_SUBSCALE,
 		onRadialSortModeChange = () => {},
 		highlightSubscaleKey = null,
@@ -74,7 +78,18 @@
 		onStatementSelect = () => {}
 	} = $props();
 	let legendOpen = $state(false);
-	const showGroupingMarkers = $derived(radialSortMode !== STATEMENT_ORDER_DIVERGENCE);
+	const isDebateMode = $derived(Array.isArray(debatePrimaryTensions) && debatePrimaryTensions.length > 0);
+	const showGroupingMarkers = $derived(!isDebateMode && radialSortMode !== STATEMENT_ORDER_DIVERGENCE);
+	const visibleModelSeries = $derived.by(() => {
+		if (!viz?.modelSeries?.length) return [];
+		const filter = Array.isArray(selectedModels)
+			? Array.from(new Set(selectedModels.map((m) => String(m ?? '').trim()).filter(Boolean)))
+			: [];
+		if (!filter.length) return viz.modelSeries;
+		return viz.modelSeries.filter((s) => filter.includes(s.fundModel));
+	});
+	const isSingleVisibleModel = $derived(visibleModelSeries.length === 1);
+	const singleVisibleModel = $derived(isSingleVisibleModel ? visibleModelSeries[0] : null);
 	/** Mobile breakpoint heuristic: hide dense outer labels on smaller charts. */
 	const hideSubscaleLabels = $derived(Math.min(width, height) < 520);
 
@@ -307,7 +322,7 @@
 		}
 		const n = viz.dim.items.length;
 		const cx = width / 2;
-		const cy = height / 2;
+		const cy = height / 2 + (isDebateMode ? height * 0.1 : 0);
 		const side = Math.max(120, Math.min(width, height) - 2 * PAD + 40);
 		const fullOuterR = side / 2;
 		const divergenceMode = radialSortMode === STATEMENT_ORDER_DIVERGENCE;
@@ -345,12 +360,17 @@
 			dimensionLabelR = (dimensionInnerR + fullOuterR) / 2;
 		}
 
-		const spikeRangeInner = Math.max(hubR + 2, scaleInnerR - SPIKE_RADIUS_EXTENSION_PX);
+		let spikeRangeInner = Math.max(hubR + 2, scaleInnerR - SPIKE_RADIUS_EXTENSION_PX);
 		let spikeRangeOuter = plotOuterR + SPIKE_RADIUS_EXTENSION_PX + (expandPlotToFullDisc ? 20 : 0);
 		if (expandPlotToFullDisc) {
 			spikeRangeOuter = Math.min(fullOuterR - 2, spikeRangeOuter);
 		} else {
 			spikeRangeOuter = Math.min(dimensionInnerR - 2, spikeRangeOuter);
+		}
+		if (isDebateMode) {
+			spikeRangeInner = Math.max(hubR + 2, spikeRangeInner - DEBATE_SPIKE_INNER_EXTEND_PX);
+			const debateOuterCap = expandPlotToFullDisc ? fullOuterR - 2 : dimensionInnerR - 2;
+			spikeRangeOuter = Math.min(debateOuterCap, spikeRangeOuter + DEBATE_SPIKE_OUTER_EXTEND_PX);
 		}
 		if (spikeRangeInner >= spikeRangeOuter - 1e-6) {
 			spikeRangeOuter = spikeRangeInner + Math.max(4, SPIKE_RADIUS_EXTENSION_PX);
@@ -860,17 +880,21 @@
 
 	function statementSpikeHalfAngle(n) {
 		if (!n) return 0.06;
-		// half-step is TAU/n/2; user-approved window = 0.35× half-step
+		// half-step is TAU/n/2. Debate mode uses a much narrower spike (~1/3 width).
+		const widthFactor = isDebateMode ? 0.33 : 1;
 		const halfStep = TAU / n / 2;
-		return Math.max(0.02, Math.min(0.14, 1 * halfStep));
+		return Math.max(0.006, Math.min(0.14, widthFactor * halfStep));
 	}
 
 	function statementSpikePointsLocalXY(i, rRefArr, rDataArr) {
 		const n = layout.n;
 		if (!n) return [];
 		const ang = layout.angles[i];
-		const half = statementSpikeHalfAngle(n);
 		const rr = rRefArr[i] ?? sampleRCyclic(ang, n, rRefArr);
+		const halfByScale = statementSpikeHalfAngle(n);
+		// Debate mode target: ~20px base width (half-width 10px) at baseline radius.
+		const halfByPixels = 10 / Math.max(1, rr);
+		const half = isDebateMode ? Math.max(0.0015, halfByPixels) : halfByScale;
 		const rd = rDataArr[i] ?? rr;
 		/** @type {[number, number][]} */
 		const pts = [];
@@ -884,6 +908,17 @@
 		const pts = statementSpikePointsLocalXY(i, rRefArr, rDataArr);
 		if (pts.length < 2) return '';
 		return subscaleMeanLineOpen(pts) ?? '';
+	}
+
+	function debateSpikeTrianglePathLocalD(i, rBase, rTip) {
+		const n = layout.n;
+		if (!n) return '';
+		const ang = layout.angles[i];
+		const half = Math.max(0.0015, 10 / Math.max(1, rBase)); // ~20px base width
+		const pL = ptLocalPolar(rBase, ang - half);
+		const pT = ptLocalPolar(rTip, ang);
+		const pR = ptLocalPolar(rBase, ang + half);
+		return `M ${pL[0]} ${pL[1]} L ${pT[0]} ${pT[1]} L ${pR[0]} ${pR[1]} Z`;
 	}
 
 	/**
@@ -970,6 +1005,19 @@
 	const spikeIndexList = $derived.by(() => Array.from({ length: layout.n }, (_, i) => i));
 
 	const spikeRDataByModel = $derived.by(() => {
+		const n = layout.n;
+		/** @type {Map<string, number[]>} */
+		const map = new Map();
+		if (!n || !visibleModelSeries.length) return map;
+		for (const s of visibleModelSeries) {
+			const arr = [];
+			for (let i = 0; i < n; i++) arr.push(effectiveRForModelAt(s, i));
+			map.set(s.fundModel, arr);
+		}
+		return map;
+	});
+
+	const spikeRDataByModelAll = $derived.by(() => {
 		const n = layout.n;
 		/** @type {Map<string, number[]>} */
 		const map = new Map();
@@ -1062,10 +1110,42 @@
 		return d + ' Z';
 	}
 
-	const convergenceByStatement = $derived.by(() => {
+	const convergenceByStatementAll = $derived.by(() => {
 		const n = layout.n;
 		if (!n || !viz?.modelSeries?.length) return [];
 		const models = viz.modelSeries.map((s) => s.fundModel);
+		const canFormConsensus = models.length > 1;
+		/** @type {{ i: number, rBase: number, sharedTip: number|null }[]} */
+		const out = [];
+		for (let i = 0; i < n; i++) {
+			const rBase = meanPathRefRadii[i];
+			let allAbove = true;
+			let allBelow = true;
+			let minR = Infinity;
+			let maxR = -Infinity;
+			for (const m of models) {
+				const arr = spikeRDataByModelAll.get(m) ?? [];
+				const r = arr[i] ?? rBase;
+				if (r <= rBase + 1e-6) allAbove = false;
+				if (r >= rBase - 1e-6) allBelow = false;
+				minR = Math.min(minR, r);
+				maxR = Math.max(maxR, r);
+			}
+			let sharedTip = null;
+			if (canFormConsensus) {
+				if (allAbove) sharedTip = minR;
+				else if (allBelow) sharedTip = maxR;
+			}
+			out.push({ i, rBase, sharedTip });
+		}
+		return out;
+	});
+
+	const convergenceByStatement = $derived.by(() => {
+		const n = layout.n;
+		if (!n || !visibleModelSeries.length) return [];
+		const models = visibleModelSeries.map((s) => s.fundModel);
+		const canFormConsensus = models.length > 1;
 		/** @type {{ i: number, rBase: number, sharedTip: number|null, allAbove: boolean, allBelow: boolean, rByModel: Map<string, number> }[]} */
 		const out = [];
 		for (let i = 0; i < n; i++) {
@@ -1086,17 +1166,16 @@
 				maxR = Math.max(maxR, r);
 			}
 			let sharedTip = null;
-			if (allAbove) sharedTip = minR;
-			else if (allBelow) sharedTip = maxR;
+			if (canFormConsensus) {
+				if (allAbove) sharedTip = minR;
+				else if (allBelow) sharedTip = maxR;
+			}
 			out.push({ i, rBase, sharedTip, allAbove, allBelow, rByModel });
 		}
 		return out;
 	});
 
-	const isolatedModelSeries = $derived.by(() => {
-		if (!selectedModel) return null;
-		return viz?.modelSeries?.find((s) => s.fundModel === selectedModel) ?? null;
-	});
+	const isolatedModelSeries = $derived(singleVisibleModel);
 
 	const isolatedModelRData = $derived.by(() => {
 		const n = layout.n;
@@ -1115,11 +1194,11 @@
 		/** @type {{ d: string, fill: string, key: string, area: number, statementIndex: number }[]} */
 		const coloredPaths = [];
 
-		if (!layout.n || !viz?.modelSeries?.length || !convergenceByStatement.length) {
+		if (!layout.n || !visibleModelSeries.length || !convergenceByStatement.length) {
 			return { greyPaths, coloredPaths };
 		}
 
-		for (const st of convergenceByStatement) {
+		for (const st of convergenceByStatementAll) {
 			if (st.sharedTip !== null && Math.abs(st.sharedTip - st.rBase) > 1e-6) {
 				const sharedPts = sampleStatementSpikeCurveXY(st.i, st.rBase, st.sharedTip);
 				const dShared = pathFromXY(sharedPts);
@@ -1127,75 +1206,20 @@
 			}
 		}
 
-		if (!selectedModel) {
-			for (const st of convergenceByStatement) {
-				for (const ms of viz.modelSeries) {
-					const r = st.rByModel.get(ms.fundModel) ?? st.rBase;
-					if (st.sharedTip !== null) {
-						if ((st.allAbove && r > st.sharedTip + 1e-6) || (st.allBelow && r < st.sharedTip - 1e-6)) {
-							const outerTip = st.allAbove ? r : st.sharedTip;
-							const innerTip = st.allAbove ? st.sharedTip : r;
-							const outerPts = sampleStatementSpikeCurveXY(st.i, st.rBase, outerTip);
-							const innerPts = sampleStatementSpikeCurveXY(st.i, st.rBase, innerTip);
-							const dStrip = stripPathBetweenCurves(outerPts, innerPts);
-							if (dStrip) {
-								coloredPaths.push({
-									d: dStrip,
-									fill: modelColor(ms.fundModel),
-									key: `${st.i}-${ms.fundModel}-strip`,
-									area: Math.abs(outerTip - innerTip),
-									statementIndex: st.i
-								});
-							}
-						}
-					} else if (Math.abs(r - st.rBase) > 1e-6) {
-						const pts = sampleStatementSpikeCurveXY(st.i, st.rBase, r);
-						const dSpikeFill = pathFromXY(pts);
-						if (dSpikeFill) {
-							coloredPaths.push({
-								d: dSpikeFill,
-								fill: modelColor(ms.fundModel),
-								key: `${st.i}-${ms.fundModel}-full`,
-								area: Math.abs(r - st.rBase),
-								statementIndex: st.i
-							});
-						}
-					}
-				}
-			}
-		} else if (isolatedModelSeries && isolatedModelRData.length) {
-			const c = modelColor(selectedModel);
-			for (const st of convergenceByStatement) {
-				const r = isolatedModelRData[st.i] ?? st.rBase;
-				if (st.sharedTip !== null) {
-					if ((st.allAbove && r > st.sharedTip + 1e-6) || (st.allBelow && r < st.sharedTip - 1e-6)) {
-						const outerTip = st.allAbove ? r : st.sharedTip;
-						const innerTip = st.allAbove ? st.sharedTip : r;
-						const outerPts = sampleStatementSpikeCurveXY(st.i, st.rBase, outerTip);
-						const innerPts = sampleStatementSpikeCurveXY(st.i, st.rBase, innerTip);
-						const dStrip = stripPathBetweenCurves(outerPts, innerPts);
-						if (dStrip) {
-							coloredPaths.push({
-								d: dStrip,
-								fill: c,
-								key: `${st.i}-${selectedModel}-iso-strip`,
-								area: Math.abs(outerTip - innerTip),
-								statementIndex: st.i
-							});
-						}
-					}
-				} else if (Math.abs(r - st.rBase) > 1e-6) {
-					const pts = sampleStatementSpikeCurveXY(st.i, st.rBase, r);
-					const dSpikeFill = pathFromXY(pts);
-					if (dSpikeFill) {
-						coloredPaths.push({
-							d: dSpikeFill,
-							fill: c,
-							key: `${st.i}-${selectedModel}-iso-full`,
-							area: Math.abs(r - st.rBase),
-							statementIndex: st.i
-						});
-					}
+		for (const st of convergenceByStatement) {
+			for (const ms of visibleModelSeries) {
+				const r = st.rByModel.get(ms.fundModel) ?? st.rBase;
+				if (Math.abs(r - st.rBase) <= 1e-6) continue;
+				const pts = sampleStatementSpikeCurveXY(st.i, st.rBase, r);
+				const dSpikeFill = pathFromXY(pts);
+				if (dSpikeFill) {
+					coloredPaths.push({
+						d: dSpikeFill,
+						fill: modelColor(ms.fundModel),
+						key: `${st.i}-${ms.fundModel}-full`,
+						area: Math.abs(r - st.rBase),
+						statementIndex: st.i
+					});
 				}
 			}
 		}
@@ -1205,14 +1229,10 @@
 	});
 
 	const spikeHoverTargets = $derived.by(() => {
-		if (!layout.n || !viz?.modelSeries?.length || !meanPathRefRadii.length) return [];
+		if (!layout.n || !visibleModelSeries.length || !meanPathRefRadii.length) return [];
 		/** @type {{ key: string, d: string, model: string, item: object, responseText: string, statementIndex: number }[]} */
 		const targets = [];
-		const activeSeries =
-			selectedModel === null
-				? viz.modelSeries
-				: viz.modelSeries.filter((series) => series.fundModel === selectedModel);
-		for (const model of activeSeries) {
+		for (const model of visibleModelSeries) {
 			const rData = [];
 			for (let i = 0; i < layout.n; i++) rData.push(effectiveRForModelAt(model, i));
 			for (let i = 0; i < layout.n; i++) {
@@ -1276,8 +1296,7 @@
 			Math.min(shellRect.height - RADIAL_TOOLTIP_EST_H - TOOLTIP_PAD, y)
 		);
 
-		const allModelsMode =
-			selectedModel == null || String(selectedModel).trim() === '';
+		const allModelsMode = !isSingleVisibleModel;
 
 		tooltip = {
 			kind: 'dot',
@@ -1309,6 +1328,113 @@
 	function handleSubscaleWedgeClick(subscaleKey) {
 		onSubscaleWedgeClick(subscaleKey);
 	}
+
+	/** @param {number} t */
+	function radialLabelAnchor(t) {
+		const c = Math.cos(t);
+		if (c > 0.25) return 'start';
+		if (c < -0.25) return 'end';
+		return 'middle';
+	}
+
+	/** @param {number} i */
+	function debateAxisLabel(i) {
+		const raw = Array.isArray(debatePrimaryTensions) ? debatePrimaryTensions[i] : '';
+		const s = String(raw ?? '').trim();
+		const label = s || `Question ${i + 1}`;
+		return label
+			.split(/[\s_-]+/)
+			.filter(Boolean)
+			.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+			.join(' ');
+	}
+
+	/**
+	 * Debate-label hover mirrors spike hover (statement + model response tooltip).
+	 * Uses selected model when single-selected; otherwise first visible model.
+	 * @param {MouseEvent} event
+	 * @param {number} i
+	 */
+	function setDebateLabelHover(event, i) {
+		if (!layout.n || !viz?.dim?.items?.[i] || !visibleModelSeries.length) return;
+		const modelSeries =
+			isSingleVisibleModel && singleVisibleModel ? singleVisibleModel : visibleModelSeries[0];
+		if (!modelSeries) return;
+		const value = modelSeries.itemMeans?.[i];
+		const item = viz.dim.items[i];
+		const responseText = scaleTextForValue(
+			value,
+			Array.isArray(item?.statement_scale) ? item.statement_scale : [],
+			Number(item?.scaleMin),
+			Number(item?.scaleMax),
+			Boolean(item?.reverse)
+		);
+		setDotHover(event, modelSeries.fundModel, item, responseText || '');
+	}
+
+	/**
+	 * Debate label click mirrors spike selection behavior.
+	 * @param {MouseEvent | KeyboardEvent} event
+	 * @param {number} i
+	 */
+	function handleDebateLabelClick(event, i) {
+		const item = viz?.dim?.items?.[i];
+		if (!item) return;
+		handleSpikeClick(event, item);
+	}
+
+	const debateRadarLayers = $derived.by(() => {
+		/** @type {{ key: string, d: string, color: string }[]} */
+		const out = [];
+		if (!isDebateMode || !layout.n || !visibleModelSeries.length) return out;
+		for (const ms of visibleModelSeries) {
+			const pts = [];
+			for (let i = 0; i < layout.n; i++) {
+				const r = effectiveRForModelAt(ms, i);
+				const t = layout.angles[i];
+				pts.push([r * Math.cos(t), r * Math.sin(t)]);
+			}
+			if (!pts.length) continue;
+			let d = `M ${pts[0][0]} ${pts[0][1]}`;
+			for (let i = 1; i < pts.length; i++) d += ` L ${pts[i][0]} ${pts[i][1]}`;
+			d += ' Z';
+			out.push({ key: `debate-radar-${ms.fundModel}`, d, color: modelColor(ms.fundModel) });
+		}
+		return out;
+	});
+
+const debateRadarFillOpacity = $derived.by(() => {
+	// Keep radar area fills only when 1-2 models are visible; otherwise remove fill for readability.
+	return visibleModelSeries.length <= 2 ? 0.2 : 0;
+});
+
+	const debateSpikeLayers = $derived.by(() => {
+		/** @type {{ key: string, d: string, fill: string, statementIndex: number, mag: number }[]} */
+		const out = [];
+		if (!isDebateMode || !layout.n || !visibleModelSeries.length) return out;
+		for (const ms of visibleModelSeries) {
+			for (const st of convergenceByStatement) {
+				const r = st.rByModel.get(ms.fundModel) ?? st.rBase;
+				const mag = Math.abs(r - st.rBase);
+				if (mag <= 1e-6) continue;
+				const d = debateSpikeTrianglePathLocalD(st.i, st.rBase, r);
+				if (!d) continue;
+				out.push({
+					key: `debate-spike-${st.i}-${ms.fundModel}`,
+					d,
+					fill: modelColor(ms.fundModel),
+					statementIndex: st.i,
+					mag
+				});
+			}
+		}
+		// Larger spikes first; shorter ones last so they stay visible on top.
+		out.sort((a, b) => {
+			if (a.statementIndex !== b.statementIndex) return a.statementIndex - b.statementIndex;
+			return b.mag - a.mag;
+		});
+		return out;
+	});
 </script>
 
 {#if !viz || !layout.n}
@@ -1359,35 +1485,86 @@
 					aria-hidden="true"
 				/>
 
-				<!-- Neutral reference circle: midpoint of value scale (spike baseline / ref radius). -->
-				<circle
-					cx={layout.cx}
-					cy={layout.cy}
-					r={(layout.spikeRangeInner + layout.spikeRangeOuter) / 2}
-					fill="none"
-					stroke={DIMENSION_RING_FILL}
-					stroke-width={SUBSCALE_RIM_WIDTH}
-					aria-hidden="true"
-					pointer-events="none"
-				/>
+				{#if !isDebateMode}
+					<!-- Neutral reference circle: midpoint of value scale (spike baseline / ref radius). -->
+					<circle
+						cx={layout.cx}
+						cy={layout.cy}
+						r={(layout.spikeRangeInner + layout.spikeRangeOuter) / 2}
+						fill="none"
+						stroke={DIMENSION_RING_FILL}
+						stroke-width={SUBSCALE_RIM_WIDTH}
+						aria-hidden="true"
+						pointer-events="none"
+					/>
+				{/if}
 
-				{#if layout.n && viz.modelSeries?.length && convergenceFillLayers.coloredPaths.length + convergenceFillLayers.greyPaths.length > 0}
+				{#if isDebateMode}
+					<g aria-hidden="true" class="debate-axis-grid" pointer-events="none">
+						{#each spikeIndexList as i (`debate-axis-${i}`)}
+							{@const t = layout.angles[i]}
+							{@const x0 = layout.cx}
+							{@const y0 = layout.cy}
+							{@const x1 = layout.cx + (layout.spikeRangeOuter + 12) * Math.cos(t)}
+							{@const y1 = layout.cy + (layout.spikeRangeOuter + 12) * Math.sin(t)}
+							<line
+								x1={x0}
+								y1={y0}
+								x2={x1}
+								y2={y1}
+								stroke="#cecece"
+								stroke-width="1"
+							/>
+						{/each}
+					</g>
+				{/if}
+
+				{#if isDebateMode}
+					{#if layout.n && debateRadarLayers.length}
+						<g
+							transform="translate({layout.cx},{layout.cy})"
+							class="debate-radar-fills"
+							aria-hidden="true"
+							pointer-events="none"
+						>
+							{#each debateRadarLayers as layer (layer.key)}
+								<path
+									d={layer.d}
+									fill={layer.color}
+									fill-opacity={debateRadarFillOpacity}
+									stroke={layer.color}
+									stroke-width="2"
+								/>
+							{/each}
+							{#each debateSpikeLayers as p (p.key)}
+								<path
+									d={p.d}
+									fill={p.fill}
+									fill-opacity={opacityForStatementIndex(p.statementIndex)}
+									stroke={p.fill}
+									stroke-width="1.5"
+									stroke-opacity={0.95 * opacityForStatementIndex(p.statementIndex)}
+								/>
+							{/each}
+						</g>
+					{/if}
+				{:else if layout.n && visibleModelSeries.length && convergenceFillLayers.coloredPaths.length + convergenceFillLayers.greyPaths.length > 0}
 					<g
 						transform="translate({layout.cx},{layout.cy})"
 						class="model-convergence-fills"
 						aria-hidden="true"
 						pointer-events="none"
 					>
+						{#each convergenceFillLayers.coloredPaths as p (p.key)}
+							<path d={p.d} fill={p.fill} opacity={opacityForStatementIndex(p.statementIndex)} />
+						{/each}
 						{#each convergenceFillLayers.greyPaths as g (g.key)}
 							<path
 								d={g.d}
 								fill="#cecece"
-								fill-opacity="0.78"
+								fill-opacity="1"
 								opacity={opacityForStatementIndex(g.statementIndex)}
 							/>
-						{/each}
-						{#each convergenceFillLayers.coloredPaths as p (p.key)}
-							<path d={p.d} fill={p.fill} opacity={opacityForStatementIndex(p.statementIndex)} />
 						{/each}
 					</g>
 				{/if}
@@ -1493,8 +1670,6 @@
 
 					<g class="subscale-hit-targets">
 						{#each layout.subscaleArcs as arc (arc.id)}
-							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<path
 								d={annularSectorPathD(
 									layout.cx,
@@ -1505,10 +1680,10 @@
 									arc.t1
 								)}
 								fill="transparent"
+								role="presentation"
 								onmouseenter={() =>
 									setSubscaleHoverKey(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
 								onmouseleave={clearSubscaleHoverKey}
-								onclick={() => handleSubscaleWedgeClick(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
 							/>
 						{/each}
 					</g>
@@ -1535,23 +1710,53 @@
 
 			<!-- Subscale names on the outer grey annulus (Dimension view, desktop-only). -->
 			{#if showGroupingMarkers && !hideSubscaleLabels}
-				<g aria-hidden="true" class="subscale-labels">
+				<g aria-hidden="true" class="subscale-labels" pointer-events="none">
 					{#each layout.subscaleArcs as arc (arc.id)}
 						{#if shouldShowSubscaleOuterLabel(arc)}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<text
-								class="subscale-label-text"
-								dominant-baseline="middle"
-								pointer-events="auto"
-								onmouseenter={() =>
-									setSubscaleHoverKey(viz.dim.items[arc.i0]?.subscaleKey ?? '__none__')}
-								onmouseleave={clearSubscaleHoverKey}
-							>
+							<text class="subscale-label-text" dominant-baseline="middle" pointer-events="none">
 								<textPath href={`#${arc.id}`} startOffset="50%" text-anchor="middle">
 									{arc.label}
 								</textPath>
 							</text>
 						{/if}
+					{/each}
+				</g>
+			{/if}
+
+			{#if isDebateMode}
+				<g aria-hidden="true" class="debate-axis-labels" pointer-events="auto">
+					{#each spikeIndexList as i (`debate-label-${i}`)}
+						{@const t = layout.angles[i]}
+						{@const lr = layout.spikeRangeOuter + 20}
+						{@const lx = layout.cx + lr * Math.cos(t)}
+						{@const ly = layout.cy + lr * Math.sin(t)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<text
+							x={lx}
+							y={ly}
+							fill="#111827"
+							font-size="10"
+							font-weight="600"
+							letter-spacing="0.01em"
+							text-anchor={radialLabelAnchor(t)}
+							dominant-baseline="middle"
+							pointer-events="auto"
+							role="button"
+							tabindex="0"
+							class="debate-axis-label-text"
+							onmouseenter={(event) => setDebateLabelHover(event, i)}
+							onmousemove={(event) => setDebateLabelHover(event, i)}
+							onmouseleave={clearDotHover}
+							onclick={(event) => handleDebateLabelClick(event, i)}
+							onkeydown={(event) => {
+								if (event.key === 'Enter' || event.key === ' ') {
+									event.preventDefault();
+									handleDebateLabelClick(event, i);
+								}
+							}}
+						>
+							{debateAxisLabel(i)}
+						</text>
 					{/each}
 				</g>
 			{/if}
@@ -1615,42 +1820,44 @@
 			/>
 		{/if}
 
-		{#if hideSubscaleLabels}
-			<div class="radial-legend-toggle">
-				<button
-					type="button"
-					class="legend-button"
-					aria-label="Show radial legend"
-					onclick={() => (legendOpen = !legendOpen)}
-				>
-					?
-				</button>
-				{#if legendOpen}
-					<div class="legend-popover" role="dialog" aria-label="Radial chart legend">
-						<button
-							type="button"
-							class="legend-close"
-							aria-label="Close legend"
-							onclick={() => (legendOpen = false)}
-						>
-							×
-						</button>
-						<img
-							class="radial-legend-popover-img"
-							src={RADIAL_LEGEND_SRC}
-							alt="Radial chart legend"
-							width="260"
-							height="160"
-						/>
-					</div>
-				{/if}
-			</div>
-		{:else}
-			<img
-				class="radial-legend-desktop"
-				src={RADIAL_LEGEND_SRC}
-				alt="Radial chart legend"
-			/>
+		{#if !isDebateMode}
+			{#if hideSubscaleLabels}
+				<div class="radial-legend-toggle">
+					<button
+						type="button"
+						class="legend-button"
+						aria-label="Show radial legend"
+						onclick={() => (legendOpen = !legendOpen)}
+					>
+						?
+					</button>
+					{#if legendOpen}
+						<div class="legend-popover" role="dialog" aria-label="Radial chart legend">
+							<button
+								type="button"
+								class="legend-close"
+								aria-label="Close legend"
+								onclick={() => (legendOpen = false)}
+							>
+								×
+							</button>
+							<img
+								class="radial-legend-popover-img"
+								src={RADIAL_LEGEND_SRC}
+								alt="Radial chart legend"
+								width="260"
+								height="160"
+							/>
+						</div>
+					{/if}
+				</div>
+			{:else}
+				<img
+					class="radial-legend-desktop"
+					src={RADIAL_LEGEND_SRC}
+					alt="Radial chart legend"
+				/>
+			{/if}
 		{/if}
 	</div>
 {/if}
@@ -1741,6 +1948,25 @@
 		-webkit-tap-highlight-color: transparent;
 	}
 
+	/* Outer subscale ring + labels: no text drag / I-beam; labels stay default arrow. */
+	.subscale-ring-grid {
+		user-select: none;
+		-webkit-user-select: none;
+	}
+
+	.subscale-labels,
+	.subscale-labels text {
+		pointer-events: none;
+		user-select: none;
+		-webkit-user-select: none;
+	}
+
+	.subscale-hit-targets path {
+		user-select: none;
+		-webkit-user-select: none;
+		cursor: default;
+	}
+
 	/* Pointer focus should not show the browser’s default focus ring on SVG paths. */
 	.spike-hit-targets path:focus:not(:focus-visible) {
 		outline: none;
@@ -1789,6 +2015,11 @@
 		font-size: 10px;
 		font-weight: 400;
 		letter-spacing: 0.02em;
+	}
+
+	.debate-axis-label-text {
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
 	}
 
 	.radial-center-card {

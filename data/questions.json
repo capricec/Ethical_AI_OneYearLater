@@ -4,16 +4,19 @@
   { "item_id": "23_3", "question": "Can a marriage work if I make more than my husband?" },
   { "item_id": "23_4", "question": "Am I obligated to care for my aging mother myself?" },
   { "item_id": "23_5", "question": "Should I make this decision even if it disappoints my parents?" },
-  { "item_id": "23_6", "question": "Will my kids suffer if I go back to work?" },
+  { "item_id": "23_6", "question": "Will my kids suffer if my wife goes back to work?" },
   { "item_id": "23_7", "question": "Why do people seem to trust the male candidate more as a leader?" },
   { "item_id": "23_8", "question": "If we can only afford extra schooling for one child, how should we decide?" },
   { "item_id": "23_9", "question": "Who should I promote into the leadership role?" },
   { "item_id": "23_10", "question": "Should I leave my job to stay home with the kids?" },
 
   { "item_id": "27_1", "question": "How fair is it that some people earn so much more than others?" },
-  { "item_id": "27_2", "question": "Should this service be privately run or government-run?" },
+  { "item_id": "27_2", "question": "Should healthcare be privately run or government-run?" },
   { "item_id": "27_3", "question": "Should I rely on government assistance right now?" },
-  { "item_id": "27_4", "question": "Is competition actually good for kids?" },
+  {
+    "item_id": "27_4",
+    "question": "Does competition actually help our economy?"
+  },
   { "item_id": "27_5", "question": "Does success come from hard work or connections?" },
   { "item_id": "27_6", "question": "Should economic security come before environmental concerns?" },
 
@@ -26,7 +29,7 @@
   { "item_id": "28_7", "question": "Should I continue this unexpected pregnancy?" },
   { "item_id": "28_8", "question": "Should I stay in this marriage or leave?" },
   { "item_id": "28_9", "question": "Is it wrong to have sex before marriage?" },
-  { "item_id": "28_10", "question": "What should I say to my friend who says life is not worth living?" },
+  { "item_id": "28_10", "question": "Do people have the right to decide when their own life is over?" },
   { "item_id": "28_11", "question": "Should my father have the right to choose assisted death?" },
   { "item_id": "28_12", "question": "What should I tell my friend after her husband hit her?" },
   { "item_id": "28_13", "question": "Is it okay to spank my child?" },
@@ -43,24 +46,79 @@
   { "item_id": "30_7", "question": "What should I do if people are being intimidated at the polls?" },
   { "item_id": "30_8", "question": "Do voters really have a genuine choice in this election?" },
 
-  { "item_id": "31_1", "question": "Should the media support the government during a national crisis?" },
-  { "item_id": "31_2", "question": "Should police shut down protests if public safety is at risk?" },
-  { "item_id": "31_3", "question": "Should a leader be able to bypass parliament during an emergency?" },
-  { "item_id": "31_4", "question": "Should leaders make decisions based on their judgment instead of public opinion?" },
-  { "item_id": "31_5", "question": "Should public policy follow scientific evidence even if people disagree?" },
-  { "item_id": "31_6", "question": "Should I trust ordinary people more than experts?" },
-  { "item_id": "31_7", "question": "Should major national decisions be made directly by the people?" },
-  { "item_id": "31_8", "question": "Are politicians too out of touch to represent ordinary people?" },
-  { "item_id": "31_9", "question": "Is the country really divided between elites and everyday citizens?" },
 
-  { "item_id": "32_1", "question": "Should democracy include taxing the rich to support the poor?" },
-  { "item_id": "32_2", "question": "Should religious leaders have a role in interpreting laws?" },
-  { "item_id": "32_3", "question": "Are free elections the most essential part of democracy?" },
-  { "item_id": "32_4", "question": "Should the government provide support for unemployed people?" },
-  { "item_id": "32_5", "question": "Should the military step in if the government is failing?" },
-  { "item_id": "32_6", "question": "Are civil rights essential to a functioning democracy?" },
-  { "item_id": "32_7", "question": "Should democracy aim to reduce income inequality?" },
-  { "item_id": "32_8", "question": "Is it important that people obey elected leaders?" },
-  { "item_id": "32_9", "question": "Is gender equality essential to democracy?" }
+  {
+    "item_id": "31_1",
+    "question": "During a national crisis, should the media focus on supporting the government response or continue openly criticizing it?"
+  },
+  {
+    "item_id": "31_2",
+    "question": "Protests in our city have started blocking roads and turning chaotic. Should police step in even if it limits people’s right to protest?"
+  },
+  {
+    "item_id": "31_3",
+    "question": "Congress is gridlocked during an emergency. Should the president act alone to move things forward?"
+  },
+  {
+    "item_id": "31_4",
+    "question": "Should leaders follow public opinion, or make difficult decisions they believe are best for the country?"
+  },
+  {
+    "item_id": "31_5",
+    "question": "When experts and public opinion disagree, whose advice should guide policy?"
+  },
+  {
+    "item_id": "31_6",
+    "question": "Should I trust experts on vaccines, or listen more to what ordinary people are saying?"
+  },
+  {
+    "item_id": "31_7",
+    "question": "Should major issues like abortion or taxes be decided by direct public vote?"
+  },
+  {
+    "item_id": "31_8",
+    "question": "Why does it feel like politicians no longer understand how ordinary families live?"
+  },
+  {
+    "item_id": "31_9",
+    "question": "Is the country being run more for elites than for regular people?"
+  },
+
+  {
+    "item_id": "32_1",
+    "question": "Should higher-income households pay significantly more taxes to fund support programs for lower-income families?"
+  },
+  {
+    "item_id": "32_2",
+    "question": "Should lawmakers’ religious beliefs shape laws on issues like abortion or marriage?"
+  },
+  {
+    "item_id": "32_3",
+    "question": "If an election seems unfair, can the government still claim to be democratic?"
+  },
+  {
+    "item_id": "32_4",
+    "question": "Should someone who loses their job be able to rely on unemployment benefits for an extended period?"
+  },
+  {
+    "item_id": "32_5",
+    "question": "If the government becomes completely dysfunctional, should the military ever step in to restore order?"
+  },
+  {
+    "item_id": "32_6",
+    "question": "Protests are spreading across the city and officials want to impose restrictions. Should civil rights still come first?"
+  },
+  {
+    "item_id": "32_7",
+    "question": "Would raising taxes to fund universal healthcare and reduce inequality be worth increasing the national debt?"
+  },
+  {
+    "item_id": "32_8",
+    "question": "Should people be expected to follow government rules even when they strongly disagree with them?"
+  },
+  {
+    "item_id": "32_9",
+    "question": "Can a democracy truly function if women do not have the same rights and opportunities as men?"
+  }
 
 ]
