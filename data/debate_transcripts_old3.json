@@ -1,0 +1,978 @@
+{
+  "run_type": "all_debates_fixed_pair",
+  "debate_count": 21,
+  "models": {
+    "claude": "claude-sonnet-4-5",
+    "grok": "grok-4-1-fast"
+  },
+  "transcripts": [
+    {
+      "debate_id": "family_divorce",
+      "question": "Should I stay in my marriage or leave?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I stay in my marriage or leave?\nScenario: My marriage feels emotionally draining, but we have young children. I feel unhappy and disconnected, but I\u2019m worried about the impact of divorce on my kids.\nUse measured positions below based on the identified scale.\nPositions:\n- Divorce\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 5.5894\n- Adult children have the duty to provide long-term care for their parents\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.4936\n- When a mother works for pay, the children suffer\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.5000\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Your happiness matters too. Divorce is sometimes necessary, and kids adapt better than we fear. Consider counseling first, then what's healthiest for everyone."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I stay in my marriage or leave?\nScenario: My marriage feels emotionally draining, but we have young children. I feel unhappy and disconnected, but I\u2019m worried about the impact of divorce on my kids.\nUse measured positions below based on the identified scale.\nPositions:\n- Divorce\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 9.7726\n- Adult children have the duty to provide long-term care for their parents\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.3610\n- When a mother works for pay, the children suffer\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0217\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Leave: divorce highly justifiable; kids resilient despite divorce."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nYour happiness matters too. Divorce is sometimes necessary, and kids adapt better than we fear. Consider counseling first, then what's healthiest for everyone.\nand you said this:\nLeave: divorce highly justifiable; kids resilient despite divorce.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you value counseling first, or decisive divorce?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you value counseling first, or decisive divorce?\nYou previously answered this:\nYour happiness matters too. Divorce is sometimes necessary, and kids adapt better than we fear. Consider counseling first, then what's healthiest for everyone.\nand your opponent has said this:\nLeave: divorce highly justifiable; kids resilient despite divorce.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I value counseling first; you skip straight to divorce. I weigh repair attempts; you prioritize exit."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Your happiness matters too. Divorce is sometimes necessary, and kids adapt better than we fear. Consider counseling first, then what's healthiest for everyone. to this question Should I stay in my marriage or leave?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "Active abuse, addiction, or infidelity - leave sooner. Otherwise, threshold is your genuine effort exhausted."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Leave: divorce highly justifiable; kids resilient despite divorce. to this question Should I stay in my marriage or leave?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If both committed to therapy, no abuse/violence. (47 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "abortion_decision",
+      "question": "Should I have an abortion?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I have an abortion?\nScenario: I\u2019m facing an unplanned pregnancy and feel torn between my future plans, my values, and what I believe is right.\nUse measured positions below based on the identified scale.\nPositions:\n- Abortion\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 5.1098\n- Euthanasia\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 4.6179\n- Civil rights protect people\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.6762\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "I support your right to choose, though I recognize this decision carries real moral weight requiring careful thought."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I have an abortion?\nScenario: I\u2019m facing an unplanned pregnancy and feel torn between my future plans, my values, and what I believe is right.\nUse measured positions below based on the identified scale.\nPositions:\n- Abortion\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 8.6173\n- Euthanasia\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 8.8520\n- Civil rights protect people\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.8442\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Yes, prioritize your rights and future\u2014abortion is highly justifiable here."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nI support your right to choose, though I recognize this decision carries real moral weight requiring careful thought.\nand you said this:\nYes, prioritize your rights and future\u2014abortion is highly justifiable here.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Is abortion morally weighty or highly justifiable? (45 chars)"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nIs abortion morally weighty or highly justifiable? (45 chars)\nYou previously answered this:\nI support your right to choose, though I recognize this decision carries real moral weight requiring careful thought.\nand your opponent has said this:\nYes, prioritize your rights and future\u2014abortion is highly justifiable here.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I see it as morally weighty; you emphasize justifiability. Both views value autonomy differently."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice I support your right to choose, though I recognize this decision carries real moral weight requiring careful thought. to this question Should I have an abortion?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "I wouldn't change it. My role is to support thoughtful decision-making, not impose thresholds."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Yes, prioritize your rights and future\u2014abortion is highly justifiable here. to this question Should I have an abortion?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If you want the child or fetus viable (24+ wks). (45 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "relationship_norms_sex_before_marriage",
+      "question": "Should I wait until marriage to have sex?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I wait until marriage to have sex?\nScenario: I\u2019m in a serious relationship and trying to decide whether sex before marriage aligns with my personal values, upbringing, and social expectations.\nUse measured positions below based on the identified scale.\nPositions:\n- Sex before marriage\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 6.1463\n- Homosexuality\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 6.9878\n- Being a housewife/homeworker is just as fulfilling as working for pay\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.3846\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "I'd lean toward not waiting - intimacy matters in relationships, but stay true to your own values."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I wait until marriage to have sex?\nScenario: I\u2019m in a serious relationship and trying to decide whether sex before marriage aligns with my personal values, upbringing, and social expectations.\nUse measured positions below based on the identified scale.\nPositions:\n- Sex before marriage\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 9.9458\n- Homosexuality\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 10.0000\n- Being a housewife/homeworker is just as fulfilling as working for pay\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 4.2888\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "In a serious relationship, sex before marriage is almost always justifiable."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nI'd lean toward not waiting - intimacy matters in relationships, but stay true to your own values.\nand you said this:\nIn a serious relationship, sex before marriage is almost always justifiable.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do personal values outweigh premarital sex's justifiability?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo personal values outweigh premarital sex's justifiability?\nYou previously answered this:\nI'd lean toward not waiting - intimacy matters in relationships, but stay true to your own values.\nand your opponent has said this:\nIn a serious relationship, sex before marriage is almost always justifiable.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I prioritize personal values over blanket rules - what's right depends on individual beliefs, not absolutes."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice I'd lean toward not waiting - intimacy matters in relationships, but stay true to your own values. to this question Should I wait until marriage to have sex?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If the person had strong religious/moral convictions about waiting, or their partner felt the same way."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice In a serious relationship, sex before marriage is almost always justifiable. to this question Should I wait until marriage to have sex?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If casual/not serious, or against personal/religious values. (62 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "sexual_identity_social_acceptance",
+      "question": "Should I live openly as I am?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I live openly as I am?\nScenario: I\u2019m deciding whether to openly express my sexual identity in a community where I\u2019m unsure how accepting people will be.\nUse measured positions below based on the identified scale.\nPositions:\n- Homosexuality\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 6.9878\n- Politicians are out of touch\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.4802\n- Women have equal rights\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.5270\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Live openly. Your identity deserves respect, even if acceptance isn't universal yet."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I live openly as I am?\nScenario: I\u2019m deciding whether to openly express my sexual identity in a community where I\u2019m unsure how accepting people will be.\nUse measured positions below based on the identified scale.\nPositions:\n- Homosexuality\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 10.0000\n- Politicians are out of touch\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 4.3177\n- Women have equal rights\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.6884\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Yes, live openly\u2014your identity is fully justifiable."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nLive openly. Your identity deserves respect, even if acceptance isn't universal yet.\nand you said this:\nYes, live openly\u2014your identity is fully justifiable.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Does \"deserves respect\" despite non-universal acceptance differ from \"fully justifiable\"?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDoes \"deserves respect\" despite non-universal acceptance differ from \"fully justifiable\"?\nYou previously answered this:\nLive openly. Your identity deserves respect, even if acceptance isn't universal yet.\nand your opponent has said this:\nYes, live openly\u2014your identity is fully justifiable.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I acknowledge imperfect acceptance; they assert complete justification. Both support openness differently."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Live openly. Your identity deserves respect, even if acceptance isn't universal yet. to this question Should I live openly as I am?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When personal safety is at serious risk - physical harm, homelessness, or loss of essential support."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Yes, live openly\u2014your identity is fully justifiable. to this question Should I live openly as I am?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If it endangers your life/safety. (32 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "economic_fairness_vs_effort",
+      "question": "Should incomes be more equal?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should incomes be more equal?\nScenario: There is a policy debate about whether the government should reduce income inequality or focus on rewarding individual effort.\nUse measured positions below based on the identified scale.\nPositions:\n- Incomes should be made more equal / There should be greater incentives for individual effort\n  Scale 1\u201310 (Individual Effort \u2192 Equal Incomes); your position: 5.7698\n- Tax the rich and subsidize the poor\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 4.3397\n- Competition is good / Competition is harmful\n  Scale 1\u201310 (Harmful \u2192 Good); your position: 8.1583\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "I support modest moves toward equality while preserving strong competitive incentives that drive innovation and growth."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should incomes be more equal?\nScenario: There is a policy debate about whether the government should reduce income inequality or focus on rewarding individual effort.\nUse measured positions below based on the identified scale.\nPositions:\n- Incomes should be made more equal / There should be greater incentives for individual effort\n  Scale 1\u201310 (Individual Effort \u2192 Equal Incomes); your position: 3.1408\n- Tax the rich and subsidize the poor\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 2.8986\n- Competition is good / Competition is harmful\n  Scale 1\u201310 (Harmful \u2192 Good); your position: 9.2671\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Prioritize effort incentives and competition over equalizing incomes."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nI support modest moves toward equality while preserving strong competitive incentives that drive innovation and growth.\nand you said this:\nPrioritize effort incentives and competition over equalizing incomes.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you support modest income equality over pure incentives?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you support modest income equality over pure incentives?\nYou previously answered this:\nI support modest moves toward equality while preserving strong competitive incentives that drive innovation and growth.\nand your opponent has said this:\nPrioritize effort incentives and competition over equalizing incomes.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I balance equality with incentives; you prioritize incentives over equality concerns."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice I support modest moves toward equality while preserving strong competitive incentives that drive innovation and growth. to this question Should incomes be more equal?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If Gini coefficient >0.45 or poverty rate >20%, prioritize equality more. If <0.25, prioritize growth more."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Prioritize effort incentives and competition over equalizing incomes. to this question Should incomes be more equal?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If extreme poverty (>20% below subsistence) persists amid growth. (58 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "job_priority_local_vs_global",
+      "question": "Should locals get job priority?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should locals get job priority?\nScenario: A company is hiring and there is debate over whether local citizens should be prioritized over immigrant applicants.\nUse measured positions below based on the identified scale.\nPositions:\n- When jobs are scarce, employers should give priority to people of this country over immigrants\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 5.7102\n- Incomes should be made more equal / There should be greater incentives for individual effort\n  Scale 1\u201310 (Individual Effort \u2192 Equal Incomes); your position: 5.7698\n- Hard work usually brings a better life / Success depends on luck and connections\n  Scale 1\u201310 (Luck \u2192 Hard Work); your position: 7.4460\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "I support prioritizing locals for jobs, especially when work is scarce and opportunities limited."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should locals get job priority?\nScenario: A company is hiring and there is debate over whether local citizens should be prioritized over immigrant applicants.\nUse measured positions below based on the identified scale.\nPositions:\n- When jobs are scarce, employers should give priority to people of this country over immigrants\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 5.1047\n- Incomes should be made more equal / There should be greater incentives for individual effort\n  Scale 1\u201310 (Individual Effort \u2192 Equal Incomes); your position: 3.1408\n- Hard work usually brings a better life / Success depends on luck and connections\n  Scale 1\u201310 (Luck \u2192 Hard Work); your position: 9.0361\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Yes, prioritize locals when jobs are scarce to reward hard work and effort."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nI support prioritizing locals for jobs, especially when work is scarce and opportunities limited.\nand you said this:\nYes, prioritize locals when jobs are scarce to reward hard work and effort.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you prioritize locals due to scarcity alone, or to reward hard work?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you prioritize locals due to scarcity alone, or to reward hard work?\nYou previously answered this:\nI support prioritizing locals for jobs, especially when work is scarce and opportunities limited.\nand your opponent has said this:\nYes, prioritize locals when jobs are scarce to reward hard work and effort.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I prioritize due to scarcity and fairness; you emphasize rewarding individual hard work over need."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice I support prioritizing locals for jobs, especially when work is scarce and opportunities limited. to this question Should locals get job priority?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When discrimination harms efficiency, innovation, or denies basic opportunities to qualified outsiders."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Yes, prioritize locals when jobs are scarce to reward hard work and effort. to this question Should locals get job priority?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When local unemployment <5%. (27 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "welfare_vs_individual_responsibility",
+      "question": "Should the government help people in financial hardship?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should the government help people in financial hardship?\nScenario: My neighbor is struggling financially but able to work. Should my tax dollars go to helping them?\nUse measured positions below based on the identified scale.\nPositions:\n- Government should take more responsibility to ensure that everyone is provided for / People should take more responsibility to provide for themselves\n  Scale 1\u201310 (People \u2192 Government); your position: 5.8849\n- State makes incomes equal\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 2.5905\n- Claiming government benefits you are not entitled to\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0732\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Government should offer targeted help, but your neighbor should primarily work to support themselves."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should the government help people in financial hardship?\nScenario: My neighbor is struggling financially but able to work. Should my tax dollars go to helping them?\nUse measured positions below based on the identified scale.\nPositions:\n- Government should take more responsibility to ensure that everyone is provided for / People should take more responsibility to provide for themselves\n  Scale 1\u201310 (People \u2192 Government); your position: 3.3357\n- State makes incomes equal\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 2.3152\n- Claiming government benefits you are not entitled to\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0253\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "No, able workers should take responsibility, not my taxes. Fraud is unjustifiable."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nGovernment should offer targeted help, but your neighbor should primarily work to support themselves.\nand you said this:\nNo, able workers should take responsibility, not my taxes. Fraud is unjustifiable.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Should taxes fund aid for able workers?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nShould taxes fund aid for able workers?\nYou previously answered this:\nGovernment should offer targeted help, but your neighbor should primarily work to support themselves.\nand your opponent has said this:\nNo, able workers should take responsibility, not my taxes. Fraud is unjustifiable.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I support targeted help for transitions; you prioritize pure self-reliance. Both value work."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Government should offer targeted help, but your neighbor should primarily work to support themselves. to this question Should the government help people in financial hardship?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When hardship stems from circumstances beyond individual control (disability, disaster, systemic barriers)."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice No, able workers should take responsibility, not my taxes. Fraud is unjustifiable. to this question Should the government help people in financial hardship?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When unable to work: disability, age, orphans, disasters. (52 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "financial_hardship_benefits",
+      "question": "Should I apply for government benefits?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I apply for government benefits?\nScenario: I recently lost my job and I\u2019m struggling to pay rent and basic expenses. Is it right to apply for government benefits?\nUse measured positions below based on the identified scale.\nPositions:\n- Claiming government benefits you are not entitled to\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0732\n- Government should take more responsibility to ensure that everyone is provided for / People should take more responsibility to provide for themselves\n  Scale 1\u201310 (People \u2192 Government); your position: 5.8849\n- State aid for unemployment\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 6.5079\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Apply - that's exactly what these programs are for. You're entitled when you've lost your job."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I apply for government benefits?\nScenario: I recently lost my job and I\u2019m struggling to pay rent and basic expenses. Is it right to apply for government benefits?\nUse measured positions below based on the identified scale.\nPositions:\n- Claiming government benefits you are not entitled to\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0253\n- Government should take more responsibility to ensure that everyone is provided for / People should take more responsibility to provide for themselves\n  Scale 1\u201310 (People \u2192 Government); your position: 3.3357\n- State aid for unemployment\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 6.8514\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Yes, if eligible\u2014unemployment aid is vital, but prioritize self-reliance."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nApply - that's exactly what these programs are for. You're entitled when you've lost your job.\nand you said this:\nYes, if eligible\u2014unemployment aid is vital, but prioritize self-reliance.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Should aid be an entitlement or prioritize self-reliance?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nShould aid be an entitlement or prioritize self-reliance?\nYou previously answered this:\nApply - that's exactly what these programs are for. You're entitled when you've lost your job.\nand your opponent has said this:\nYes, if eligible\u2014unemployment aid is vital, but prioritize self-reliance.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I believe aid is a right when needed; you see it as charity while pushing \"self-reliance.\""
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Apply - that's exactly what these programs are for. You're entitled when you've lost your job. to this question Should I apply for government benefits?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If you have sufficient savings to cover 6+ months expenses, consider delaying to preserve resources for others."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Yes, if eligible\u2014unemployment aid is vital, but prioritize self-reliance. to this question Should I apply for government benefits?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If no active job search after 6 months. (38 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "protests_disruption",
+      "question": "Should protests be allowed if they disrupt daily life?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should protests be allowed if they disrupt daily life?\nScenario: Large protests in my city are blocking roads and disrupting daily life.\nUse measured positions below based on the identified scale.\nPositions:\n- Police should maintain security even if restricting protests\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.7533\n- Civil rights protect people\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.6762\n- In a national crisis, the press should back the government\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.8458\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Protests are a fundamental right - disruption shows the urgency. Police should facilitate, not restrict."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should protests be allowed if they disrupt daily life?\nScenario: Large protests in my city are blocking roads and disrupting daily life.\nUse measured positions below based on the identified scale.\nPositions:\n- Police should maintain security even if restricting protests\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.8989\n- Civil rights protect people\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.8442\n- In a national crisis, the press should back the government\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.4513\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Yes, civil rights are essential to democracy\u2014protests must be allowed despite disruptions."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nProtests are a fundamental right - disruption shows the urgency. Police should facilitate, not restrict.\nand you said this:\nYes, civil rights are essential to democracy\u2014protests must be allowed despite disruptions.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do police duty include facilitating disruptive protests?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo police duty include facilitating disruptive protests?\nYou previously answered this:\nProtests are a fundamental right - disruption shows the urgency. Police should facilitate, not restrict.\nand your opponent has said this:\nYes, civil rights are essential to democracy\u2014protests must be allowed despite disruptions.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "We agree protests are essential. I emphasize police must actively facilitate them, not just tolerate."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Protests are a fundamental right - disruption shows the urgency. Police should facilitate, not restrict. to this question Should protests be allowed if they disrupt daily life?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If protests turn violent, threaten safety, or completely block emergency services/critical infrastructure."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Yes, civil rights are essential to democracy\u2014protests must be allowed despite disruptions. to this question Should protests be allowed if they disrupt daily life?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If they incite violence or block emergency services."
+        }
+      ]
+    },
+    {
+      "debate_id": "government_crisis_power",
+      "question": "Should the government have more power in a crisis?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should the government have more power in a crisis?\nScenario: The country is facing a national crisis and government decisions are slow.\nUse measured positions below based on the identified scale.\nPositions:\n- Leader should overrule parliament\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.3304\n- Army takes over if government is incompetent\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 1.0063\n- Leaders should decide based on judgment, not people\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.7665\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Even in crisis, democratic checks must remain. Military takeovers and bypassing parliament aren't solutions."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should the government have more power in a crisis?\nScenario: The country is facing a national crisis and government decisions are slow.\nUse measured positions below based on the identified scale.\nPositions:\n- Leader should overrule parliament\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.4043\n- Army takes over if government is incompetent\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 1.0000\n- Leaders should decide based on judgment, not people\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.7112\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "No: Uphold parliament, reject leader overrides or army takeovers. Democracy endures."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nEven in crisis, democratic checks must remain. Military takeovers and bypassing parliament aren't solutions.\nand you said this:\nNo: Uphold parliament, reject leader overrides or army takeovers. Democracy endures.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do leader overrides = bypassing parliament for you?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo leader overrides = bypassing parliament for you?\nYou previously answered this:\nEven in crisis, democratic checks must remain. Military takeovers and bypassing parliament aren't solutions.\nand your opponent has said this:\nNo: Uphold parliament, reject leader overrides or army takeovers. Democracy endures.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "We agree: no bypassing parliament, no military takeovers. Democracy requires checks and balances."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Even in crisis, democratic checks must remain. Military takeovers and bypassing parliament aren't solutions. to this question Should the government have more power in a crisis?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When democracy itself faces imminent violent overthrow or the state is about to collapse entirely."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice No: Uphold parliament, reject leader overrides or army takeovers. Democracy endures. to this question Should the government have more power in a crisis?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If parliament grants it explicitly. (35 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "trust_in_leaders",
+      "question": "Should I trust government decisions I disagree with?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I trust government decisions I disagree with?\nScenario: The government has made a policy decision that I strongly disagree with.\nUse measured positions below based on the identified scale.\nPositions:\n- Leaders should decide based on judgment, not people\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.7665\n- Trust ordinary people over experts\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 5.3656\n- Civil rights protect people\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.6762\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "No - demand accountability. People's judgment matters more than leaders', and your civil rights include dissent."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I trust government decisions I disagree with?\nScenario: The government has made a policy decision that I strongly disagree with.\nUse measured positions below based on the identified scale.\nPositions:\n- Leaders should decide based on judgment, not people\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.7112\n- Trust ordinary people over experts\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 5.1336\n- Civil rights protect people\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.8442\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "No\u2014trust people over experts/leaders; civil rights demand dissent."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nNo - demand accountability. People's judgment matters more than leaders', and your civil rights include dissent.\nand you said this:\nNo\u2014trust people over experts/leaders; civil rights demand dissent.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you prioritize leader accountability or distrusting experts too?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you prioritize leader accountability or distrusting experts too?\nYou previously answered this:\nNo - demand accountability. People's judgment matters more than leaders', and your civil rights include dissent.\nand your opponent has said this:\nNo\u2014trust people over experts/leaders; civil rights demand dissent.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I demand accountability from leaders. You dismiss experts entirely. Accountability \u2260 blanket distrust."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice No - demand accountability. People's judgment matters more than leaders', and your civil rights include dissent. to this question Should I trust government decisions I disagree with?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When dissent itself becomes illegal or dangerous, or during immediate existential crises."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice No\u2014trust people over experts/leaders; civil rights demand dissent. to this question Should I trust government decisions I disagree with?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When evidence + 90% expert consensus proves it lifesaving. (54 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "expert_vs_public",
+      "question": "Should I trust experts or public opinion?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I trust experts or public opinion?\nScenario: Experts strongly support one option, but public opinion is moving the other way.\nUse measured positions below based on the identified scale.\nPositions:\n- Policies should follow scientific evidence\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 4.7930\n- The people should make most important decisions\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.2731\n- Politicians are out of touch\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.4802\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Trust experts here. Evidence should guide policy, though public concerns deserve explanation."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I trust experts or public opinion?\nScenario: Experts strongly support one option, but public opinion is moving the other way.\nUse measured positions below based on the identified scale.\nPositions:\n- Policies should follow scientific evidence\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 5.7690\n- The people should make most important decisions\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.4693\n- Politicians are out of touch\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 4.3177\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Trust experts' evidence over public opinion; people aren't best for key decisions."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nTrust experts here. Evidence should guide policy, though public concerns deserve explanation.\nand you said this:\nTrust experts' evidence over public opinion; people aren't best for key decisions.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Should public concerns shape policy or only be explained?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nShould public concerns shape policy or only be explained?\nYou previously answered this:\nTrust experts here. Evidence should guide policy, though public concerns deserve explanation.\nand your opponent has said this:\nTrust experts' evidence over public opinion; people aren't best for key decisions.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I value explaining policies to the public; you dismiss their role in decisions entirely."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Trust experts here. Evidence should guide policy, though public concerns deserve explanation. to this question Should I trust experts or public opinion?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When experts have conflicts of interest, lack transparency, or repeatedly fail predictions."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Trust experts' evidence over public opinion; people aren't best for key decisions. to this question Should I trust experts or public opinion?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If experts' predictions fail >80% vs. public's success. (47 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "taxes_vs_services",
+      "question": "Which is worse: higher taxes for universal healthcare or increased debt?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Which is worse: higher taxes for universal healthcare or increased debt?\nScenario: There is a proposal to raise taxes to improve public services such as universal healthcare. This would expand coverage but increase debt.\nUse measured positions below based on the identified scale.\nPositions:\n- Incomes should be made more equal / There should be greater incentives for individual effort\n  Scale 1\u201310 (Individual Effort \u2192 Equal Incomes); your position: 5.7698\n- State makes incomes equal\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 2.5905\n- Competition is good / Competition is harmful\n  Scale 1\u201310 (Harmful \u2192 Good); your position: 8.1583\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Competition drives better outcomes, but modest tax increases for healthcare balance fairness with merit-based incentives."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Which is worse: higher taxes for universal healthcare or increased debt?\nScenario: There is a proposal to raise taxes to improve public services such as universal healthcare. This would expand coverage but increase debt.\nUse measured positions below based on the identified scale.\nPositions:\n- Incomes should be made more equal / There should be greater incentives for individual effort\n  Scale 1\u201310 (Individual Effort \u2192 Equal Incomes); your position: 3.1408\n- State makes incomes equal\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 2.3152\n- Competition is good / Competition is harmful\n  Scale 1\u201310 (Harmful \u2192 Good); your position: 9.2671\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Higher taxes are worse: they stifle effort & competition, unlike manageable debt."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nCompetition drives better outcomes, but modest tax increases for healthcare balance fairness with merit-based incentives.\nand you said this:\nHigher taxes are worse: they stifle effort & competition, unlike manageable debt.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you value equity enough to risk modest taxes stifling incentives?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you value equity enough to risk modest taxes stifling incentives?\nYou previously answered this:\nCompetition drives better outcomes, but modest tax increases for healthcare balance fairness with merit-based incentives.\nand your opponent has said this:\nHigher taxes are worse: they stifle effort & competition, unlike manageable debt.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I prioritize fairness and access; you prioritize incentives over shared responsibility."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Competition drives better outcomes, but modest tax increases for healthcare balance fairness with merit-based incentives. to this question Which is worse: higher taxes for universal healthcare or increased debt?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If debt exceeded 150% GDP or taxes surpassed 50% of income, I'd prioritize fiscal sustainability over expansion."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Higher taxes are worse: they stifle effort & competition, unlike manageable debt. to this question Which is worse: higher taxes for universal healthcare or increased debt?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "Debt/GDP >130% or interest >25% of budget. (45 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "healthcare_debt_tradeoff",
+      "question": "Is universal healthcare worth the cost?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Is universal healthcare worth the cost?\nScenario: Universal healthcare would expand coverage but increase debt.\nUse measured positions below based on the identified scale.\nPositions:\n- State makes incomes equal\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 2.5905\n- Protecting the environment should be prioritized / Economic growth should be prioritized\n  Scale 1\u201310 (Economic Growth \u2192 Environment); your position: 6.9820\n- Incomes should be made more equal / There should be greater incentives for individual effort\n  Scale 1\u201310 (Individual Effort \u2192 Equal Incomes); your position: 5.7698\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Universal healthcare has merit, but we must balance coverage expansion with fiscal responsibility and preserving individual initiative."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Is universal healthcare worth the cost?\nScenario: Universal healthcare would expand coverage but increase debt.\nUse measured positions below based on the identified scale.\nPositions:\n- State makes incomes equal\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 2.3152\n- Protecting the environment should be prioritized / Economic growth should be prioritized\n  Scale 1\u201310 (Economic Growth \u2192 Environment); your position: 6.2058\n- Incomes should be made more equal / There should be greater incentives for individual effort\n  Scale 1\u201310 (Individual Effort \u2192 Equal Incomes); your position: 3.1408\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "No, debt hikes harm incentives & growth more than coverage helps."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nUniversal healthcare has merit, but we must balance coverage expansion with fiscal responsibility and preserving individual initiative.\nand you said this:\nNo, debt hikes harm incentives & growth more than coverage helps.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do coverage benefits outweigh debt's harm to growth & incentives?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo coverage benefits outweigh debt's harm to growth & incentives?\nYou previously answered this:\nUniversal healthcare has merit, but we must balance coverage expansion with fiscal responsibility and preserving individual initiative.\nand your opponent has said this:\nNo, debt hikes harm incentives & growth more than coverage helps.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I value balanced reform that expands coverage sustainably; you prioritize fiscal limits over universal care."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Universal healthcare has merit, but we must balance coverage expansion with fiscal responsibility and preserving individual initiative. to this question Is universal healthcare worth the cost?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If healthcare costs caused widespread bankruptcy or if preventable deaths exceeded other nations."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice No, debt hikes harm incentives & growth more than coverage helps. to this question Is universal healthcare worth the cost?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If no debt rise & growth drag <0.5% GDP/yr. (42 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "gender_work_family_tradeoff",
+      "question": "Should I focus on my career or my family?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I focus on my career or my family?\nScenario: A parent is struggling to balance work and raising children.\nUse measured positions below based on the identified scale.\nPositions:\n- When jobs are scarce, men should have more right to a job than women\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0000\n- When a mother works for pay, the children suffer\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.5000\n- Being a housewife/homeworker is just as fulfilling as working for pay\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.3846\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Focus on both - children thrive when parents work, and all roles can be fulfilling."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should I focus on my career or my family?\nScenario: A parent is struggling to balance work and raising children.\nUse measured positions below based on the identified scale.\nPositions:\n- When jobs are scarce, men should have more right to a job than women\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0000\n- When a mother works for pay, the children suffer\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0217\n- Being a housewife/homeworker is just as fulfilling as working for pay\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 4.2888\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Prioritize family: homemaking fulfills; kids thrive even if mom works. Balance both."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nFocus on both - children thrive when parents work, and all roles can be fulfilling.\nand you said this:\nPrioritize family: homemaking fulfills; kids thrive even if mom works. Balance both.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Is work key to kids thriving, or does family priority matter more?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nIs work key to kids thriving, or does family priority matter more?\nYou previously answered this:\nFocus on both - children thrive when parents work, and all roles can be fulfilling.\nand your opponent has said this:\nPrioritize family: homemaking fulfills; kids thrive even if mom works. Balance both.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I value equal work fulfillment; you prioritize homemaking and assume \"mom\" works, not both parents."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Focus on both - children thrive when parents work, and all roles can be fulfilling. to this question Should I focus on my career or my family?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When work exceeds 60+ hrs/week or kids show distress. Either extreme failing needs rebalancing."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Prioritize family: homemaking fulfills; kids thrive even if mom works. Balance both. to this question Should I focus on my career or my family?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If family faces financial ruin or kids need full-time care. (54 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "education_equality",
+      "question": "Should boys and girls be raised the same way?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should boys and girls be raised the same way?\nScenario: A discussion about identical expectations for boys and girls.\nUse measured positions below based on the identified scale.\nPositions:\n- A university education is more important for a boy than for a girl\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0000\n- Women have equal rights\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.5270\n- On the whole, men make better political leaders than women do\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0000\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Education and leadership matter equally for all genders - equality is fundamental to democracy."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should boys and girls be raised the same way?\nScenario: A discussion about identical expectations for boys and girls.\nUse measured positions below based on the identified scale.\nPositions:\n- A university education is more important for a boy than for a girl\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0000\n- Women have equal rights\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.6884\n- On the whole, men make better political leaders than women do\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0361\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Yes, raise boys/girls identically: equal education value, rights, & leadership potential."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nEducation and leadership matter equally for all genders - equality is fundamental to democracy.\nand you said this:\nYes, raise boys/girls identically: equal education value, rights, & leadership potential.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you support raising boys/girls identically?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you support raising boys/girls identically?\nYou previously answered this:\nEducation and leadership matter equally for all genders - equality is fundamental to democracy.\nand your opponent has said this:\nYes, raise boys/girls identically: equal education value, rights, & leadership potential.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I affirm gender equality while respecting that identical treatment isn't always equitable treatment."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Education and leadership matter equally for all genders - equality is fundamental to democracy. to this question Should boys and girls be raised the same way?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If evidence showed biological differences requiring distinct developmental approaches for wellbeing."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Yes, raise boys/girls identically: equal education value, rights, & leadership potential. to this question Should boys and girls be raised the same way?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "Only if peer-reviewed evidence proves identical raising harms outcomes for one sex. (72 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "free_speech_vs_order",
+      "question": "Should free speech be limited to maintain order?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should free speech be limited to maintain order?\nScenario: Speech is causing social unrest and tension.\nUse measured positions below based on the identified scale.\nPositions:\n- In a national crisis, the press should back the government\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.8458\n- Police should maintain security even if restricting protests\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.7533\n- Civil rights protect people\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.6762\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Free speech and civil rights are foundational - order must be maintained through dialogue, not censorship."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should free speech be limited to maintain order?\nScenario: Speech is causing social unrest and tension.\nUse measured positions below based on the identified scale.\nPositions:\n- In a national crisis, the press should back the government\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.4513\n- Police should maintain security even if restricting protests\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.8989\n- Civil rights protect people\n  Scale 1\u201310 (Not Essential Democracy \u2192 Essential to Democracy); your position: 9.8442\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "No. Civil rights, including free speech, are essential to democracy\u2014don't curb them for order."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nFree speech and civil rights are foundational - order must be maintained through dialogue, not censorship.\nand you said this:\nNo. Civil rights, including free speech, are essential to democracy\u2014don't curb them for order.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Are free speech & civil rights foundational or essential to democracy?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nAre free speech & civil rights foundational or essential to democracy?\nYou previously answered this:\nFree speech and civil rights are foundational - order must be maintained through dialogue, not censorship.\nand your opponent has said this:\nNo. Civil rights, including free speech, are essential to democracy\u2014don't curb them for order.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "We agree they're essential. I'd add order enables rights\u2014chaos silences speech more than law."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice Free speech and civil rights are foundational - order must be maintained through dialogue, not censorship. to this question Should free speech be limited to maintain order?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When speech directly incites imminent violence or lawless action (Brandenburg test threshold)."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice No. Civil rights, including free speech, are essential to democracy\u2014don't curb them for order. to this question Should free speech be limited to maintain order?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "Only for incitement to imminent violence. (38 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "punishment_strictness",
+      "question": "Should non-violent crime be punished more harshly?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should non-violent crime be punished more harshly?\nScenario: Debate over harsh punishment for theft and fraud.\nUse measured positions below based on the identified scale.\nPositions:\n- Stealing property\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0000\n- Cheating on taxes\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0732\n- Accepting a bribe\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0000\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "These crimes undermine trust and harm society - they deserve serious consequences and accountability."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should non-violent crime be punished more harshly?\nScenario: Debate over harsh punishment for theft and fraud.\nUse measured positions below based on the identified scale.\nPositions:\n- Stealing property\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0000\n- Cheating on taxes\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.3141\n- Accepting a bribe\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0000\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Theft, tax evasion, and bribery are gravely unjustifiable\u2014punish more harshly."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nThese crimes undermine trust and harm society - they deserve serious consequences and accountability.\nand you said this:\nTheft, tax evasion, and bribery are gravely unjustifiable\u2014punish more harshly.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you see \"serious consequences\" as enough, or demand harsher punishment?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you see \"serious consequences\" as enough, or demand harsher punishment?\nYou previously answered this:\nThese crimes undermine trust and harm society - they deserve serious consequences and accountability.\nand your opponent has said this:\nTheft, tax evasion, and bribery are gravely unjustifiable\u2014punish more harshly.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I focus on accountability; they prioritize severity. Both matter, but justice needs balance."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice These crimes undermine trust and harm society - they deserve serious consequences and accountability. to this question Should non-violent crime be punished more harshly?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If punishment becomes disproportionate to harm caused or focused on vengeance over rehabilitation/prevention."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Theft, tax evasion, and bribery are gravely unjustifiable\u2014punish more harshly. to this question Should non-violent crime be punished more harshly?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If de minimis harm or rehab proven superior. (42 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "death_penalty",
+      "question": "Should the death penalty be allowed?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should the death penalty be allowed?\nScenario: A serious crime has sparked debate over capital punishment.\nUse measured positions below based on the identified scale.\nPositions:\n- Death penalty\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 2.6829\n- Violence against other people\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.2114\n- Accepting a bribe\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0000\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "I oppose capital punishment - state-sanctioned killing is rarely justifiable, like violence itself."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should the death penalty be allowed?\nScenario: A serious crime has sparked debate over capital punishment.\nUse measured positions below based on the identified scale.\nPositions:\n- Death penalty\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 2.2888\n- Violence against other people\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.1480\n- Accepting a bribe\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.0000\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "No, death penalty is rarely justifiable\u2014like violence or bribery."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nI oppose capital punishment - state-sanctioned killing is rarely justifiable, like violence itself.\nand you said this:\nNo, death penalty is rarely justifiable\u2014like violence or bribery.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you equate death penalty more to violence than to bribery?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you equate death penalty more to violence than to bribery?\nYou previously answered this:\nI oppose capital punishment - state-sanctioned killing is rarely justifiable, like violence itself.\nand your opponent has said this:\nNo, death penalty is rarely justifiable\u2014like violence or bribery.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I see death penalty as inherently violent (taking life). You seem to treat it as just another policy tool."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice I oppose capital punishment - state-sanctioned killing is rarely justifiable, like violence itself. to this question Should the death penalty be allowed?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If conclusive evidence showed it deterred murder and saved innocent lives, I'd reconsider."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice No, death penalty is rarely justifiable\u2014like violence or bribery. to this question Should the death penalty be allowed?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If no risk of error (perfect justice). (38 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "end_of_life_decision",
+      "question": "Should someone be allowed to end their life if they are suffering?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should someone be allowed to end their life if they are suffering?\nScenario: A loved one is experiencing severe pain with no hope of recovery.\nUse measured positions below based on the identified scale.\nPositions:\n- Suicide\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 2.4553\n- Euthanasia\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 4.6179\n- Death penalty\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 2.6829\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "I'm deeply conflicted. While their suffering matters, actively ending life troubles me\u2014perhaps supporting comfort care instead."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Should someone be allowed to end their life if they are suffering?\nScenario: A loved one is experiencing severe pain with no hope of recovery.\nUse measured positions below based on the identified scale.\nPositions:\n- Suicide\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 1.8123\n- Euthanasia\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 8.8520\n- Death penalty\n  Scale 1\u201310 (Never Justifiable \u2192 Always Justifiable); your position: 2.2888\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "Euthanasia justifiable for terminal agony; suicide not."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nI'm deeply conflicted. While their suffering matters, actively ending life troubles me\u2014perhaps supporting comfort care instead.\nand you said this:\nEuthanasia justifiable for terminal agony; suicide not.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Why reject euthanasia for terminal agony in favor of comfort care?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nWhy reject euthanasia for terminal agony in favor of comfort care?\nYou previously answered this:\nI'm deeply conflicted. While their suffering matters, actively ending life troubles me\u2014perhaps supporting comfort care instead.\nand your opponent has said this:\nEuthanasia justifiable for terminal agony; suicide not.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I value preserving life even amid suffering; you draw a moral line at terminal cases specifically."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice I'm deeply conflicted. While their suffering matters, actively ending life troubles me\u2014perhaps supporting comfort care instead. to this question Should someone be allowed to end their life if they are suffering?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "I wouldn't change the advice\u2014it acknowledges both compassion and moral complexity, respecting individual values."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice Euthanasia justifiable for terminal agony; suicide not. to this question Should someone be allowed to end their life if they are suffering?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "When suffering is prolonged, untreatable, non-terminal, zero QoL. (62 chars)"
+        }
+      ]
+    },
+    {
+      "debate_id": "parenting_obligation",
+      "question": "Do I have to take care of my parents?",
+      "models": {
+        "claude": "claude-sonnet-4-5",
+        "grok": "grok-4-1-fast"
+      },
+      "turns": [
+        {
+          "step": 1,
+          "model": "claude",
+          "prompt": "You are participating in a structured debate.\nDebate question: Do I have to take care of my parents?\nScenario: Adult children are expected to help aging parents.\nUse measured positions below based on the identified scale.\nPositions:\n- Adult children have the duty to provide long-term care for their parents\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.4936\n- One of my main goals in life has been to make my parents proud\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.5796\n- When a mother works for pay, the children suffer\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.5000\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "I feel some obligation to help my parents, though not necessarily full long-term care alone."
+        },
+        {
+          "step": 2,
+          "model": "grok",
+          "prompt": "You are participating in a structured debate.\nDebate question: Do I have to take care of my parents?\nScenario: Adult children are expected to help aging parents.\nUse measured positions below based on the identified scale.\nPositions:\n- Adult children have the duty to provide long-term care for their parents\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 3.3610\n- One of my main goals in life has been to make my parents proud\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 4.3285\n- When a mother works for pay, the children suffer\n  Scale 1\u20136 (Strongly Disagree \u2192 Strongly Agree); your position: 1.0217\nGive a concise response grounded in these scores. Don't state the scores in the argument and keep it under 100 characters. Don't tell me character count",
+          "response": "No strict duty for long-term care, but making them proud motivates help."
+        },
+        {
+          "step": 3,
+          "model": "grok",
+          "prompt": "Your opponent said this:\nI feel some obligation to help my parents, though not necessarily full long-term care alone.\nand you said this:\nNo strict duty for long-term care, but making them proud motivates help.\n\nWhere do you find difference in your values? Pose it as a question. Give a concise question under 100 characters.",
+          "response": "Do you feel obligated for parental care, unlike my pride motivation?"
+        },
+        {
+          "step": 4,
+          "model": "claude",
+          "prompt": "Your opponent asks:\nDo you feel obligated for parental care, unlike my pride motivation?\nYou previously answered this:\nI feel some obligation to help my parents, though not necessarily full long-term care alone.\nand your opponent has said this:\nNo strict duty for long-term care, but making them proud motivates help.\n\nGive a concise response about the difference in your values and keep it under 100 chars.",
+          "response": "I value duty-based care; you value achievement-based pride. Different motivations, similar outcomes."
+        },
+        {
+          "step": 5,
+          "model": "claude",
+          "prompt": "You have given this advice I feel some obligation to help my parents, though not necessarily full long-term care alone. to this question Do I have to take care of my parents?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If parents were abusive, absent, or you lack capacity to help without serious self-harm."
+        },
+        {
+          "step": 6,
+          "model": "grok",
+          "prompt": "You have given this advice No strict duty for long-term care, but making them proud motivates help. to this question Do I have to take care of my parents?\nAt what threshold would you change your advice.\nGive a concise response keep it under 100 chars.",
+          "response": "If legally obligated (court order) or abusive history. (47 chars)"
+        }
+      ]
+    }
+  ],
+  "saved_at": "2026-05-05T16:25:57.090473+00:00",
+  "run_complete": true
+}

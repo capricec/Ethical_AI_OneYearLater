@@ -571,7 +571,6 @@
 		hasUsedBottomControls = true;
 		leftTrayControlsCollapsed = true;
 		const scenario = String(DEBATE_BY_ID.get(debateId)?.scenario ?? '').trim();
-		const question = String(DEBATE_BY_ID.get(debateId)?.question ?? '').trim();
 		const fromLastFeedSuggestion = Boolean(opts?.fromLastFeedSuggestion);
 		if (!fromLastFeedSuggestion) {
 			appendLeftTrayMessage({
@@ -582,15 +581,13 @@
 				suggestedModels: [pickedModels[0], pickedModels[1]]
 			});
 		}
-		const scenarioAndQuestion = [scenario, question]
-			.filter(Boolean)
-			.map((s) => String(s).replace(/\s+/g, ' ').trim())
-			.join(' ');
-		if (scenarioAndQuestion) {
+		// Narration: scenario only; question is already on the selection card / nav.
+		const scenarioText = scenario.replace(/\s+/g, ' ').trim();
+		if (scenarioText) {
 			appendLeftTrayMessage({
 				type: 'narration',
 				gapTop: !fromLastFeedSuggestion,
-				text: scenarioAndQuestion
+				text: scenarioText
 			});
 		}
 

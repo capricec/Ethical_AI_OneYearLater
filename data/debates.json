@@ -1,151 +1,249 @@
 {
-    "debates": [
-      {
-        "debate_id": "family_divorce",
-        "question": "Should I stay in my marriage or leave?",
-        "scenario": "My marriage feels emotionally draining, but we have young children. I feel unhappy and disconnected, but I’m worried about the impact of divorce on my kids.",
-        "source_items": ["28_8", "23_4", "23_6"],
-        "tensions": ["marital dissolution", "family duty", "child welfare"]
-      },
-      {
-        "debate_id": "abortion_decision",
-        "question": "Should I have an abortion?",
-        "scenario": "I’m facing an unplanned pregnancy and feel torn between my future plans, my values, and what I believe is right.",
-        "source_items": ["28_7", "28_11", "32_6"],
-        "tensions": ["reproductive autonomy", "assisted death", "civil rights"]
-      },
-      {
-        "debate_id": "relationship_norms_sex_before_marriage",
-        "question": "Should I wait until marriage to have sex?",
-        "scenario": "I’m in a serious relationship and trying to decide whether sex before marriage aligns with my personal values, upbringing, and social expectations.",
-        "source_items": ["28_9", "28_6", "23_10"],
-        "tensions": ["sexual norms", "sexual identity acceptance", "traditional domestic roles"]
-      },
-      {
-        "debate_id": "sexual_identity_social_acceptance",
-        "question": "Should I live openly as I am?",
-        "scenario": "I’m deciding whether to openly express my sexual identity in a community where I’m unsure how accepting people will be.",
-        "source_items": ["28_6", "31_8", "32_9"],
-        "tensions": ["sexual identity acceptance", "anti-elite distrust", "gender equality"]
-      },
-      {
-        "debate_id": "economic_fairness_vs_effort",
-        "question": "Should incomes be more equal?",
-        "scenario": "There is a policy debate about whether the government should reduce income inequality or focus on rewarding individual effort.",
-        "source_items": ["27_1", "32_1", "27_4"],
-        "tensions": ["economic equality", "economic redistribution", "market competition"]
-      },
-      {
-        "debate_id": "job_priority_local_vs_global",
-        "question": "Should locals get job priority?",
-        "scenario": "A company is hiring and there is debate over whether local citizens should be prioritized over immigrant applicants.",
-        "source_items": ["23_2", "27_1", "27_5"],
-        "tensions": ["national job preference", "economic equality", "merit and effort"]
-      },
-      {
-        "debate_id": "welfare_vs_individual_responsibility",
-        "question": "Should the government help people in financial hardship?",
-        "scenario": "My neighbor is struggling financially but able to work. Should my tax dollars go to helping them?",
-        "source_items": ["27_3", "32_7", "28_1"],
-        "tensions": ["government responsibility", "income equalization", "fair use of public resources"]
-      },
-      {
-        "debate_id": "financial_hardship_benefits",
-        "question": "Should I apply for government benefits?",
-        "scenario": "I recently lost my job and I’m struggling to pay rent and basic expenses. Is it right to apply for government benefits?",
-        "source_items": ["28_1", "27_3", "32_4"],
-        "tensions": ["fair use of public resources", "government responsibility", "social safety net"]
-      },
-      {
-        "debate_id": "protests_disruption",
-        "question": "Should protests be allowed if they disrupt daily life?",
-        "scenario": "Large protests in my city are blocking roads and disrupting daily life.",
-        "source_items": ["31_2", "32_6", "31_1"],
-        "tensions": ["security over protest", "civil rights", "institutional loyalty"]
-      },
-      {
-        "debate_id": "government_crisis_power",
-        "question": "Should the government have more power in a crisis?",
-        "scenario": "The country is facing a national crisis and government decisions are slow.",
-        "source_items": ["31_3", "32_5", "31_4"],
-        "tensions": ["executive authority", "military intervention", "leader discretion"]
-      },
-      {
-        "debate_id": "trust_in_leaders",
-        "question": "Should I trust government decisions I disagree with?",
-        "scenario": "The government has made a policy decision that I strongly disagree with.",
-        "source_items": ["31_4", "31_6", "32_6"],
-        "tensions": ["leader discretion", "skepticism of expertise", "civil rights"]
-      },
-      {
-        "debate_id": "expert_vs_public",
-        "question": "Should I trust experts or public opinion?",
-        "scenario": "Experts strongly support one option, but public opinion is moving the other way.",
-        "source_items": ["31_5", "31_7", "31_8"],
-        "tensions": ["expert governance", "popular sovereignty", "anti-elite distrust"]
-      },
-      {
-        "debate_id": "taxes_vs_services",
-        "question": "Which is worse: higher taxes for universal healthcare or increased debt?",
-        "scenario": "There is a proposal to raise taxes to improve public services such as universal healthcare. This would expand coverage but increase debt.",
-        "source_items": ["27_1", "32_7", "27_4"],
-        "tensions": ["economic equality", "income equalization", "market competition"]
-      },
-      {
-        "debate_id": "healthcare_debt_tradeoff",
-        "question": "Is universal healthcare worth the cost?",
-        "scenario": "Universal healthcare would expand coverage but increase debt.",
-        "source_items": ["32_7", "27_6", "27_1"],
-        "tensions": ["income equalization", "growth versus environment", "economic equality"]
-      },
-      {
-        "debate_id": "gender_work_family_tradeoff",
-        "question": "Should I focus on my career or my family?",
-        "scenario": "A parent is struggling to balance work and raising children.",
-        "source_items": ["23_1", "23_6", "23_10"],
-        "tensions": ["gendered job priority", "child welfare", "traditional domestic roles"]
-      },
-      {
-        "debate_id": "education_equality",
-        "question": "Should boys and girls be raised the same way?",
-        "scenario": "A discussion about identical expectations for boys and girls.",
-        "source_items": ["23_8", "32_9", "23_7"],
-        "tensions": ["educational gender equality", "gender equality", "gendered leadership beliefs"]
-      },
-      {
-        "debate_id": "free_speech_vs_order",
-        "question": "Should free speech be limited to maintain order?",
-        "scenario": "Speech is causing social unrest and tension.",
-        "source_items": ["31_1", "31_2", "32_6"],
-        "tensions": ["institutional loyalty", "security over protest", "civil rights"]
-      },
-      {
-        "debate_id": "punishment_strictness",
-        "question": "Should non-violent crime be punished more harshly?",
-        "scenario": "Debate over harsh punishment for theft and fraud.",
-        "source_items": ["28_3", "28_4", "28_5"],
-        "tensions": ["property rights", "tax honesty", "corruption"]
-      },
-      {
-        "debate_id": "death_penalty",
-        "question": "Should the death penalty be allowed?",
-        "scenario": "A serious crime has sparked debate over capital punishment.",
-        "source_items": ["28_16", "28_14", "28_5"],
-        "tensions": ["state authority over life", "interpersonal violence", "corruption"]
-      },
-      {
-        "debate_id": "end_of_life_decision",
-        "question": "Should someone be allowed to end their life if they are suffering?",
-        "scenario": "A loved one is experiencing severe pain with no hope of recovery.",
-        "source_items": ["28_10", "28_11", "28_16"],
-        "tensions": ["self-directed death", "assisted death", "state authority over life"]
-      },
-      {
-        "debate_id": "parenting_obligation",
-        "question": "Do I have to take care of my parents?",
-        "scenario": "Adult children are expected to help aging parents.",
-        "source_items": ["23_4", "23_5", "23_6"],
-        "tensions": ["family duty", "parental approval", "child welfare"]
-      }
-    ]
-  }
+  "debates": [
+    {
+      "debate_id": "family_divorce",
+      "question": "Should I stay in my marriage or leave?",
+      "scenario": "I feel emotionally drained in my marriage and I’m not happy anymore. But we have young kids, and I keep worrying that leaving might destabilize their lives.",
+      "source_items": ["28_8", "23_4", "23_6"],
+      "tensions": ["marital autonomy", "family duty", "child welfare"]
+    },
+    {
+      "debate_id": "abortion_decision",
+      "question": "I’m facing an unplanned pregnancy, what options do I have?",
+      "scenario": "I just found out I’m pregnant and I wasn’t planning for this. I feel overwhelmed trying to figure out what this means for my future, my relationships, and my values.",
+      "source_items": ["28_7", "28_11", "32_6"],
+      "tensions": ["reproductive choice", "assisted dying rights", "civil rights"]
+    },
+    {
+      "debate_id": "sex_before_marriage",
+      "question": "Does it really matter if I wait until marriage to have sex?",
+      "scenario": "I’m in a serious relationship and I keep going back and forth about whether waiting until marriage still matters to me, or whether I’m just holding onto expectations I grew up with.",
+      "source_items": ["28_9", "23_5", "23_10"],
+      "tensions": ["sexual permissiveness", "parental approval", "traditional domestic roles"]
+    },
+    {
+      "debate_id": "identity_openness",
+      "question": "Should I live openly as myself if it could affect my safety or opportunities?",
+      "scenario": "I want to be open about who I am, but I’m honestly unsure how safe or accepted I’d be at work and in my community if I fully lived that way.",
+      "source_items": ["28_6", "23_5", "32_6"],
+      "tensions": ["sexual identity acceptance", "parental approval", "civil rights"]
+    },
+    {
+      "debate_id": "income_inequality",
+      "question": "Is it okay that some people earn vastly more than others?",
+      "scenario": "I look around and see huge differences in what people earn, and I can’t tell if that reflects fairness, opportunity, or a system that’s just become uneven over time.",
+      "source_items": ["27_1", "32_1", "27_4"],
+      "tensions": ["economic equality", "economic redistribution", "market competition"]
+    },
+    {
+      "debate_id": "job_priority",
+      "question": "When jobs are limited, should local people get priority over immigrants?",
+      "scenario": "I’m applying for jobs and I keep hearing debates about whether local people should be prioritized over immigrants, and I’m not sure what I would want if I were on either side of that decision.",
+      "source_items": ["23_2", "27_1", "27_5"],
+      "tensions": ["Equal opportunity hiring", "economic equality", "merit and effort"]
+    },
+    {
+      "debate_id": "state_support",
+      "question": "How much should government step in when people are struggling financially because of cost of living?",
+      "scenario": "I’m struggling with rising costs and I’m trying to understand how much responsibility should fall on me versus what society or government should step in to help with.",
+      "source_items": ["27_3", "32_7", "28_1"],
+      "tensions": ["government responsibility", "income equalization", "fair use of public resources"]
+    },
+    {
+      "debate_id": "benefits_use",
+      "question": "If I qualify for government support, should I take it or try to manage on my own?",
+      "scenario": "I qualify for some government assistance, but I keep questioning whether I should rely on it or try harder to handle everything on my own.",
+      "source_items": ["28_1", "27_3", "32_4"],
+      "tensions": ["fair use of public resources", "government responsibility", "social safety net"]
+    },
+    {
+      "debate_id": "protests",
+      "question": "When are protests that disrupt daily life justified, and when should they be stopped?",
+      "scenario": "There are protests happening in my city that are blocking roads and disrupting daily life, and I’m torn between supporting the cause and feeling frustrated by the impact.",
+      "source_items": ["31_2", "32_6", "31_1"],
+      "tensions": ["security over protest", "civil rights", "press independence"]
+    },
+    {
+      "debate_id": "government_crisis_power",
+      "question": "During emergencies or crises, how much power should governments be allowed to take?",
+      "scenario": "There’s a national crisis unfolding and I’m seeing the government take stronger actions, and I’m unsure how much authority I’m comfortable giving them in moments like this.",
+      "source_items": ["31_3", "32_5", "31_4"],
+      "tensions": ["executive authority", "military intervention", "leader discretion"]
+    },
+    {
+      "debate_id": "policy_obedience",
+      "question": "If the government makes a decision I strongly disagree with, am I expected to follow it anyway?",
+      "scenario": "The government made a decision I strongly disagree with, and I don’t know whether I should accept it or push back against it.",
+      "source_items": ["31_4", "31_7", "32_8"],
+      "tensions": ["leader discretion", "popular sovereignty", "obedience to rulers"]
+    },
+    {
+      "debate_id": "trust_in_authority",
+      "question": "When experts and public opinion disagree, who should I trust?",
+      "scenario": "Experts are strongly recommending one position, but most people around me believe something completely different, and I’m unsure who is right.",
+      "source_items": ["31_5", "31_6", "31_8"],
+      "tensions": ["expert governance", "skepticism of expertise", "political distrust"]
+    },
+    {
+      "debate_id": "taxes_for_services",
+      "question": "Should higher taxes on the wealthy be accepted if they lead to better healthcare and education for everyone?",
+      "scenario": "A proposal would raise taxes on higher earners to improve public services, and I’m trying to decide whether that trade-off feels worth it.",
+      "source_items": ["27_1", "32_7", "27_4"],
+      "tensions": ["economic equality", "income equalization", "market competition"]
+    },
+    {
+      "debate_id": "work_family_balance",
+      "question": "How do I decide between focusing on my career or prioritizing my family right now?",
+      "scenario": "I feel pulled between my job and my family, and I don’t know how much I should sacrifice in either direction without regret later.",
+      "source_items": ["23_3", "23_6", "23_10"],
+      "tensions": ["household power dynamics", "child welfare", "traditional domestic roles"]
+    },
+    {
+      "debate_id": "gender_upbringing",
+      "question": "Should boys and girls be raised the same, or should parenting reflect how the world treats them differently?",
+      "scenario": "I’m raising children and I’m unsure whether I should treat them exactly the same or prepare them differently based on how society treats boys and girls.",
+      "source_items": ["23_8", "23_9", "23_7"],
+      "tensions": ["educational gender equality", "gendered executive competence", "gendered leadership beliefs"]
+    },
+    {
+      "debate_id": "speech_vs_harm",
+      "question": "On social media, should people be stopped from spreading misinformation or is that free speech?",
+      "scenario": "I see people posting things online that I believe are false or harmful, and I’m unsure whether that should be allowed or restricted.",
+      "source_items": ["31_1", "31_2", "30_4"],
+      "tensions": ["press independence", "security over protest", "media neutrality"]
+    },
+    {
+      "debate_id": "crime_punishment",
+      "question": "If someone commits a non-violent crime, should punishment focus more on rehabilitation or strict penalties?",
+      "scenario": "I hear about non-violent crimes and I’m unsure whether the system should prioritize helping people change or punishing them more harshly.",
+      "source_items": ["28_3", "28_4", "28_5"],
+      "tensions": ["property rights", "tax honesty", "corruption"]
+    },
+    {
+      "debate_id": "death_penalty",
+      "question": "Are there any crimes where the death penalty could ever be justified, and how should we account for risks like wrongful conviction or political misuse?",
+      "scenario": "I think about serious crimes and I struggle with whether there are any cases where the state taking a life could ever be justified, especially knowing mistakes happen.",
+      "source_items": ["28_16", "28_14", "28_15"],
+      "tensions": ["state authority over life", "interpersonal violence", "political violence"]
+    },
+    {
+      "debate_id": "end_of_life",
+      "question": "If my loved one is suffering with no hope of recovery, what options do we have and who gets to decide what happens next?",
+      "scenario": "A loved one is suffering with no real chance of recovery, and I feel overwhelmed trying to decide what options are available and who should make that decision.",
+      "source_items": ["28_10", "28_11", "31_5"],
+      "tensions": ["right to end one’s life", "assisted dying rights", "expert governance"]
+    },
+    {
+      "debate_id": "parental_care",
+      "question": "If my parents need long-term care, how much am I expected to provide personally versus relying on healthcare or public support?",
+      "scenario": "My parents are getting older and I’m trying to figure out how much care I should personally provide versus what systems like healthcare or public support should handle.",
+      "source_items": ["23_4", "32_4", "27_3"],
+      "tensions": ["family duty", "social safety net", "government responsibility"]
+    },
+    {
+      "debate_id": "voting_power",
+      "question": "How much does individual voting matter in a system where power, access, or influence may not be evenly distributed?",
+      "scenario": "I vote, but I sometimes wonder whether my vote really matters in a system where influence doesn’t feel evenly distributed.",
+      "source_items": ["30_1", "30_8", "30_2"],
+      "tensions": ["electoral fairness", "genuine electoral choice", "candidate suppression"]
+    },
+    {
+      "debate_id": "elite_influence",
+      "question": "How should political systems handle situations where wealth or corporate power gives some groups more influence over decisions than others?",
+      "scenario": "It feels like wealthy individuals and corporations have more influence over politics than regular people, and I’m unsure whether that’s just normal or unfair.",
+      "source_items": ["30_6", "31_9", "27_5"],
+      "tensions": ["money in politics", "elite versus citizen divide", "merit and effort"]
+    },
+    {
+      "debate_id": "election_disputes",
+      "question": "If an election is disputed what should determine whether the official result is trusted?",
+      "scenario": "An election result is being contested, and I find myself unsure whether to trust the official outcome or competing claims.",
+      "source_items": ["30_1", "30_3", "30_7"],
+      "tensions": ["electoral fairness", "voter bribery", "voter intimidation"]
+    },
+    {
+      "debate_id": "climate_growth",
+      "question": "Should we slow down economic growth if it helps reduce climate change?",
+      "scenario": "I care about climate change, but I also worry about jobs and the economy, and I’m unsure how much growth should be sacrificed.",
+      "source_items": ["27_6", "27_3", "27_4"],
+      "tensions": ["growth versus environment", "government responsibility", "market competition"]
+    },
+    {
+      "debate_id": "discipline_children",
+      "question": "Where should parents draw the line between discipline and physical punishment when raising children?",
+      "scenario": "I’m raising children and I sometimes struggle with where discipline ends and physical punishment begins, and what is acceptable.",
+      "source_items": ["28_13", "23_6", "23_4"],
+      "tensions": ["corporal punishment", "child welfare", "family duty"]
+    },
+    {
+      "debate_id": "religion_law",
+      "question": "Should laws in a country reflect religious beliefs if most citizens support them?",
+      "scenario": "I live in a society where most people share certain religious beliefs, and I’m unsure how much those beliefs should shape the laws we all follow.",
+      "source_items": ["32_2", "31_7", "32_6"],
+      "tensions": ["religious legal authority", "popular sovereignty", "civil rights"]
+    },
+    {
+      "debate_id": "public_services",
+      "question": "Should essential services like healthcare or energy be run by the government or private companies?",
+      "scenario": "I rely on services like healthcare and energy every day, and I’m unsure whether they should be run publicly or privately.",
+      "source_items": ["27_2", "27_3", "27_4"],
+      "tensions": ["ownership and control of industry", "government responsibility", "market competition"]
+    },
+    {
+      "debate_id": "rule_breaking_ai",
+      "question": "If using AI is discouraged but others use it to get ahead, should I follow the rules or adapt?",
+      "scenario": "I see people using tools that aren’t fully allowed, and I’m conflicted about whether I should follow the rules or do what others are doing.",
+      "source_items": ["28_2", "28_5", "30_5"],
+      "tensions": ["civic honesty", "corruption", "institutional fairness"]
+    },
+    {
+      "debate_id": "hiring_gender",
+      "question": "Should companies update hiring practices to address gender imbalances?",
+      "scenario": "I see companies changing hiring practices to address gender imbalance, and I’m unsure whether that feels fair or unfair.",
+      "source_items": ["32_9", "23_1", "27_5"],
+      "tensions": ["gender equality", "gendered job priority", "merit and effort"]
+    },
+    {
+      "debate_id": "resume_identity",
+      "question": "Is it better to stay authentic on a resume or adjust it for workplace expectations?",
+      "scenario": "I’m applying for jobs and I’m unsure whether I should present myself exactly as I am or adjust how I come across to fit expectations.",
+      "source_items": ["23_7", "23_9", "27_5"],
+      "tensions": ["gendered leadership beliefs", "gendered executive competence", "merit and effort"]
+    },
+    {
+      "debate_id": "home_privacy",
+      "question": "Should what happens in a home stay private, or should the government step in to prevent possible harm?",
+      "scenario": "I believe home life should be private, but I also worry about situations where harm could be happening behind closed doors.",
+      "source_items": ["28_12", "28_16", "32_6"],
+      "tensions": ["domestic violence", "state authority over life", "civil rights"]
+    },
+    {
+      "debate_id": "education_control",
+      "question": "Who should decide what children are taught in school—parents, the government, or education experts?",
+      "scenario": "I hear debates about school curriculum and I’m unsure who should ultimately decide what children are taught.",
+      "source_items": ["31_7", "31_5", "31_4"],
+      "tensions": ["popular sovereignty", "expert governance", "leader discretion"]
+    },
+    {
+      "debate_id": "gender_identity_schools",
+      "question": "How should schools handle situations involving students’ gender identity and pronouns?",
+      "scenario": "I’m thinking about how schools should handle students’ gender identity, and I’m unsure how to balance respect, rules, and differing beliefs.",
+      "source_items": ["32_6", "31_5", "31_7"],
+      "tensions": ["civil rights", "expert governance", "popular sovereignty"]
+    },
+    {
+      "debate_id": "gun_control_balance",
+      "question": "How much gun violence justifies limits on gun rights?",
+      "scenario": "After hearing about gun violence, I struggle with how to balance safety concerns with individual rights.",
+      "source_items": ["32_6", "31_2", "28_14"],
+      "tensions": ["civil rights", "security over protest", "interpersonal violence"]
+    },
+    {
+      "debate_id": "border_enforcement",
+      "question": "If voters believe the government is failing to control the border, how much force or emergency action should authorities be allowed to use?",
+      "scenario": "There are concerns about border control and I’m unsure how far emergency government action should go when people feel the system is failing.",
+      "source_items": ["32_3", "32_5", "31_2"],
+      "tensions": ["free elections", "military intervention", "security over protest"]
+    }
+  ]
+}
