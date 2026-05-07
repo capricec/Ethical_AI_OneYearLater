@@ -19,17 +19,17 @@ export const LEFT_TRAY_FEED_SEED = [
 	{
 		id: 'intro-1',
 		type: 'narration',
-		text: 'Welcome to the LLM Debatonator 2000.'
+		text: 'Welcome to The Everyday Ethics of AI.'
 	},
 	{
 		id: 'intro-1.1',
 		type: 'narration',
-		text: 'Over the course of a year the models answered a series of survey questions developed by the World Values Survey. These questions are intended to reveal the beliefs, values and motivations of its participants. These are the results of that research.'
+		text: 'Every day, AI models answer millions of ordinary questions. Beneath those answers are ethics, assumptions about what matters, what is fair, and what should be done. To explore this underlying layer, five models responded to a series of questions drawn from the World Values Survey.'
 	},
 	{
 		id: 'intro-1.2',
 		type: 'narration',
-		text: 'Select a topic and contestants below to start a debate. Or explore the Value Wheel to the right to find your own topic of interest. Grey spikes represent where models have consensus, so the larger more colorful areas are where debate will be most riveting. '
+		text: 'Select a topic to see how the models responded and where their underlying values align or diverge. The Value Wheel highlights these differences: grey areas show agreement, while more vivid regions reveal where perspectives begin to separate.'
 	},
 	/*{
 		id: 'intro-2',

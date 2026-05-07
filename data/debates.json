@@ -44,31 +44,17 @@
       },
       {
         "debate_id": "welfare_vs_individual_responsibility",
-        "question": "Should I expect help from the government?",
-        "scenario": "I’m struggling financially but able to work. I’m deciding whether it’s right to rely on government support or fully take responsibility myself.",
+        "question": "Should the government help people in financial hardship?",
+        "scenario": "My neighbor is struggling financially but able to work. Should my tax dollars go to helping them?",
         "source_items": ["27_3", "32_7", "28_1"],
         "tensions": ["government responsibility", "income equalization", "fair use of public resources"]
       },
       {
-        "debate_id": "breakup_vs_effort",
-        "question": "Should I end my relationship or keep trying?",
-        "scenario": "My relationship has been difficult for a long time. We still care about each other, but communication is strained and I’m unsure how long I should keep trying.",
-        "source_items": ["28_8", "23_10", "23_5"],
-        "tensions": ["marital dissolution", "traditional domestic roles", "parental approval"]
-      },
-      {
         "debate_id": "financial_hardship_benefits",
         "question": "Should I apply for government benefits?",
-        "scenario": "I recently lost my job and I’m struggling to pay rent and basic expenses.",
+        "scenario": "I recently lost my job and I’m struggling to pay rent and basic expenses. Is it right to apply for government benefits?",
         "source_items": ["28_1", "27_3", "32_4"],
         "tensions": ["fair use of public resources", "government responsibility", "social safety net"]
-      },
-      {
-        "debate_id": "welfare_fairness_doubt",
-        "question": "Is it wrong for me to use government support?",
-        "scenario": "I am currently able to work, but finances are tight.",
-        "source_items": ["28_1", "27_3", "32_1"],
-        "tensions": ["fair use of public resources", "government responsibility", "economic redistribution"]
       },
       {
         "debate_id": "protests_disruption",
@@ -100,8 +86,8 @@
       },
       {
         "debate_id": "taxes_vs_services",
-        "question": "Should I support higher taxes for better services?",
-        "scenario": "There is a proposal to raise taxes to improve public services.",
+        "question": "Which is worse: higher taxes for universal healthcare or increased debt?",
+        "scenario": "There is a proposal to raise taxes to improve public services such as universal healthcare. This would expand coverage but increase debt.",
         "source_items": ["27_1", "32_7", "27_4"],
         "tensions": ["economic equality", "income equalization", "market competition"]
       },
@@ -135,7 +121,7 @@
       },
       {
         "debate_id": "punishment_strictness",
-        "question": "Should crime be punished more harshly?",
+        "question": "Should non-violent crime be punished more harshly?",
         "scenario": "Debate over harsh punishment for theft and fraud.",
         "source_items": ["28_3", "28_4", "28_5"],
         "tensions": ["property rights", "tax honesty", "corruption"]
@@ -155,25 +141,11 @@
         "tensions": ["self-directed death", "assisted death", "state authority over life"]
       },
       {
-        "debate_id": "personal_freedom_morality",
-        "question": "Should I follow my own values or society’s norms?",
-        "scenario": "People are making personal life choices that others disapprove of.",
-        "source_items": ["28_6", "28_7", "28_9"],
-        "tensions": ["sexual identity acceptance", "reproductive autonomy", "sexual norms"]
-      },
-      {
         "debate_id": "parenting_obligation",
         "question": "Do I have to take care of my parents?",
         "scenario": "Adult children are expected to help aging parents.",
         "source_items": ["23_4", "23_5", "23_6"],
         "tensions": ["family duty", "parental approval", "child welfare"]
-      },
-      {
-        "debate_id": "economic_system_choice",
-        "question": "Should I support growth or equality?",
-        "scenario": "A country must choose between growth and redistribution.",
-        "source_items": ["27_1", "27_4", "27_6"],
-        "tensions": ["economic equality", "market competition", "growth versus environment"]
       }
     ]
   }

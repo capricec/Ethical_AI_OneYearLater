@@ -376,6 +376,10 @@
 		setSelectedStatementId(null);
 		setSelectedDebateSourceItemId(null);
 		setSelectedDebateId(null);
+		// Reset to "all models" state when exiting debate via header close.
+		setSelectedModels([]);
+		setSelectedModel(null);
+		leftTrayControlsCollapsed = false;
 	}
 
 	function goToDebateStatements() {
@@ -405,6 +409,11 @@
 			? suggestion.suggestedModels.map((m) => String(m ?? '').trim()).filter(Boolean)
 			: [];
 		feedSequenceToken += 1;
+		const feed = get(leftTrayFeed);
+		const lastMsg = feed.length ? feed[feed.length - 1] : null;
+		const fromLastFeedSuggestion =
+			lastMsg?.type === 'debate_suggestion' &&
+			String(lastMsg?.debateId ?? '').trim() === debateId;
 		setSelectedDebateId(debateId);
 		setSelectedDebateSourceItemId(null);
 		setSelectedStatementId(null);
@@ -412,11 +421,144 @@
 		if (models.length === 1) setSelectedModel(models[0]);
 		else setSelectedModel(null);
 		if (models.length === 2) {
-			handleDebateStart({ debateId, models });
+			handleDebateStart({ debateId, models, fromLastFeedSuggestion });
 		}
 	}
 
-	/** @param {{ debateId?: string, models?: string[] }=} opts */
+	/** @param {string=} preferredDebateId */
+	function handleRandomizedDebateStart(preferredDebateId) {
+		const topicOptions = Array.isArray($debateTopicOptions) ? $debateTopicOptions : [];
+		const fallbackDebateId = String($selectedDebateId ?? '').trim();
+		const preferred = String(preferredDebateId ?? '').trim();
+		const debateId =
+			preferred ||
+			(fallbackDebateId
+				? fallbackDebateId
+				: topicOptions.length
+					? String(topicOptions[Math.floor(Math.random() * topicOptions.length)]?.id ?? '').trim()
+					: '');
+		const allModels = Array.isArray($statementsViz?.modelSeries)
+			? $statementsViz.modelSeries
+					.map((m) => String(m?.fundModel ?? '').trim())
+					.filter(Boolean)
+			: [];
+		const deduped = Array.from(new Set(allModels));
+		if (!debateId || deduped.length < 2) return;
+		const firstIdx = Math.floor(Math.random() * deduped.length);
+		let secondIdx = Math.floor(Math.random() * (deduped.length - 1));
+		if (secondIdx >= firstIdx) secondIdx += 1;
+		const models = [deduped[firstIdx], deduped[secondIdx]];
+		setSelectedDebateId(debateId);
+		setSelectedDebateSourceItemId(null);
+		setSelectedStatementId(null);
+		setSelectedModels(models);
+		setSelectedModel(null);
+		handleDebateStart({ debateId, models });
+	}
+
+	/** @param {string} s */
+	function titleCaseTensionLabel(s) {
+		const t = String(s ?? '').trim();
+		if (!t) return '';
+		return t
+			.split(/\s+/)
+			.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+			.join(' ');
+	}
+
+	/**
+	 * Debate WHY summary based on average positions (same data as radial spikes).
+	 * One prioritized tension per model; narrator line with colored model names in UI.
+	 * @param {import('$lib/data/debatesAdapter.js').DebateRecord | undefined} debate
+	 * @param {string} modelA
+	 * @param {string} modelB
+	 * @returns {{ text: string, whySegments: { kind: 'text' | 'model', text?: string, model?: string }[] } | null}
+	 */
+	function buildWhySummariesForDebate(debate, modelA, modelB) {
+		if (!debate) return null;
+		const sourceItems = Array.isArray(debate.source_items)
+			? debate.source_items.map((s) => String(s ?? '').trim()).filter(Boolean)
+			: [];
+		const tensions = Array.isArray(debate.tensions)
+			? debate.tensions.map((t) => String(t ?? '').trim())
+			: Array.isArray(debate.primary_tensions)
+				? debate.primary_tensions.map((t) => String(t ?? '').trim())
+				: [];
+		if (!sourceItems.length || !tensions.length) return null;
+
+		/** @type {{ id: string, label: string, a: number, b: number, mid: number, scaleLabelA: string, scaleLabelB: string }[]} */
+		const rows = [];
+		for (let i = 0; i < sourceItems.length && i < tensions.length; i += 1) {
+			const itemId = sourceItems[i];
+			const label = tensions[i] || itemId;
+			const keyA = `${itemId}::${modelA}`;
+			const keyB = `${itemId}::${modelB}`;
+			const avgA = STATEMENT_AVERAGE_BY_ITEM_MODEL.get(keyA);
+			const avgB = STATEMENT_AVERAGE_BY_ITEM_MODEL.get(keyB);
+			const a = Number(avgA?.mean_value);
+			const b = Number(avgB?.mean_value);
+			if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+			const scaleLabelA = String(avgA?.scale_label ?? '').trim();
+			const scaleLabelB = String(avgB?.scale_label ?? '').trim();
+			const encodingMeta = ENCODING_ITEM_BY_ID.get(itemId);
+			const sMin = Number(encodingMeta?.scale?.min);
+			const sMax = Number(encodingMeta?.scale?.max);
+			const mid = Number.isFinite(sMin) && Number.isFinite(sMax) ? (sMin + sMax) / 2 : 0;
+			rows.push({ id: itemId, label, a, b, mid, scaleLabelA, scaleLabelB });
+		}
+		if (rows.length === 0) return null;
+
+		/**
+		 * Pick one tension using the requested rule:
+		 * - gap = chosen - other
+		 * - if chosen is inward (below midpoint), flip sign: gap *= -1
+		 * - pick the largest resulting gap
+		 * @param {'a'|'b'} modelKey
+		 * @param {'a'|'b'} otherKey
+		 */
+		function pickTension(modelKey, otherKey) {
+			return [...rows].sort((x, y) => {
+				const xChosen = x[modelKey];
+				const xOther = x[otherKey];
+				const xGap = xChosen - xOther;
+
+				const yChosen = y[modelKey];
+				const yOther = y[otherKey];
+				const yGap = yChosen - yOther;
+
+				if (yGap !== xGap) return yGap - xGap;
+				// Tie-breaker: further from center for this model.
+				return Math.abs(yChosen - y.mid) - Math.abs(xChosen - x.mid);
+			})[0];
+		}
+
+		const pickA = pickTension('a', 'b');
+		const pickB = pickTension('b', 'a');
+		if (!pickA || !pickB) return null;
+
+		const labelA = String(pickA.label || pickA.id);
+		const labelB = String(pickB.label || pickB.id);
+		/** @type {{ kind: 'text' | 'model', text?: string, model?: string }[]} */
+		const whySegments = [
+			{ kind: 'model', model: modelA },
+			{
+				kind: 'text',
+				text: ` prioritizes ${titleCaseTensionLabel(labelA)} while `
+			},
+			{ kind: 'model', model: modelB },
+			{
+				kind: 'text',
+				text: ` prioritizes ${titleCaseTensionLabel(labelB)}.`
+			}
+		];
+		const text = whySegments
+			.map((s) => (s.kind === 'model' ? String(s.model ?? '') : String(s.text ?? '')))
+			.join('')
+			.trim();
+		return { text, whySegments };
+	}
+
+	/** @param {{ debateId?: string, models?: string[], fromLastFeedSuggestion?: boolean }=} opts */
 	async function handleDebateStart(opts = {}) {
 		const debateId =
 			String(opts?.debateId ?? '').trim() || String($selectedDebateId ?? '').trim();
@@ -430,24 +572,27 @@
 		leftTrayControlsCollapsed = true;
 		const scenario = String(DEBATE_BY_ID.get(debateId)?.scenario ?? '').trim();
 		const question = String(DEBATE_BY_ID.get(debateId)?.question ?? '').trim();
-		appendLeftTrayMessage({
-			type: 'section_title',
-			gapTop: true,
-			chunkBreak: true,
-			text: 'Debate'
-		});
-		const scenarioAndQuestion = [scenario, question].filter(Boolean).join('\n\n');
+		const fromLastFeedSuggestion = Boolean(opts?.fromLastFeedSuggestion);
+		if (!fromLastFeedSuggestion) {
+			appendLeftTrayMessage({
+				type: 'debate_selection_card',
+				gapTop: true,
+				chunkBreak: true,
+				debateId,
+				suggestedModels: [pickedModels[0], pickedModels[1]]
+			});
+		}
+		const scenarioAndQuestion = [scenario, question]
+			.filter(Boolean)
+			.map((s) => String(s).replace(/\s+/g, ' ').trim())
+			.join(' ');
 		if (scenarioAndQuestion) {
 			appendLeftTrayMessage({
 				type: 'narration',
-				gapTop: true,
+				gapTop: !fromLastFeedSuggestion,
 				text: scenarioAndQuestion
 			});
 		}
-		appendLeftTrayMessage({
-			type: 'narration',
-			text: 'Let the debate begin!'
-		});
 
 		if (!isClaudeVsGrokPair(pickedModels)) return;
 		const transcript = TRANSCRIPTS_BY_DEBATE_ID.get(debateId);
@@ -455,9 +600,9 @@
 		if (!turns.length) return;
 		const leftModelKey = normalizeModelKey(pickedModels[0]);
 		const transcriptSectionTitleByStep = new Map([
-			[1, 'OPENING POSITIONS'],
-			[3, 'VALUE CHALLENGE'],
-			[5, 'THRESHOLD CHALLENGE']
+			[1, 'ADVICE'],
+			[3, 'VALUES'],
+			[5, 'THRESHOLDS']
 		]);
 		await waitMs(LEFT_TRAY_FEED_TIMING.narrationToModelsMs);
 		for (let i = 0; i < turns.length; i++) {
@@ -485,6 +630,23 @@
 				await waitMs(LEFT_TRAY_FEED_TIMING.betweenModelMessagesMs);
 			}
 		}
+
+		// WHY section: synthetic value explanation from average positions & tensions (no extra model calls).
+		const debate = DEBATE_BY_ID.get(debateId);
+		const why = buildWhySummariesForDebate(debate, pickedModels[0], pickedModels[1]);
+		if (why?.whySegments?.length && why.text) {
+			appendLeftTrayMessage({
+				type: 'section_title',
+				gapTop: false,
+				text: 'WHY'
+			});
+			appendLeftTrayMessage({
+				type: 'why_narration',
+				gapTop: false,
+				text: why.text,
+				whySegments: why.whySegments
+			});
+		}
 	}
 
 	/** Stable `id` per statement tray row (scroll into view). */
@@ -502,6 +664,12 @@
 			const el = document.getElementById(domId);
 			el?.scrollIntoView({ block: 'center', behavior: 'smooth', inline: 'nearest' });
 		});
+	});
+
+	$effect(() => {
+		const id = $selectedStatementId;
+		if (id == null || String(id).trim() === '') return;
+		leftTrayControlsCollapsed = true;
 	});
 
 	/** Subscale filter hides non-matching questions; clear statement if it falls outside the filter. */
@@ -747,18 +915,26 @@
 											<div class="mb-4 h-px w-full bg-white/20"></div>
 										{/if}
 										{#if message.type === 'narration'}
-											<p class="px-2 text-center text-sm leading-relaxed text-white">
-												{message.text}
-											</p>
+											<div class="flex w-full justify-center">
+												<div
+													class="w-[90%] rounded-2xl bg-[#4b4b4e] px-3 py-2 text-sm leading-relaxed text-white shadow-sm"
+												>
+													<p class="text-center whitespace-pre-line">{message.text}</p>
+												</div>
+											</div>
 										{:else if message.type === 'section_title'}
 											<p class="mt-[10px] text-center text-xs font-semibold uppercase tracking-wide text-slate-200">
 												{message.text}
 											</p>
 										{:else if message.type === 'topic_choices'}
 											<div class="space-y-2 px-2">
-												<p class="text-center text-sm leading-relaxed text-white">
-													{message.text}
-												</p>
+												<div class="flex w-full justify-center">
+													<div
+														class="w-[90%] rounded-2xl bg-[#4b4b4e] px-3 py-2 text-sm leading-relaxed text-white shadow-sm"
+													>
+														<p class="text-center whitespace-pre-line">{message.text}</p>
+													</div>
+												</div>
 												{#each message.options ?? [] as option (option.id)}
 													<button
 														type="button"
@@ -773,51 +949,104 @@
 													</button>
 												{/each}
 											</div>
-										{:else if message.type === 'debate_suggestion'}
+										{:else if message.type === 'debate_suggestion' || message.type === 'debate_selection_card'}
 											{@const leftModel = String(message.suggestedModels?.[0] ?? '')}
 											{@const rightModel = String(message.suggestedModels?.[1] ?? '')}
 											<div class="space-y-2 px-2">
 												<p class="text-center text-xs font-semibold uppercase tracking-wide text-slate-200">
-													Suggested Debate
+													{message.type === 'debate_selection_card' ? 'Question' : 'Suggested Question'}
 												</p>
+												<div class="flex w-full justify-center">
+													<div
+														class="flex min-h-11 w-[90%] items-center justify-center rounded-full bg-[#4b4b4e] px-3 py-2 text-center text-sm text-white"
+													>
+														{String(
+															DEBATE_BY_ID.get(String(message.debateId ?? ''))?.question ??
+																''
+														)}
+													</div>
+												</div>
+												<div class="my-4 flex items-center justify-center gap-2">
+													{#if message.type === 'debate_selection_card'}
+														<div
+															class="w-[100px] rounded-full px-2 py-1.5 text-center text-xs font-semibold text-white"
+															style={leftModel
+																? `background-color: ${modelColor(leftModel)};`
+																: 'background-color: #7a7a7a;'}
+														>
+															{leftModel || 'Model 1'}
+														</div>
+														<span class="text-xs font-semibold uppercase tracking-wide text-slate-300">
+															and
+														</span>
+														<div
+															class="w-[100px] rounded-full px-2 py-1.5 text-center text-xs font-semibold text-white"
+															style={rightModel
+																? `background-color: ${modelColor(rightModel)};`
+																: 'background-color: #7a7a7a;'}
+														>
+															{rightModel || 'Model 2'}
+														</div>
+													{:else}
+														<button
+															type="button"
+															class="w-[100px] cursor-pointer rounded-full px-2 py-1.5 text-xs font-semibold text-white"
+															style={leftModel
+																? `background-color: ${modelColor(leftModel)};`
+																: 'background-color: #7a7a7a;'}
+														>
+															{leftModel || 'Model 1'}
+														</button>
+														<span class="text-xs font-semibold uppercase tracking-wide text-slate-300">
+															and
+														</span>
+														<button
+															type="button"
+															class="w-[100px] cursor-pointer rounded-full px-2 py-1.5 text-xs font-semibold text-white"
+															style={rightModel
+																? `background-color: ${modelColor(rightModel)};`
+																: 'background-color: #7a7a7a;'}
+														>
+															{rightModel || 'Model 2'}
+														</button>
+													{/if}
+												</div>
+												{#if message.type === 'debate_suggestion'}
+													<div class="flex items-center justify-center">
+														<button
+															type="button"
+															class="h-10 min-w-[130px] cursor-pointer rounded-full bg-[#4b4b4e] px-5 text-center text-sm font-bold tracking-wide text-white"
+															onclick={() => handleDebateSuggestion(message)}
+														>
+															COMPARE
+														</button>
+													</div>
+												{/if}
+											</div>
+										{:else if message.type === 'why_narration'}
+											<div class="flex w-full justify-center">
 												<div
-													class="h-11 w-full rounded-md bg-[#4b4b4e] px-3 text-sm text-white flex items-center"
+													class="w-[90%] rounded-2xl bg-[#4b4b4e] px-3 py-2 text-sm leading-relaxed text-white shadow-sm"
 												>
-													{String(
-														DEBATE_BY_ID.get(String(message.debateId ?? ''))?.question ??
-															''
-													)}
+													<p class="text-left">
+														{#if Array.isArray(message.whySegments) && message.whySegments.length}
+															{#each message.whySegments as seg, sidx (sidx)}
+																{#if seg.kind === 'model'}
+																	<span
+																		class="font-semibold"
+																		style={`color: ${modelColor(String(seg.model ?? ''))};`}
+																	>
+																		{seg.model}
+																	</span>
+																{:else}
+																	{seg.text}
+																{/if}
+															{/each}
+														{:else}
+															{message.text}
+														{/if}
+													</p>
 												</div>
-												<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-													<button
-														type="button"
-														class="min-w-0 rounded-md px-2 py-1.5 text-xs font-semibold text-white"
-														style={leftModel
-															? `background-color: ${modelColor(leftModel)};`
-															: 'background-color: #7a7a7a;'}
-													>
-														{leftModel || 'Model 1'}
-													</button>
-													<span class="text-xs font-semibold uppercase tracking-wide text-slate-300">
-														vs.
-													</span>
-													<button
-														type="button"
-														class="min-w-0 rounded-md px-2 py-1.5 text-xs font-semibold text-white"
-														style={rightModel
-															? `background-color: ${modelColor(rightModel)};`
-															: 'background-color: #7a7a7a;'}
-													>
-														{rightModel || 'Model 2'}
-													</button>
-												</div>
-												<button
-													type="button"
-													class="h-11 w-full rounded-md bg-[#4b4b4e] px-3 text-center text-sm font-bold tracking-wide text-white hover:bg-[#5a5a5d]"
-													onclick={() => handleDebateSuggestion(message)}
-												>
-													DEBATE
-												</button>
 											</div>
 										{:else}
 											<div
@@ -847,29 +1076,27 @@
 							<div class="shrink-0 border-t border-slate-500 bg-[#5F5F5F] px-4 pb-4 pt-3 text-white">
 								<button
 									type="button"
-									class="flex w-full items-center justify-between text-left text-xs font-semibold uppercase tracking-wide text-slate-200"
+									class="relative flex w-full items-center justify-center text-center text-xs font-semibold uppercase tracking-wide text-slate-200"
 									onclick={() => (leftTrayControlsCollapsed = !leftTrayControlsCollapsed)}
 								>
-									<span>CREATE YOUR OWN DEBATE</span>
+									<span>WHAT QUESTIONS ARE YOU ASKING AI?</span>
 									<span
 										aria-hidden="true"
-										class="text-xl leading-none transition-transform {leftTrayControlsCollapsed
-											? ''
-											: 'rotate-180'}"
+										class="absolute right-0 text-2xl leading-none"
 									>
-										⌄
+										{leftTrayControlsCollapsed ? '+' : '-'}
 									</span>
 								</button>
 								{#if !leftTrayControlsCollapsed}
-									<div class="mt-4 text-[10px] font-semibold uppercase tracking-wide text-slate-200">
-										Topic
+									<div class="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-200">
+										Question
 									</div>
 									<select
-										class="mt-3 h-11 w-full rounded-md bg-[#3B3A3A] px-3 pr-10 text-sm text-white outline-none"
+										class="debate-topic-select mt-3 h-11 w-full rounded-full bg-[#3B3A3A] px-3 pr-14 text-center text-sm text-white outline-none [text-align-last:center]"
 										value={$selectedDebateId ?? ''}
 										onchange={handleDebateTopicChange}
 									>
-										<option value="">Select a debate topic</option>
+										<option value="">Select a question</option>
 										{#each $debateTopicOptions as topic (topic.id)}
 											<option value={topic.id}>{topic.label}</option>
 										{/each}
@@ -882,7 +1109,7 @@
 											{@const active = allModelsShowing || $selectedModels.includes(model)}
 											<button
 												type="button"
-												class="min-w-0 flex-1 rounded-md px-2 py-1.5 text-xs font-semibold text-white transition-opacity {active
+												class="min-w-0 flex-1 cursor-pointer rounded-full px-2 py-1.5 text-xs font-semibold text-white transition-opacity {active
 													? 'opacity-100'
 													: 'bg-[#7a7a7a] opacity-55 hover:opacity-75'}"
 												style={active ? `background-color: ${modelColor(model)};` : ''}
@@ -892,14 +1119,58 @@
 											</button>
 										{/each}
 									</div>
-									<button
-										type="button"
-										class="mt-5 h-11 w-full rounded-md bg-[#3B3A3A] px-3 text-sm font-bold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-50 hover:bg-[#4b4b4e]"
-										disabled={!$selectedDebateId || $selectedModels.length !== 2}
-										onclick={handleDebateStart}
-									>
-										DEBATE
-									</button>
+									<div class="mt-7 flex items-center justify-center">
+										<button
+											type="button"
+											class={`relative h-10 min-w-[210px] rounded-full bg-[#3B3A3A] px-5 pr-14 text-sm font-bold tracking-wide text-white ${
+												Boolean(String($selectedDebateId ?? '').trim()) && $selectedModels.length === 2
+													? 'cursor-pointer'
+													: 'cursor-not-allowed bg-[#4a4a4d]'
+											}`}
+											aria-disabled={!(
+												Boolean(String($selectedDebateId ?? '').trim()) &&
+												$selectedModels.length === 2
+											)}
+											onclick={() => {
+												if (
+													!(
+														Boolean(String($selectedDebateId ?? '').trim()) &&
+														$selectedModels.length === 2
+													)
+												)
+													return;
+												handleDebateStart();
+											}}
+										>
+											<span
+												class:opacity-50={!(
+													Boolean(String($selectedDebateId ?? '').trim()) &&
+													$selectedModels.length === 2
+												)}
+											>
+												COMPARE
+											</span>
+											<span
+												role="button"
+												tabindex="0"
+												class="absolute right-0 top-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#3B3A3A] bg-[#66666b] text-xl font-bold text-white hover:bg-[#74747a]"
+												onclick={(event) => {
+													event.stopPropagation();
+													handleRandomizedDebateStart();
+												}}
+												onkeydown={(event) => {
+													if (event.key === 'Enter' || event.key === ' ') {
+														event.preventDefault();
+														event.stopPropagation();
+														handleRandomizedDebateStart();
+													}
+												}}
+												aria-label="Randomize debate topic and models"
+											>
+												🎲
+											</span>
+										</button>
+									</div>
 								{/if}
 							</div>
 						</div>
@@ -909,35 +1180,81 @@
 						class="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-white order-1 md:order-2 h-[65vh] md:h-auto"
 					>
 						{#if isStatementView || $selectedDebateId}
-							<header class="shrink-0 bg-white px-4 pb-2 pt-3 md:px-6 md:pt-4">
-								<div class="mx-auto w-full max-w-[min(100%,calc(72rem-40px))]">
-									<div class="flex flex-wrap items-center gap-2">
-										{#if $selectedDebateId}
+							<header class="shrink-0 bg-white">
+								<div class="flex w-full flex-col">
+									{#if $selectedDebateId}
+										{@const debateHeaderModels =
+											$selectedModels.length > 0
+												? $selectedModels
+												: $selectedModel
+													? [$selectedModel]
+													: []}
+										<div class="flex w-full items-center gap-3 bg-[#3B3A3A] px-3 py-3 text-white">
+											<div class="min-w-0 flex-1 truncate text-sm font-semibold">
+												QUESTION: {String($selectedDebate?.question ?? $selectedDebateId)}
+											</div>
+											{#if debateHeaderModels.length}
+												<div class="flex items-center gap-2">
+													{#if debateHeaderModels.length === 2}
+														<button
+															type="button"
+															class="w-[100px] rounded-full px-3 py-1 text-center text-xs font-semibold text-white"
+															style={`background-color: ${modelColor(debateHeaderModels[0])};`}
+														>
+															{debateHeaderModels[0]}
+														</button>
+														<span class="text-xs font-semibold text-slate-200">and</span>
+														<button
+															type="button"
+															class="w-[100px] rounded-full px-3 py-1 text-center text-xs font-semibold text-white"
+															style={`background-color: ${modelColor(debateHeaderModels[1])};`}
+														>
+															{debateHeaderModels[1]}
+														</button>
+													{:else}
+														{#each debateHeaderModels as model (model)}
+															<button
+																type="button"
+																class="w-[100px] rounded-full px-3 py-1 text-center text-xs font-semibold text-white"
+																style={`background-color: ${modelColor(model)};`}
+															>
+																{model}
+															</button>
+														{/each}
+													{/if}
+												</div>
+											{/if}
 											<button
 												type="button"
-												class="inline-flex items-center gap-2 rounded-md border border-slate-500 bg-[#3B3A3A] px-3 py-1 text-xs font-semibold text-white"
+												class="text-base leading-none text-slate-200 hover:text-white"
 												onclick={goToRadialRoot}
-												aria-label="Clear selected debate"
+												aria-label="Clear selected question"
 											>
-												<span>{String($selectedDebate?.question ?? $selectedDebateId)}</span>
-												<span aria-hidden="true">×</span>
+												×
 											</button>
-										{/if}
-										{#if isStatementView && bumpViz?.dim?.items?.[0]}
+										</div>
+									{/if}
+									{#if isStatementView && bumpViz?.dim?.items?.[0]}
+										<div
+											class="flex w-full items-center gap-3 px-3 py-2.5 text-white"
+											style={`background-color: ${$selectedDebateId ? '#5F5F5F' : '#3B3A3A'};`}
+										>
+											<div class="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide">
+												VALUE: {navLabelForSelectedStatement(bumpViz.dim.items[0])}
+											</div>
 											<button
 												type="button"
-												class="inline-flex items-center gap-2 rounded-md border border-slate-500 bg-[#3B3A3A] px-3 py-1 text-xs font-semibold text-white"
+												class="text-base leading-none text-slate-200 hover:text-white"
 												onclick={goToDebateStatements}
 												aria-label="Clear selected statement"
 											>
-												<span>{navLabelForSelectedStatement(bumpViz.dim.items[0])}</span>
-												<span aria-hidden="true">×</span>
+												×
 											</button>
-										{/if}
-									</div>
+										</div>
+									{/if}
 								</div>
 								{#if isStatementView && selectedSurveyQuestion}
-									<div class="mx-auto mt-5 mb-6 w-full max-w-[min(100%,calc(72rem-40px))] rounded-md border border-slate-300 bg-slate-100 px-4 py-4 text-center text-sm text-slate-800 shadow-sm whitespace-pre-line">
+									<div class="mx-auto mt-5 mb-6 w-[calc(100%-2rem)] max-w-[min(100%,calc(72rem-40px))] rounded-md border border-slate-300 bg-slate-100 px-4 py-4 text-center text-sm text-slate-800 shadow-sm whitespace-pre-line">
 										{selectedSurveyQuestionDisplay}
 									</div>
 								{/if}
@@ -1018,3 +1335,22 @@
 	</div>
 </div>
 
+<style>
+	/* Closed select: centered label; open list: left-aligned options (where supported). */
+	:global(select.debate-topic-select) {
+		/* Use custom caret so right inset is consistent across browsers. */
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		padding-right: 2.75rem;
+		-webkit-padding-end: 2.75rem;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 6 5-6' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-size: 12px 12px;
+		background-position: right 1rem center;
+	}
+
+	:global(select.debate-topic-select option) {
+		text-align: left;
+	}
+</style>

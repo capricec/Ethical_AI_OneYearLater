@@ -22,7 +22,8 @@
 	const SUBSCALE_RIM_WIDTH = 1;
 	const DIMENSION_SPOKE_WIDTH = 1;
 	/** Outer subscale annulus fill + midpoint reference ring stroke. */
-	const DIMENSION_RING_FILL = '#595959';
+	const DIMENSION_RING_FILL = '#3B3A3A';
+	const DIMENSION_RING_OPACITY = 0.9;
 	/** Arc and radial separators on the outer subscale annulus. */
 	const DIMENSION_RING_SEPARATOR = '#ffffff';
 	const SELECTED_PATH_STROKE = '#0a0a0a';
@@ -1635,6 +1636,7 @@ const debateRadarFillOpacity = $derived.by(() => {
 									arc.t1
 								)}
 								fill={DIMENSION_RING_FILL}
+								fill-opacity={DIMENSION_RING_OPACITY}
 							/>
 							<path
 								d={geometricSectorArcD(

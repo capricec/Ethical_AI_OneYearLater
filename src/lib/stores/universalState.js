@@ -196,12 +196,51 @@ export function setSelectedViewMode(mode) {
 	selectedViewMode.set(mode);
 }
 
-/** @param {{ id?: string, type: string, text?: string, model?: string, side?: 'left' | 'right', gapTop?: boolean, chunkBreak?: boolean, statementId?: string, options?: { id: string, label: string }[], debateId?: string, suggestedModels?: string[] }} message */
+/**
+ * @param {{ id?: string, type: string, text?: string, model?: string, side?: 'left' | 'right', gapTop?: boolean, chunkBreak?: boolean, statementId?: string, options?: { id: string, label: string }[], debateId?: string, suggestedModels?: string[], whySegments?: { kind: 'text' | 'model', text?: string, model?: string }[] }} message
+ */
 export function appendLeftTrayMessage(message) {
 	const type = String(message?.type ?? '').trim() || 'narration';
 	const isTopicChoices = type === 'topic_choices';
-	const text = String(message?.text ?? '').trim();
-	if (!isTopicChoices && !text) return;
+	const isDebateSelectionCard = type === 'debate_selection_card';
+	const isWhyNarration = type === 'why_narration';
+	const rawSegments = Array.isArray(message?.whySegments) ? message.whySegments : null;
+	/** @type {{ kind: 'text' | 'model', text?: string, model?: string }[]} */
+	const whySegments = isWhyNarration
+		? (rawSegments ?? [])
+				.map((s) => {
+					const kind = s?.kind === 'model' ? 'model' : 'text';
+					if (kind === 'model') {
+						const m = String(s?.model ?? '').trim();
+						return m ? { kind: 'model', model: m } : null;
+					}
+					const t = String(s?.text ?? '');
+					return { kind: 'text', text: t };
+				})
+				.filter(Boolean)
+		: [];
+	const textFromSegments =
+		isWhyNarration && whySegments.length
+			? whySegments
+					.map((s) => (s.kind === 'model' ? String(s.model ?? '') : String(s.text ?? '')))
+					.join('')
+					.trim()
+			: '';
+	const text = String(message?.text ?? '').trim() || textFromSegments;
+	if (
+		!isTopicChoices &&
+		!isDebateSelectionCard &&
+		!text &&
+		!(isWhyNarration && whySegments.length)
+	)
+		return;
+	if (isDebateSelectionCard) {
+		const did = String(message?.debateId ?? '').trim();
+		const models = Array.isArray(message?.suggestedModels)
+			? message.suggestedModels.map((m) => String(m ?? '').trim()).filter(Boolean)
+			: [];
+		if (!did || models.length < 2) return;
+	}
 	const id =
 		String(message?.id ?? '').trim() ||
 		`msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -210,8 +249,9 @@ export function appendLeftTrayMessage(message) {
 		{
 			id,
 			type,
-			text,
+			text: isDebateSelectionCard ? '' : text,
 			model: message?.model ? String(message.model).trim() : undefined,
+			whySegments: isWhyNarration && whySegments.length ? whySegments : undefined,
 			side: message?.side === 'right' ? 'right' : message?.side === 'left' ? 'left' : undefined,
 			gapTop: Boolean(message?.gapTop),
 			chunkBreak: Boolean(message?.chunkBreak),
