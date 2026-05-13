@@ -27,11 +27,11 @@
 		VIEW_MODE_DIMENSION_BUMP,
 		VIEW_MODE_RADIAL
 	} from '$lib/stores/universalState.js';
-	import { modelColor } from '$lib/viz/modelColors.js';
+	import { modelColor, MODEL_ORDER } from '$lib/viz/modelColors.js';
 	import DimensionAggregateBumpChart from '$lib/viz/DimensionAggregateBumpChart.svelte';
 	import StatementsRadialChart from '$lib/viz/StatementsRadialChart.svelte';
 	import { statementLabel } from '$lib/ui/statementLabel.js';
-	import { questions, statementContext, encoding, debates, debateTranscripts } from '$lib/data/dataset.js';
+	import { questions, statementContext, encoding, debates, debateAllModelsResponses } from '$lib/data/dataset.js';
 	import statementModelAveragesRaw from '../../data/statement_model_averages.json';
 	import { sliceVizToSingleStatement } from '$lib/data/vizSliceSingleStatement.js';
 	import {
@@ -44,6 +44,7 @@
 		getFollowupResponseText,
 		followupScaleStepFromConsensus
 	} from '$lib/data/followupResponses.js';
+	import AppSiteHeader from '$lib/components/AppSiteHeader.svelte';
 
 	/** @type {Map<string, string>} */
 	const STATEMENT_CONTEXT_BY_ID = new Map();
@@ -112,14 +113,47 @@
 		}
 		return map;
 	})();
-	const TRANSCRIPT_ROWS = Array.isArray(debateTranscripts?.transcripts)
-		? debateTranscripts.transcripts
-		: [];
-	const TRANSCRIPTS_BY_DEBATE_ID = new Map(
-		TRANSCRIPT_ROWS
-			.map((row) => [String(row?.debate_id ?? '').trim(), row])
-			.filter(([id]) => Boolean(id))
-	);
+	const DEBATE_ALL_MODELS_BY_KEY = (() => {
+		const recs = Array.isArray(debateAllModelsResponses?.records)
+			? debateAllModelsResponses.records
+			: [];
+		/** @param {unknown} r */
+		function recordTimeMs(r) {
+			const t = r?.timestamp;
+			if (t == null) return 0;
+			const s = String(t).trim().replace(/^(\d{4}-\d{2}-\d{2}) (\d)/, '$1T$2');
+			const n = Date.parse(s);
+			return Number.isFinite(n) ? n : 0;
+		}
+		/** @param {unknown} r */
+		function recordIsUsable(r) {
+			const err = r?.error;
+			if (err != null && String(err).trim() !== '') return false;
+			const rsp = String(r?.response ?? '').trim();
+			return Boolean(rsp);
+		}
+		const ordered = recs
+			.map((r, i) => ({ r, i }))
+			.sort((a, b) => {
+				const dt = recordTimeMs(a.r) - recordTimeMs(b.r);
+				if (dt !== 0) return dt;
+				return a.i - b.i;
+			})
+			.map((x) => x.r);
+		/** @type {Map<string, string>} */
+		const m = new Map();
+		for (const r of ordered) {
+			if (!recordIsUsable(r)) continue;
+			const did = String(r?.debate_id ?? '').trim();
+			const fm = String(r?.fund_model ?? '').trim();
+			const pt = String(r?.prompt_type ?? '').trim();
+			if (!did || !fm || !pt) continue;
+			const rsp = String(r?.response ?? '').trim();
+			const key = `${did}::${normalizeModelKey(fm)}::${pt}`;
+			m.set(key, rsp);
+		}
+		return m;
+	})();
 
 	/** @param {string} model */
 	function normalizeModelKey(model) {
@@ -129,18 +163,19 @@
 			.replace(/[^a-z0-9]+/g, '');
 	}
 
-	/** @param {string} model */
-	function displayModelFromTranscript(model) {
-		const key = normalizeModelKey(model);
-		if (key === 'claude') return 'Claude';
-		if (key === 'grok') return 'Grok';
-		return String(model ?? '').trim();
+	/** @param {string} debateId @param {string} model @param {'opening'|'threshold'} promptType */
+	function getAllModelsDebateResponse(debateId, model, promptType) {
+		const key = `${String(debateId ?? '').trim()}::${normalizeModelKey(model)}::${String(promptType ?? '').trim()}`;
+		return DEBATE_ALL_MODELS_BY_KEY.get(key) ?? '';
 	}
 
-	/** @param {string[]} pickedModels */
-	function isClaudeVsGrokPair(pickedModels) {
-		const keys = new Set(pickedModels.map((m) => normalizeModelKey(m)));
-		return keys.size === 2 && keys.has('claude') && keys.has('grok');
+	/** @param {string} model */
+	function displayFundModelName(model) {
+		const k = normalizeModelKey(model);
+		for (const name of MODEL_ORDER) {
+			if (normalizeModelKey(name) === k) return name;
+		}
+		return String(model ?? '').trim() || 'Model';
 	}
 
 	/** Fixed context / subscale rail (matches left tray width). */
@@ -466,9 +501,13 @@
 			.join(' ');
 	}
 
+	/** Counts a “meaningful” pairwise gap for debate WHY branching (strict >). */
+	const WHY_DEBATE_GAP_STRONG = 0.35;
+
 	/**
 	 * Debate WHY summary based on average positions (same data as radial spikes).
-	 * One prioritized tension per model; narrator line with colored model names in UI.
+	 * “Disagree most about importance of …” when exactly one tension beats WHY_DEBATE_GAP_STRONG,
+	 * or when none do (then pick largest |a−b|). Two+ strong tensions: pickTension + dual prioritizes.
 	 * @param {import('$lib/data/debatesAdapter.js').DebateRecord | undefined} debate
 	 * @param {string} modelA
 	 * @param {string} modelB
@@ -486,7 +525,7 @@
 				: [];
 		if (!sourceItems.length || !tensions.length) return null;
 
-		/** @type {{ id: string, label: string, a: number, b: number, mid: number, scaleLabelA: string, scaleLabelB: string }[]} */
+		/** @type {{ id: string, label: string, a: number, b: number, mid: number, scaleLabelA: string, scaleLabelB: string, absGap: number }[]} */
 		const rows = [];
 		for (let i = 0; i < sourceItems.length && i < tensions.length; i += 1) {
 			const itemId = sourceItems[i];
@@ -504,9 +543,52 @@
 			const sMin = Number(encodingMeta?.scale?.min);
 			const sMax = Number(encodingMeta?.scale?.max);
 			const mid = Number.isFinite(sMin) && Number.isFinite(sMax) ? (sMin + sMax) / 2 : 0;
-			rows.push({ id: itemId, label, a, b, mid, scaleLabelA, scaleLabelB });
+			const absGap = Math.abs(a - b);
+			rows.push({ id: itemId, label, a, b, mid, scaleLabelA, scaleLabelB, absGap });
 		}
 		if (rows.length === 0) return null;
+
+		/** @param {{ label: string, id: string }} row */
+		function whySegmentsDisagreeMostAboutImportance(row) {
+			const valueLabel = titleCaseTensionLabel(String(row.label || row.id));
+			return [
+				{ kind: 'model', model: modelA },
+				{ kind: 'text', text: ' and ' },
+				{ kind: 'model', model: modelB },
+				{
+					kind: 'text',
+					text: ` disagree most about the importance of ${valueLabel}.`
+				}
+			];
+		}
+
+		const strongRows = rows.filter((r) => r.absGap > WHY_DEBATE_GAP_STRONG);
+		if (strongRows.length === 1) {
+			const whySegments = whySegmentsDisagreeMostAboutImportance(strongRows[0]);
+			const text = whySegments
+				.map((s) => (s.kind === 'model' ? String(s.model ?? '') : String(s.text ?? '')))
+				.join('')
+				.trim();
+			return { text, whySegments };
+		}
+
+		if (strongRows.length === 0) {
+			const rankedByAbsGap = [...rows].sort((x, y) => {
+				if (y.absGap !== x.absGap) return y.absGap - x.absGap;
+				return (
+					Math.max(Math.abs(y.a - y.mid), Math.abs(y.b - y.mid)) -
+					Math.max(Math.abs(x.a - x.mid), Math.abs(x.b - x.mid))
+				);
+			});
+			const top = rankedByAbsGap[0];
+			if (!top) return null;
+			const whySegments = whySegmentsDisagreeMostAboutImportance(top);
+			const text = whySegments
+				.map((s) => (s.kind === 'model' ? String(s.model ?? '') : String(s.text ?? '')))
+				.join('')
+				.trim();
+			return { text, whySegments };
+		}
 
 		/**
 		 * Pick one tension using the requested rule:
@@ -591,42 +673,54 @@
 			});
 		}
 
-		if (!isClaudeVsGrokPair(pickedModels)) return;
-		const transcript = TRANSCRIPTS_BY_DEBATE_ID.get(debateId);
-		const turns = Array.isArray(transcript?.turns) ? transcript.turns : [];
-		if (!turns.length) return;
 		const leftModelKey = normalizeModelKey(pickedModels[0]);
-		const transcriptSectionTitleByStep = new Map([
-			[1, 'ADVICE'],
-			[3, 'VALUES'],
-			[5, 'THRESHOLDS']
-		]);
+		const opening0 = getAllModelsDebateResponse(debateId, pickedModels[0], 'opening');
+		const opening1 = getAllModelsDebateResponse(debateId, pickedModels[1], 'opening');
+		const threshold0 = getAllModelsDebateResponse(debateId, pickedModels[0], 'threshold');
+		const threshold1 = getAllModelsDebateResponse(debateId, pickedModels[1], 'threshold');
+		const hasAdvice = Boolean(opening0 || opening1);
+		const hasThreshold = Boolean(threshold0 || threshold1);
+		if (!hasAdvice && !hasThreshold) return;
+
 		await waitMs(LEFT_TRAY_FEED_TIMING.narrationToModelsMs);
-		for (let i = 0; i < turns.length; i++) {
-			const turn = turns[i];
-			const response = String(turn?.response ?? '').trim();
-			const model = displayModelFromTranscript(String(turn?.model ?? ''));
-			const step = Number(turn?.step);
-			const sectionTitle = transcriptSectionTitleByStep.get(step);
-			if (sectionTitle) {
-				appendLeftTrayMessage({
-					type: 'section_title',
-					gapTop: step === 1,
-					text: sectionTitle
-				});
-			}
-			if (!response || !model) continue;
-			const side = normalizeModelKey(model) === leftModelKey ? 'left' : 'right';
+
+		let firstModelSectionTitle = true;
+		/** @param {string} title @param {string} a @param {string} b */
+		async function emitPairModelSection(title, a, b) {
+			const t0 = String(a ?? '').trim();
+			const t1 = String(b ?? '').trim();
+			if (!t0 && !t1) return;
 			appendLeftTrayMessage({
-				type: 'model',
-				model,
-				side,
-				text: response
+				type: 'section_title',
+				gapTop: firstModelSectionTitle,
+				text: title
 			});
-			if (i < turns.length - 1) {
-				await waitMs(LEFT_TRAY_FEED_TIMING.betweenModelMessagesMs);
+			firstModelSectionTitle = false;
+			const items = [
+				{ text: t0, picked: pickedModels[0] },
+				{ text: t1, picked: pickedModels[1] }
+			].filter((x) => x.text);
+			for (let i = 0; i < items.length; i++) {
+				const { text, picked } = items[i];
+				const model = displayFundModelName(picked);
+				const side = normalizeModelKey(picked) === leftModelKey ? 'left' : 'right';
+				appendLeftTrayMessage({
+					type: 'model',
+					model,
+					side,
+					text
+				});
+				if (i < items.length - 1) {
+					await waitMs(LEFT_TRAY_FEED_TIMING.betweenModelMessagesMs);
+				}
 			}
 		}
+
+		await emitPairModelSection('ADVICE', opening0, opening1);
+		if (hasAdvice && hasThreshold) {
+			await waitMs(LEFT_TRAY_FEED_TIMING.betweenModelMessagesMs);
+		}
+		await emitPairModelSection('THRESHOLD', threshold0, threshold1);
 
 		// WHY section: synthetic value explanation from average positions & tensions (no extra model calls).
 		const debate = DEBATE_BY_ID.get(debateId);
@@ -892,11 +986,34 @@
 			{@const bumpSingleRowHeights = bumpViz
 				? [Math.max(statementBumpSlotH > 0 ? statementBumpSlotH : 360, stmtDetailMinH)]
 				: []}
+			{@const debateHeaderModels =
+				$selectedModels.length > 0
+					? $selectedModels
+					: $selectedModel
+						? [$selectedModel]
+						: []}
+			{@const navQuestionText = $selectedDebateId
+				? `QUESTION: ${String($selectedDebate?.question ?? $selectedDebateId)}`
+				: ''}
+			{@const navValueText =
+				isStatementView && bumpViz?.dim?.items?.[0]
+					? `VALUE: ${titleCaseTensionLabel(navLabelForSelectedStatement(bumpViz.dim.items[0]))}`
+					: ''}
+			{@const navCompareModels =
+				$selectedDebateId && debateHeaderModels.length === 2 ? debateHeaderModels : []}
+			{@const radialFullBleed =
+				!isStatementView && !String($selectedDebateId ?? '').trim()}
 
 			<div
-				class="flex h-[100vh] min-h-0 flex-col overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-300"
+				class="flex h-[100vh] min-h-0 flex-col rounded-lg bg-slate-100 ring-1 ring-slate-300"
+				class:overflow-hidden={!radialFullBleed}
+				class:overflow-visible={radialFullBleed}
 			>
-				<div class="flex min-h-0 flex-1 flex-col md:flex-row overflow-hidden">
+				<div
+					class="flex min-h-0 flex-1 flex-col md:flex-row"
+					class:overflow-hidden={!radialFullBleed}
+					class:overflow-visible={radialFullBleed}
+				>
 					<!-- Dashboard left tray: selector stack anchored to bottom (text panel not in scope). -->
 					<aside
 						class="box-border flex w-full max-w-full shrink-0 flex-col overflow-hidden border-t border-slate-600 bg-[#3B3A3A] order-2 md:order-1 h-[35vh] md:h-auto md:w-[35vw] md:min-w-[400px] md:max-w-[35vw] md:border-r md:border-t-0"
@@ -955,7 +1072,7 @@
 												</p>
 												<div class="flex w-full justify-center">
 													<div
-														class="flex min-h-11 w-[90%] items-center justify-center rounded-full bg-[#4b4b4e] px-3 py-2 text-center text-sm text-white"
+														class="flex min-h-11 w-[90%] items-center justify-center rounded-2xl bg-[#4b4b4e] px-3 py-2 text-center text-sm leading-relaxed text-white shadow-sm"
 													>
 														{String(
 															DEBATE_BY_ID.get(String(message.debateId ?? ''))?.question ??
@@ -1174,91 +1291,37 @@
 					</aside>
 
 					<div
-						class="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-white order-1 md:order-2 h-[65vh] md:h-auto"
+						class="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col bg-white order-1 md:order-2 h-[65vh] md:h-auto"
+						class:overflow-hidden={isStatementView}
+						class:overflow-visible={!isStatementView}
 					>
-						{#if isStatementView || $selectedDebateId}
-							<header class="shrink-0 bg-white">
-								<div class="flex w-full flex-col">
-									{#if $selectedDebateId}
-										{@const debateHeaderModels =
-											$selectedModels.length > 0
-												? $selectedModels
-												: $selectedModel
-													? [$selectedModel]
-													: []}
-										<div class="flex w-full items-center gap-3 bg-[#3B3A3A] px-3 py-3 text-white">
-											<div class="min-w-0 flex-1 truncate text-sm font-semibold">
-												QUESTION: {String($selectedDebate?.question ?? $selectedDebateId)}
-											</div>
-											{#if debateHeaderModels.length}
-												<div class="flex items-center gap-2">
-													{#if debateHeaderModels.length === 2}
-														<button
-															type="button"
-															class="w-[100px] rounded-full px-3 py-1 text-center text-xs font-semibold text-white"
-															style={`background-color: ${modelColor(debateHeaderModels[0])};`}
-														>
-															{debateHeaderModels[0]}
-														</button>
-														<span class="text-xs font-semibold text-slate-200">and</span>
-														<button
-															type="button"
-															class="w-[100px] rounded-full px-3 py-1 text-center text-xs font-semibold text-white"
-															style={`background-color: ${modelColor(debateHeaderModels[1])};`}
-														>
-															{debateHeaderModels[1]}
-														</button>
-													{:else}
-														{#each debateHeaderModels as model (model)}
-															<button
-																type="button"
-																class="w-[100px] rounded-full px-3 py-1 text-center text-xs font-semibold text-white"
-																style={`background-color: ${modelColor(model)};`}
-															>
-																{model}
-															</button>
-														{/each}
-													{/if}
-												</div>
-											{/if}
-											<button
-												type="button"
-												class="text-base leading-none text-slate-200 hover:text-white"
-												onclick={goToRadialRoot}
-												aria-label="Clear selected question"
-											>
-												×
-											</button>
-										</div>
-									{/if}
-									{#if isStatementView && bumpViz?.dim?.items?.[0]}
-										<div
-											class="flex w-full items-center gap-3 px-3 py-2.5 text-white"
-											style={`background-color: ${$selectedDebateId ? '#5F5F5F' : '#3B3A3A'};`}
-										>
-											<div class="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide">
-												VALUE: {navLabelForSelectedStatement(bumpViz.dim.items[0])}
-											</div>
-											<button
-												type="button"
-												class="text-base leading-none text-slate-200 hover:text-white"
-												onclick={goToDebateStatements}
-												aria-label="Clear selected statement"
-											>
-												×
-											</button>
-										</div>
-									{/if}
-								</div>
-								{#if isStatementView && selectedSurveyQuestion}
-									<div class="mx-auto mt-5 mb-6 w-[calc(100%-2rem)] max-w-[min(100%,calc(72rem-40px))] rounded-md border border-slate-300 bg-slate-100 px-4 py-4 text-center text-sm text-slate-800 shadow-sm whitespace-pre-line">
-										{selectedSurveyQuestionDisplay}
-									</div>
-								{/if}
-							</header>
+						<div
+							class={`z-30 shrink-0 ${radialFullBleed ? 'absolute left-0 right-0 top-0 bg-transparent' : 'relative bg-white'}`}
+						>
+							<AppSiteHeader
+								transparentBackground={radialFullBleed}
+								questionText={navQuestionText}
+								valueText={navValueText}
+								compareModels={navCompareModels}
+								onClearQuestion={$selectedDebateId ? goToRadialRoot : undefined}
+								onClearValue={isStatementView && bumpViz?.dim?.items?.[0]
+									? goToDebateStatements
+									: undefined}
+							/>
+						</div>
+						{#if isStatementView && selectedSurveyQuestion}
+							<div
+								class="mx-auto mt-5 mb-6 w-[calc(100%-2rem)] max-w-[min(100%,calc(72rem-40px))] shrink-0 rounded-md border border-[#3B3A3A]/25 bg-[#3B3A3A]/10 px-4 py-4 text-center text-sm text-slate-800 shadow-sm whitespace-pre-line"
+							>
+								{selectedSurveyQuestionDisplay}
+							</div>
 						{/if}
 
-						<div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+						<div
+							class="flex min-h-0 flex-1 flex-col bg-white"
+							class:overflow-hidden={isStatementView}
+							class:overflow-visible={!isStatementView}
+						>
 							{#if isStatementView}
 								{#if bumpViz}
 									<div
@@ -1303,9 +1366,11 @@
 								<div
 									bind:clientWidth={radialCellW}
 									bind:clientHeight={radialCellH}
-									class="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white p-2"
+									class="relative flex min-h-0 flex-1 flex-col overflow-visible bg-white {radialFullBleed
+										? 'p-0'
+										: 'p-2'}"
 								>
-									<div class="relative min-h-0 w-full flex-1">
+									<div class="relative min-h-0 w-full flex-1 overflow-visible">
 										<StatementsRadialChart
 											width={radialSquare}
 											height={radialSquare}

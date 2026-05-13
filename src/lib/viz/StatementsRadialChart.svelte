@@ -323,7 +323,8 @@
 		}
 		const n = viz.dim.items.length;
 		const cx = width / 2;
-		const cy = height / 2 + (isDebateMode ? height * 0.1 : 0);
+		/* Nudge debate plot upward — extra space below from header / Y-shaped layout made it feel too low. */
+		const cy = height / 2 - (isDebateMode ? Math.min(height, width) * 0.14 : 0);
 		const side = Math.max(120, Math.min(width, height) - 2 * PAD + 40);
 		const fullOuterR = side / 2;
 		const divergenceMode = radialSortMode === STATEMENT_ORDER_DIVERGENCE;
@@ -377,10 +378,13 @@
 			spikeRangeOuter = spikeRangeInner + Math.max(4, SPIKE_RADIUS_EXTENSION_PX);
 		}
 
+		/** Debate: rotate so the first spoke is down (π/2); non-debate: first spoke up (−π/2). Two upper spokes for n=3. */
+		const angleBase = isDebateMode ? Math.PI / 2 : -Math.PI / 2;
+
 		const angles = [];
 		const rScales = [];
 		for (let i = 0; i < n; i++) {
-			angles.push(-Math.PI / 2 + (i / n) * 2 * Math.PI);
+			angles.push(angleBase + (i / n) * 2 * Math.PI);
 			const ext = viz.itemExtents[i] ?? [0, 1];
 			rScales.push(d3.scaleLinear().domain(ext).range([spikeRangeInner, spikeRangeOuter]));
 		}
@@ -392,8 +396,8 @@
 		const hlActive = hlNorm !== '__none__';
 
 		const subscaleArcs = runs.map((run, idx) => {
-			const t0 = -Math.PI / 2 + ((run.i0 - 0.5) / n) * tau;
-			const t1 = -Math.PI / 2 + ((run.i1 + 0.5) / n) * tau;
+			const t0 = angleBase + ((run.i0 - 0.5) / n) * tau;
+			const t1 = angleBase + ((run.i1 + 0.5) / n) * tau;
 			const label = run.label;
 			const itemSk = items[run.i0]?.subscaleKey;
 			const skLower = String(itemSk ?? '').trim().toLowerCase();
@@ -1338,6 +1342,74 @@
 		return 'middle';
 	}
 
+	/**
+	 * Rotation (degrees) so label reads along the spoke; flip when it would render upside-down.
+	 * @param {number} t — spoke angle (rad)
+	 */
+	function debatePoleLabelRotateDeg(t) {
+		let deg = (t * 180) / Math.PI;
+		deg = ((deg % 360) + 360) % 360;
+		if (deg > 90 && deg < 270) deg -= 180;
+		return deg;
+	}
+
+	/**
+	 * Debate pole + tension title radii (px from center along each spoke).
+	 * Inner label sits inward of spikes; outer label just past spike tips; tension title farther out.
+	 * @param {{ spikeRangeInner: number, spikeRangeOuter: number, hubR: number, cx: number, cy: number }} L
+	 */
+	function debateRadialLabelRadii(L) {
+		const si = L.spikeRangeInner;
+		const so = L.spikeRangeOuter;
+		const hub = L.hubR;
+		const rIn = Math.max(hub + 10, si - 26);
+		const rOut = so + 24;
+		const lr = so + 84;
+		return { rIn, rOut, lr, axisLabelGap: 24 };
+	}
+
+	/**
+	 * Tension title radius along spoke: upper-half spokes (sin t < 0 in SVG) get extra push
+	 * so the two top tensions read higher on the canvas.
+	 * @param {number} t — spoke angle (rad)
+	 * @param {number} baseLr
+	 */
+	function debateTensionLrAlongSpoke(t, baseLr) {
+		return Math.sin(t) < -0.02 ? baseLr + 32 : baseLr;
+	}
+
+	/**
+	 * Axis segments with gaps so lines do not cross pole or tension labels.
+	 * @param {{ spikeRangeInner: number, spikeRangeOuter: number, hubR: number, cx: number, cy: number }} L
+	 * @param {number} t
+	 */
+	function debateAxisLineSegments(L, t) {
+		const { rIn, rOut, lr, axisLabelGap: g } = debateRadialLabelRadii(L);
+		const lrTension = debateTensionLrAlongSpoke(t, lr);
+		const hub = L.hubR;
+		const c = Math.cos(t);
+		const s = Math.sin(t);
+		const { cx, cy } = L;
+		const seg = (rFrom, rTo) => ({
+			x1: cx + rFrom * c,
+			y1: cy + rFrom * s,
+			x2: cx + rTo * c,
+			y2: cy + rTo * s
+		});
+		const rLineStart = hub + 4;
+		const r1 = Math.max(rLineStart + 2, rIn - g);
+		const r2 = rIn + g;
+		const r3 = rOut - g;
+		const r4 = rOut + g;
+		const r5 = Math.max(r4 + 2, lrTension - g);
+		/** @type {{ x1: number, y1: number, x2: number, y2: number }[]} */
+		const parts = [];
+		if (r1 > rLineStart + 0.5) parts.push(seg(rLineStart, r1));
+		if (r3 > r2 + 0.5) parts.push(seg(r2, r3));
+		if (r5 > r4 + 0.5) parts.push(seg(r4, r5));
+		return parts;
+	}
+
 	/** @param {number} i */
 	function debateAxisLabel(i) {
 		const raw = Array.isArray(debatePrimaryTensions) ? debatePrimaryTensions[i] : '';
@@ -1348,6 +1420,26 @@
 			.filter(Boolean)
 			.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
 			.join(' ');
+	}
+
+	/**
+	 * High/low wording along the spoke: inner ≈ scale min, outer ≈ scale max (swap when `reverse`, like averages JSON).
+	 * @param {number} i
+	 */
+	function debateAxisPoleLabelPair(i) {
+		const item = viz?.dim?.items?.[i];
+		if (!item) return { inner: '', outer: '' };
+		const rev = Boolean(item.reverse);
+		const lo = String(
+			item.statement_values?.min ?? item.dimStatementValues?.min ?? ''
+		).trim();
+		const hi = String(
+			item.statement_values?.max ?? item.dimStatementValues?.max ?? ''
+		).trim();
+		if (!lo && !hi) return { inner: '', outer: '' };
+		const inner = rev ? hi : lo;
+		const outer = rev ? lo : hi;
+		return { inner, outer };
 	}
 
 	/**
@@ -1504,18 +1596,16 @@ const debateRadarFillOpacity = $derived.by(() => {
 					<g aria-hidden="true" class="debate-axis-grid" pointer-events="none">
 						{#each spikeIndexList as i (`debate-axis-${i}`)}
 							{@const t = layout.angles[i]}
-							{@const x0 = layout.cx}
-							{@const y0 = layout.cy}
-							{@const x1 = layout.cx + (layout.spikeRangeOuter + 12) * Math.cos(t)}
-							{@const y1 = layout.cy + (layout.spikeRangeOuter + 12) * Math.sin(t)}
-							<line
-								x1={x0}
-								y1={y0}
-								x2={x1}
-								y2={y1}
-								stroke="#cecece"
-								stroke-width="1"
-							/>
+							{#each debateAxisLineSegments(layout, t) as seg, segIdx (`debate-axis-seg-${i}-${segIdx}`)}
+								<line
+									x1={seg.x1}
+									y1={seg.y1}
+									x2={seg.x2}
+									y2={seg.y2}
+									stroke="#cecece"
+									stroke-width="1"
+								/>
+							{/each}
 						{/each}
 					</g>
 				{/if}
@@ -1726,39 +1816,86 @@ const debateRadarFillOpacity = $derived.by(() => {
 			{/if}
 
 			{#if isDebateMode}
-				<g aria-hidden="true" class="debate-axis-labels" pointer-events="auto">
+				{@const dr = debateRadialLabelRadii(layout)}
+				<g class="debate-axis-labels" pointer-events="auto">
 					{#each spikeIndexList as i (`debate-label-${i}`)}
 						{@const t = layout.angles[i]}
-						{@const lr = layout.spikeRangeOuter + 20}
-						{@const lx = layout.cx + lr * Math.cos(t)}
-						{@const ly = layout.cy + lr * Math.sin(t)}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<text
-							x={lx}
-							y={ly}
-							fill="#111827"
-							font-size="10"
-							font-weight="600"
-							letter-spacing="0.01em"
-							text-anchor={radialLabelAnchor(t)}
-							dominant-baseline="middle"
-							pointer-events="auto"
-							role="button"
-							tabindex="0"
-							class="debate-axis-label-text"
-							onmouseenter={(event) => setDebateLabelHover(event, i)}
-							onmousemove={(event) => setDebateLabelHover(event, i)}
-							onmouseleave={clearDotHover}
-							onclick={(event) => handleDebateLabelClick(event, i)}
-							onkeydown={(event) => {
-								if (event.key === 'Enter' || event.key === ' ') {
-									event.preventDefault();
-									handleDebateLabelClick(event, i);
-								}
-							}}
-						>
-							{debateAxisLabel(i)}
-						</text>
+						{@const pl = debateAxisPoleLabelPair(i)}
+						{@const cos = Math.cos(t)}
+						{@const sin = Math.sin(t)}
+						{@const rIn = dr.rIn}
+						{@const rOut = dr.rOut}
+						{@const lrTension = debateTensionLrAlongSpoke(t, dr.lr)}
+						{@const poleRot = debatePoleLabelRotateDeg(t)}
+						{@const lxIn = layout.cx + rIn * cos}
+						{@const lyIn = layout.cy + rIn * sin}
+						{@const lxOut = layout.cx + rOut * cos}
+						{@const lyOut = layout.cy + rOut * sin}
+						{@const lx = layout.cx + lrTension * cos}
+						{@const ly = layout.cy + lrTension * sin}
+						<g>
+							<g aria-hidden="true" pointer-events="none">
+								{#if pl.inner}
+									<text
+										x={lxIn}
+										y={lyIn}
+										fill="#94a3b8"
+										font-size="8.5"
+										font-weight="600"
+										letter-spacing="0.02em"
+										text-anchor="middle"
+										dominant-baseline="middle"
+										transform="rotate({poleRot} {lxIn} {lyIn})"
+										class="debate-axis-pole-label"
+									>
+										{pl.inner}
+									</text>
+								{/if}
+								{#if pl.outer}
+									<text
+										x={lxOut}
+										y={lyOut}
+										fill="#94a3b8"
+										font-size="8.5"
+										font-weight="600"
+										letter-spacing="0.02em"
+										text-anchor="middle"
+										dominant-baseline="middle"
+										transform="rotate({poleRot} {lxOut} {lyOut})"
+										class="debate-axis-pole-label"
+									>
+										{pl.outer}
+									</text>
+								{/if}
+							</g>
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<text
+								x={lx}
+								y={ly}
+								fill="#111827"
+								font-size="14"
+								font-weight="700"
+								letter-spacing="0.01em"
+								text-anchor="middle"
+								dominant-baseline="middle"
+								pointer-events="auto"
+								role="button"
+								tabindex="0"
+								class="debate-axis-label-text"
+								onmouseenter={(event) => setDebateLabelHover(event, i)}
+								onmousemove={(event) => setDebateLabelHover(event, i)}
+								onmouseleave={clearDotHover}
+								onclick={(event) => handleDebateLabelClick(event, i)}
+								onkeydown={(event) => {
+									if (event.key === 'Enter' || event.key === ' ') {
+										event.preventDefault();
+										handleDebateLabelClick(event, i);
+									}
+								}}
+							>
+								{debateAxisLabel(i)}
+							</text>
+						</g>
 					{/each}
 				</g>
 			{/if}
@@ -2022,6 +2159,10 @@ const debateRadarFillOpacity = $derived.by(() => {
 	.debate-axis-label-text {
 		cursor: pointer;
 		-webkit-tap-highlight-color: transparent;
+	}
+
+	.debate-axis-pole-label {
+		pointer-events: none;
 	}
 
 	.radial-center-card {

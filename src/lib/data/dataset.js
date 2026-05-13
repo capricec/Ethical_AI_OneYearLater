@@ -4,7 +4,7 @@ import subscaleInterpretation from '../../../data/subscale_interpretation.json';
 import statementContext from '../../../data/statement_context.json';
 import questions from '../../../data/questions.json';
 import debates from '../../../data/debates.json';
-import debateTranscripts from '../../../data/debate_transcripts.json';
+import debateAllModelsResponses from '../../../data/debate_all_models_responses.json';
 
 export {
 	compiled,
@@ -13,5 +13,5 @@ export {
 	statementContext,
 	questions,
 	debates,
-	debateTranscripts
+	debateAllModelsResponses
 };
