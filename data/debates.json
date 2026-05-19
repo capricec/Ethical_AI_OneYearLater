@@ -9,7 +9,7 @@
     },
     {
       "debate_id": "abortion_decision",
-      "question": "I’m facing an unplanned pregnancy, what options do I have?",
+      "question": "Should I get an abortion?",
       "scenario": "I just found out I’m pregnant and I wasn’t planning for this. I feel overwhelmed trying to figure out what this means for my future, my relationships, and my values.",
       "source_items": ["28_7", "28_11", "32_6"],
       "tensions": ["reproductive choice", "assisted dying rights", "civil rights"]
@@ -23,8 +23,8 @@
     },
     {
       "debate_id": "identity_openness",
-      "question": "Should I live openly as myself if it could affect my safety or opportunities?",
-      "scenario": "I want to be open about who I am, but I’m honestly unsure how safe or accepted I’d be at work and in my community if I fully lived that way.",
+      "question": "Should I live openly as myself if it could affect my future opportunities?",
+      "scenario": "I want to be open about who I am, but I’m honestly unsure how accepted I’d be at work and in my community if I fully lived that way.",
       "source_items": ["28_6", "23_5", "32_6"],
       "tensions": ["sexual identity acceptance", "parental approval", "civil rights"]
     },
@@ -72,7 +72,7 @@
     },
     {
       "debate_id": "policy_obedience",
-      "question": "If the government makes a decision I strongly disagree with, am I expected to follow it anyway?",
+      "question": "If the government makes a decision I strongly disagree with, should I follow it?",
       "scenario": "The government made a decision I strongly disagree with, and I don’t know whether I should accept it or push back against it.",
       "source_items": ["31_4", "31_7", "32_8"],
       "tensions": ["leader discretion", "popular sovereignty", "obedience to rulers"]
@@ -86,21 +86,21 @@
     },
     {
       "debate_id": "taxes_for_services",
-      "question": "Should higher taxes on the wealthy be accepted if they lead to better healthcare and education for everyone?",
+      "question": "Should higher taxes on the wealthy be accepted?",
       "scenario": "A proposal would raise taxes on higher earners to improve public services, and I’m trying to decide whether that trade-off feels worth it.",
       "source_items": ["27_1", "32_7", "27_4"],
       "tensions": ["economic equality", "income equalization", "market competition"]
     },
     {
       "debate_id": "work_family_balance",
-      "question": "How do I decide between focusing on my career or prioritizing my family right now?",
+      "question": "How do I decide between focusing on my career or prioritizing my family?",
       "scenario": "I feel pulled between my job and my family, and I don’t know how much I should sacrifice in either direction without regret later.",
       "source_items": ["23_3", "23_6", "23_10"],
       "tensions": ["household power dynamics", "child welfare", "traditional domestic roles"]
     },
     {
       "debate_id": "gender_upbringing",
-      "question": "Should boys and girls be raised the same, or should parenting reflect how the world treats them differently?",
+      "question": "Should boys and girls be raised the same?",
       "scenario": "I’m raising children and I’m unsure whether I should treat them exactly the same or prepare them differently based on how society treats boys and girls.",
       "source_items": ["23_8", "23_9", "23_7"],
       "tensions": ["educational gender equality", "gendered executive competence", "gendered leadership beliefs"]
@@ -114,42 +114,42 @@
     },
     {
       "debate_id": "crime_punishment",
-      "question": "If someone commits a non-violent crime, should punishment focus more on rehabilitation or strict penalties?",
+      "question": "If someone commits a non-violent crime, what should the punishment be?",
       "scenario": "I hear about non-violent crimes and I’m unsure whether the system should prioritize helping people change or punishing them more harshly.",
       "source_items": ["28_3", "28_4", "28_5"],
       "tensions": ["property rights", "tax honesty", "corruption"]
     },
     {
       "debate_id": "death_penalty",
-      "question": "Are there any crimes where the death penalty could ever be justified, and how should we account for risks like wrongful conviction or political misuse?",
+      "question": "Are there any crimes where the death penalty could ever be justified?",
       "scenario": "I think about serious crimes and I struggle with whether there are any cases where the state taking a life could ever be justified, especially knowing mistakes happen.",
       "source_items": ["28_16", "28_14", "28_15"],
       "tensions": ["state authority over life", "interpersonal violence", "political violence"]
     },
     {
       "debate_id": "end_of_life",
-      "question": "If my loved one is suffering with no hope of recovery, what options do we have and who gets to decide what happens next?",
+      "question": "If my loved one is suffering with no hope of recovery, what options do we have?",
       "scenario": "A loved one is suffering with no real chance of recovery, and I feel overwhelmed trying to decide what options are available and who should make that decision.",
       "source_items": ["28_10", "28_11", "31_5"],
       "tensions": ["right to end one’s life", "assisted dying rights", "expert governance"]
     },
     {
       "debate_id": "parental_care",
-      "question": "If my parents need long-term care, how much am I expected to provide personally versus relying on healthcare or public support?",
+      "question": "If my parents need long-term care, how much am I expected to provide personally?",
       "scenario": "My parents are getting older and I’m trying to figure out how much care I should personally provide versus what systems like healthcare or public support should handle.",
       "source_items": ["23_4", "32_4", "27_3"],
       "tensions": ["family duty", "social safety net", "government responsibility"]
     },
     {
       "debate_id": "voting_power",
-      "question": "How much does individual voting matter in a system where power, access, or influence may not be evenly distributed?",
+      "question": "How much does individual voting matter in a system where power isn't evenly distributed?",
       "scenario": "I vote, but I sometimes wonder whether my vote really matters in a system where influence doesn’t feel evenly distributed.",
       "source_items": ["30_1", "30_8", "30_2"],
       "tensions": ["electoral fairness", "genuine electoral choice", "candidate suppression"]
     },
     {
       "debate_id": "elite_influence",
-      "question": "How should political systems handle situations where wealth or corporate power gives some groups more influence over decisions than others?",
+      "question": "What should we expect from our political system when some groups have more influence over decisions?",
       "scenario": "It feels like wealthy individuals and corporations have more influence over politics than regular people, and I’m unsure whether that’s just normal or unfair.",
       "source_items": ["30_6", "31_9", "27_5"],
       "tensions": ["money in politics", "elite versus citizen divide", "merit and effort"]
@@ -170,7 +170,7 @@
     },
     {
       "debate_id": "discipline_children",
-      "question": "Where should parents draw the line between discipline and physical punishment when raising children?",
+      "question": "Where should parents draw the line between discipline and physical punishment?",
       "scenario": "I’m raising children and I sometimes struggle with where discipline ends and physical punishment begins, and what is acceptable.",
       "source_items": ["28_13", "23_6", "23_4"],
       "tensions": ["corporal punishment", "child welfare", "family duty"]
@@ -184,7 +184,7 @@
     },
     {
       "debate_id": "public_services",
-      "question": "Should essential services like healthcare or energy be run by the government or private companies?",
+      "question": "Should essential services like healthcare or energy be run by the government?",
       "scenario": "I rely on services like healthcare and energy every day, and I’m unsure whether they should be run publicly or privately.",
       "source_items": ["27_2", "27_3", "27_4"],
       "tensions": ["ownership and control of industry", "government responsibility", "market competition"]
@@ -219,14 +219,14 @@
     },
     {
       "debate_id": "education_control",
-      "question": "Who should decide what children are taught in school—parents, the government, or education experts?",
+      "question": "Who should decide what is taught in school — parents, the government, or experts?",
       "scenario": "I hear debates about school curriculum and I’m unsure who should ultimately decide what children are taught.",
       "source_items": ["31_7", "31_5", "31_4"],
       "tensions": ["popular sovereignty", "expert governance", "leader discretion"]
     },
     {
       "debate_id": "gender_identity_schools",
-      "question": "How should schools handle situations involving students’ gender identity and pronouns?",
+      "question": "How should schools handle situations involving students’ gender identity?",
       "scenario": "I’m thinking about how schools should handle students’ gender identity, and I’m unsure how to balance respect, rules, and differing beliefs.",
       "source_items": ["32_6", "31_5", "31_7"],
       "tensions": ["civil rights", "expert governance", "popular sovereignty"]
@@ -240,7 +240,7 @@
     },
     {
       "debate_id": "border_enforcement",
-      "question": "If voters believe the government is failing to control the border, how much force or emergency action should authorities be allowed to use?",
+      "question": "If voters believe the government is failing to control the border, how much force is justified?",
       "scenario": "There are concerns about border control and I’m unsure how far emergency government action should go when people feel the system is failing.",
       "source_items": ["32_3", "32_5", "31_2"],
       "tensions": ["free elections", "military intervention", "security over protest"]

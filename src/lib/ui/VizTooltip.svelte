@@ -34,13 +34,13 @@
 	aria-hidden="true"
 >
 	{#if variant === 'radial-all'}
-		<div class="viz-tooltip-kicker viz-tooltip-kicker--tight">STATEMENT</div>
+		<div class="viz-tooltip-kicker viz-tooltip-kicker--tight">SURVEY QUESTION</div>
 		{#if statementText}
 			<div class="viz-tooltip-statement viz-tooltip-statement--radial">{statementText}</div>
 		{/if}
 		<div class="viz-tooltip-hint">{radialHintText}</div>
 	{:else if variant === 'radial-model'}
-		<div class="viz-tooltip-kicker viz-tooltip-kicker--tight">STATEMENT</div>
+		<div class="viz-tooltip-kicker viz-tooltip-kicker--tight">SURVEY QUESTION</div>
 		{#if statementText}
 			<div class="viz-tooltip-statement viz-tooltip-statement--radial">{statementText}</div>
 		{/if}

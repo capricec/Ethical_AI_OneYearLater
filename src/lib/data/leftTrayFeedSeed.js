@@ -22,14 +22,9 @@ export const LEFT_TRAY_FEED_SEED = [
 		text: 'Welcome to The Everyday Ethics of AI.'
 	},
 	{
-		id: 'intro-1.1',
-		type: 'narration',
-		text: 'Every day, AI models answer millions of ordinary questions. Beneath those answers are ethics, assumptions about what matters, what is fair, and what should be done. To explore this underlying layer, five models responded to a series of questions drawn from the World Values Survey.'
-	},
-	{
 		id: 'intro-1.2',
 		type: 'narration',
-		text: 'Select a topic to see how the models responded and where their underlying values align or diverge. The Value Wheel highlights these differences: grey areas show agreement, while more vivid regions reveal where perspectives begin to separate.'
+		text: 'Select a question below or explore the value wheel. Gray areas show where the models had consensus, while colored regions reveal where ethics diverge.'
 	},
 	/*{
 		id: 'intro-2',
@@ -59,8 +54,25 @@ export const LEFT_TRAY_FEED_SEED = [
 export const LEFT_TRAY_FEED_TIMING = {
 	beforeNarrationMs: 120,
 	narrationToModelsMs: 450,
+	beforeSectionMs: 450,
 	betweenModelMessagesMs: 550
 };
+
+/** ~2× desktop — more time to read on narrow screens. */
+export const LEFT_TRAY_FEED_TIMING_MOBILE = {
+	beforeNarrationMs: 500,
+	narrationToModelsMs: 1500,
+	beforeSectionMs: 1500,
+	betweenModelMessagesMs: 3000
+};
+
+/**
+ * @param {boolean} [mobile]
+ * @returns {typeof LEFT_TRAY_FEED_TIMING}
+ */
+export function leftTrayFeedTimingForViewport(mobile = false) {
+	return mobile ? LEFT_TRAY_FEED_TIMING_MOBILE : LEFT_TRAY_FEED_TIMING;
+}
 
 /**
  * Feed behavior mode when a radial statement is selected.

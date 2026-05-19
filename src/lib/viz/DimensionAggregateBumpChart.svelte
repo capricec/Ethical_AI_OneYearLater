@@ -62,7 +62,8 @@ import {
 	 *   selectedStatementId?: (string|null),
 	 *   rowHeights?: number[],
 	 *   highlightSubscaleKey?: (string|null),
-	 *   onSelectModel?: (fundModel: string) => void
+	 *   onSelectModel?: (fundModel: string) => void,
+	 *   showCompactLegend?: boolean
 	 * }}
 	 */
 	let {
@@ -75,7 +76,8 @@ import {
 		selectedStatementId = null,
 		rowHeights = [],
 		highlightSubscaleKey = null,
-		onSelectModel
+		onSelectModel,
+		showCompactLegend = true
 	} = $props();
 
 	const HIGHLIGHT_DIM_OPACITY = 0;
@@ -105,6 +107,10 @@ import {
 
 	/** Narrow viewports: smaller side gutter so the scale isn’t crushed; labels sit just inside the gutter. */
 	const isCompactWidth = $derived(width < 768);
+	/** Mobile single-statement view: bump only + axis labels + HTML legend (no heatmap rows). */
+	const hideCompactAggregateDetail = $derived(
+		isCompactWidth && Boolean(viz) && viz.dim.items.length === 1
+	);
 	const sideGutter = $derived(
 		isCompactWidth
 			? Math.max(32, Math.min(80, Math.round(width * 0.14)))
@@ -129,7 +135,11 @@ import {
 	 * Trailing constant is clearance under caption glyphs + extra gap before first detail row.
 	 */
 	const detailTopPad = $derived(
-		isCompactWidth ? bumpRowCenterOffset + TICK_HALF_HEIGHT + 3 + 24 : DETAIL_TOP_PAD
+		hideCompactAggregateDetail
+			? bumpRowCenterOffset + TICK_HALF_HEIGHT + 3 + 16
+			: isCompactWidth
+				? bumpRowCenterOffset + TICK_HALF_HEIGHT + 3 + 24
+				: DETAIL_TOP_PAD
 	);
 	const detailRowH = $derived(isCompactWidth ? 54 : DETAIL_ROW_H);
 	const modelLabelX = $derived(isCompactWidth ? -4 : DETAIL_MODEL_LABEL_X);
@@ -138,15 +148,30 @@ import {
 	const TOOLTIP_HEIGHT = 56;
 	const TOOLTIP_PADDING = 8;
 
+	/** Mobile statement: tight SVG — full rowHeight was leaving a tall white rect below the plot. */
+	const compactPlotSvgHeight = $derived(
+		hideCompactAggregateDetail
+			? Math.ceil(bumpRowCenterOffset + TICK_HALF_HEIGHT + 22)
+			: 0
+	);
+
 	const height = $derived(
 		viz
-			? CHART_MARGIN_TOP +
-				CHART_MARGIN_BOTTOM +
-				(rowHeights?.length === viz.dim.items.length
-					? rowHeights.reduce((acc, h) => acc + (Number.isFinite(h) ? h : ROW_ITEM_HEIGHT), 0)
-					: viz.dim.items.length * ROW_ITEM_HEIGHT)
+			? hideCompactAggregateDetail
+				? compactPlotSvgHeight
+				: CHART_MARGIN_TOP +
+					CHART_MARGIN_BOTTOM +
+					(rowHeights?.length === viz.dim.items.length
+						? rowHeights.reduce((acc, h) => acc + (Number.isFinite(h) ? h : ROW_ITEM_HEIGHT), 0)
+						: viz.dim.items.length * ROW_ITEM_HEIGHT)
 			: 120
 	);
+
+	/** @param {number} rowIndex */
+	function rowHeightForIndex(rowIndex) {
+		if (hideCompactAggregateDetail) return compactPlotSvgHeight;
+		return rowHeights?.[rowIndex] ?? ROW_ITEM_HEIGHT;
+	}
 
 	const innerWidth = $derived(Math.max(80, width - margin.side * 2));
 	const activeModel = $derived(selectedModel);
@@ -164,7 +189,7 @@ import {
 		const ys = [];
 		let y = margin.top;
 		for (let i = 0; i < viz.dim.items.length; i++) {
-			const h = rowHeights?.[i] ?? ROW_ITEM_HEIGHT;
+			const h = rowHeightForIndex(i);
 			// Keep bump marks top-aligned even when a row expands.
 			ys.push(y + bumpRowCenterOffset);
 			y += h;
@@ -323,7 +348,7 @@ const rowBounds = $derived.by(() => {
 	const out = [];
 	let y = margin.top;
 	for (let i = 0; i < viz.dim.items.length; i++) {
-		const h = rowHeights?.[i] ?? ROW_ITEM_HEIGHT;
+		const h = rowHeightForIndex(i);
 		out.push({ top: y, height: h, center: y + h / 2 });
 		y += h;
 	}
@@ -336,6 +361,7 @@ const selectedRowIndex = $derived.by(() => {
 });
 
 	const selectedDetail = $derived.by(() => {
+	if (hideCompactAggregateDetail) return null;
 	if (!viz || selectedRowIndex < 0 || !rowBounds[selectedRowIndex]) return null;
 	const bounds = rowBounds[selectedRowIndex];
 	const chartX0 = 0;
@@ -765,6 +791,7 @@ const selectedRowIndex = $derived.by(() => {
 {:else}
 	<div
 		class="chart-wrap followup-chart-shell box-border flex max-w-full flex-col gap-0 overflow-visible"
+		class:chart-wrap--compact-legend={hideCompactAggregateDetail}
 		style="width: {width}px; max-width: 100%;"
 	>
 		{#if showFollowupText && statementFollowupLayout?.text}
@@ -791,7 +818,9 @@ const selectedRowIndex = $derived.by(() => {
 			role="img"
 		>
 			<title>Model positions by statement</title>
-			<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} />
+			{#if !hideCompactAggregateDetail}
+				<rect x="0" y="0" width={width} height={height} fill={PANEL_BG} aria-hidden="true" />
+			{/if}
 
 			<g transform="translate({margin.side},0)" style="overflow: visible">
 				{#each viz.dim.items as item, ri (item.item_id)}
@@ -985,7 +1014,7 @@ const selectedRowIndex = $derived.by(() => {
 							onmouseleave={clearHover}
 						/>
 					{/each}
-				{:else if selectedDetail}
+				{:else if selectedDetail && !hideCompactAggregateDetail}
 					{#if STATEMENT_DETAIL_AGGREGATE_MODE === 'heatmap'}
 						{#each selectedDetail.rows as d (`detail-${d.model}`)}
 							{@const selectedItem = viz.dim.items[selectedRowIndex]}
@@ -1116,37 +1145,35 @@ const selectedRowIndex = $derived.by(() => {
 					{/if}
 				{/if}
 
-				{#if isCompactWidth && viz.dim.items.length === 1}
+				{#if hideCompactAggregateDetail && viz.dim.items.length === 1}
 					{@const axisItem0 = viz.dim.items[0]}
 					{@const epMin = endpointTextForSide(axisItem0, 'min')}
 					{@const epMax = endpointTextForSide(axisItem0, 'max')}
 					{@const capLeft = axisItem0?.reverse ? epMax : epMin}
 					{@const capRight = axisItem0?.reverse ? epMin : epMax}
 					{@const yi0 = rowCentersY[0]}
-					<!-- Tight under bump midline tick; x inset pulls captions toward the vertical center line. -->
-					{@const epY = yi0 + TICK_HALF_HEIGHT + 3}
-					{@const capXInset = Math.max(6, Math.min(56, Math.round(innerWidth * 0.14)))}
+					{@const epY = yi0 + TICK_HALF_HEIGHT - 6}
 					<text
-						x={-20}
-						y={epY - 10}
+						x={-36}
+						y={epY}
 						fill="#57534e"
 						font-size="10"
 						font-weight="400"
 						text-anchor="start"
 						dominant-baseline="hanging"
 					>
-						← {capLeft}
+						{capLeft}
 					</text>
 					<text
-						x={innerWidth + 20 }
-						y={epY - 10}
+						x={innerWidth + 36}
+						y={epY}
 						fill="#57534e"
 						font-size="10"
 						font-weight="400"
 						text-anchor="end"
 						dominant-baseline="hanging"
 					>
-						{capRight} →
+						{capRight}
 					</text>
 				{/if}
 
@@ -1163,6 +1190,20 @@ const selectedRowIndex = $derived.by(() => {
 				{/if}
 			</g>
 		</svg>
+		{#if showCompactLegend && hideCompactAggregateDetail && visibleModelSeries.length}
+			<ul class="compact-model-legend" aria-label="Models in chart">
+				{#each visibleModelSeries as ms (ms.fundModel)}
+					<li class="compact-model-legend-item">
+						<span
+							class="compact-model-legend-swatch"
+							style={`background-color: ${modelColor(ms.fundModel)};`}
+							aria-hidden="true"
+						></span>
+						<span class="compact-model-legend-label">{ms.fundModel}</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 		{#if tooltip}
 			<VizTooltip
 				x={tooltip.x}
@@ -1186,5 +1227,53 @@ const selectedRowIndex = $derived.by(() => {
 	/* Reserve space for caret; future sprint: draggable bubble via pointer events on shell. */
 	.followup-chart-shell {
 		padding-top: 0;
+	}
+
+	.chart-wrap--compact-legend {
+		flex-shrink: 0;
+		width: 100%;
+		align-self: stretch;
+	}
+
+	.compact-model-legend {
+		display: flex;
+		flex-wrap: nowrap;
+		justify-content: center;
+		align-items: center;
+		gap: 0.25rem 0.5rem;
+		width: 100%;
+		max-width: 100%;
+		margin: 40px 0 0;
+		padding: 0;
+		list-style: none;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none;
+	}
+
+	.compact-model-legend::-webkit-scrollbar {
+		display: none;
+	}
+
+	.compact-model-legend-item {
+		display: inline-flex;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: 0.25rem;
+		white-space: nowrap;
+	}
+
+	.compact-model-legend-swatch {
+		width: 0.625rem;
+		height: 0.625rem;
+		border-radius: 2px;
+		flex-shrink: 0;
+	}
+
+	.compact-model-legend-label {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		color: #334155;
+		line-height: 1;
 	}
 </style>

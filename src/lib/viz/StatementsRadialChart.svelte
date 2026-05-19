@@ -64,7 +64,7 @@
 	 * @property {{ aggregate: object, item: object }} labels
 	 */
 
-	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), selectedModels?: string[], debatePrimaryTensions?: string[], radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void), onStatementSelect?: ((itemId: string) => void) }} */
+	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), selectedModels?: string[], debatePrimaryTensions?: string[], radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void), statementSelectEnabled?: boolean, onStatementSelect?: ((itemId: string) => void) }} */
 	let {
 		width,
 		height,
@@ -76,6 +76,7 @@
 		onRadialSortModeChange = () => {},
 		highlightSubscaleKey = null,
 		onSubscaleWedgeClick = () => {},
+		statementSelectEnabled = true,
 		onStatementSelect = () => {}
 	} = $props();
 	let legendOpen = $state(false);
@@ -323,9 +324,15 @@
 		}
 		const n = viz.dim.items.length;
 		const cx = width / 2;
-		/* Nudge debate plot upward — extra space below from header / Y-shaped layout made it feel too low. */
-		const cy = height / 2 - (isDebateMode ? Math.min(height, width) * 0.14 : 0);
-		const side = Math.max(120, Math.min(width, height) - 2 * PAD + 40);
+		const chartMin = Math.min(width, height);
+		const debateCompact = isDebateMode && chartMin < 520;
+		/* Nudge debate plot upward — extra space below from header / feed on mobile. */
+		const cy =
+			height / 2 - (isDebateMode ? chartMin * (debateCompact ? 0.2 : 0.14) : 0);
+		const side = Math.max(
+			120,
+			chartMin - 2 * PAD + (debateCompact ? 24 : 40)
+		);
 		const fullOuterR = side / 2;
 		const divergenceMode = radialSortMode === STATEMENT_ORDER_DIVERGENCE;
 		/** Subscale label ring is hidden: reclaim that band so the value plot uses the full disc. */
@@ -1322,6 +1329,7 @@
 	/** @param {MouseEvent | KeyboardEvent} event */
 	/** @param {object} item */
 	function handleSpikeClick(event, item) {
+		if (!statementSelectEnabled) return;
 		event.preventDefault();
 		event.stopPropagation();
 		const id = item?.item_id;
@@ -1342,6 +1350,12 @@
 		return 'middle';
 	}
 
+	/** Tension title only — upper-left: start, upper-right: end, lower spoke: middle. */
+	function debateTensionTitleAnchor(t) {
+		if (Math.sin(t) >= -0.02) return 'middle';
+		return Math.cos(t) < 0 ? 'start' : 'end';
+	}
+
 	/**
 	 * Rotation (degrees) so label reads along the spoke; flip when it would render upside-down.
 	 * @param {number} t — spoke angle (rad)
@@ -1359,23 +1373,55 @@
 	 * @param {{ spikeRangeInner: number, spikeRangeOuter: number, hubR: number, cx: number, cy: number }} L
 	 */
 	function debateRadialLabelRadii(L) {
+		const compact = Math.min(width, height) < 520;
 		const si = L.spikeRangeInner;
 		const so = L.spikeRangeOuter;
 		const hub = L.hubR;
 		const rIn = Math.max(hub + 10, si - 26);
 		const rOut = so + 24;
-		const lr = so + 84;
-		return { rIn, rOut, lr, axisLabelGap: 24 };
+		const lr = so + (compact ? 62 : 84);
+		return { rIn, rOut, lr, axisLabelGap: compact ? 16 : 24 };
 	}
 
 	/**
-	 * Tension title radius along spoke: upper-half spokes (sin t < 0 in SVG) get extra push
-	 * so the two top tensions read higher on the canvas.
+	 * Nudge tension titles off the spoke tip so the top pair do not collide.
+	 * @param {number} i
+	 * @param {number} n
 	 * @param {number} t — spoke angle (rad)
-	 * @param {number} baseLr
 	 */
-	function debateTensionLrAlongSpoke(t, baseLr) {
-		return Math.sin(t) < -0.02 ? baseLr + 32 : baseLr;
+	function debateTensionLabelOffset(i, n, t) {
+		const compact = Math.min(width, height) < 520;
+		if (n === 3) {
+			if (i === 0) return { dx: 0, dy: compact ? 4 : 12 };
+			if (i === 1) return { dx: compact ? -10 : -14, dy: compact ? -8 : -12 };
+			if (i === 2) return { dx: compact ? 10 : 14, dy: compact ? -8 : -12 };
+		}
+		const c = Math.cos(t);
+		const s = Math.sin(t);
+		const spread = Math.min(width, height) < 520 ? 10 : 14;
+		return { dx: c * spread, dy: s * spread };
+	}
+
+	/**
+	 * Keep tension titles inside the SVG viewport on narrow screens.
+	 * @param {number} cx
+	 * @param {number} cy
+	 * @param {number} w
+	 * @param {number} h
+	 * @param {number} t
+	 * @param {number} lr
+	 * @param {number} minR
+	 * @param {number} [textMargin]
+	 */
+	function clampDebateTensionLabelRadius(cx, cy, w, h, t, lr, minR, textMargin = 52) {
+		const c = Math.cos(t);
+		const s = Math.sin(t);
+		let maxR = lr;
+		if (c > 0.02) maxR = Math.min(maxR, (w - textMargin - cx) / c);
+		if (c < -0.02) maxR = Math.min(maxR, (textMargin - cx) / -c);
+		if (s > 0.02) maxR = Math.min(maxR, (h - textMargin - cy) / s);
+		if (s < -0.02) maxR = Math.min(maxR, (textMargin - cy) / -s);
+		return Math.max(minR, maxR);
 	}
 
 	/**
@@ -1385,7 +1431,7 @@
 	 */
 	function debateAxisLineSegments(L, t) {
 		const { rIn, rOut, lr, axisLabelGap: g } = debateRadialLabelRadii(L);
-		const lrTension = debateTensionLrAlongSpoke(t, lr);
+		const lrTension = lr;
 		const hub = L.hubR;
 		const c = Math.cos(t);
 		const s = Math.sin(t);
@@ -1528,6 +1574,65 @@ const debateRadarFillOpacity = $derived.by(() => {
 		});
 		return out;
 	});
+
+	/** One wide wedge per debate spoke — reliable tap target on mobile (replaces per-model spike strokes). */
+	const debateSpokeHitTargets = $derived.by(() => {
+		if (!statementSelectEnabled || !isDebateMode || !layout?.n) return [];
+		/** @type {{ key: string, d: string, item: object, statementIndex: number }[]} */
+		const targets = [];
+		const tau = 2 * Math.PI;
+		const wedgeFraction = 0.9;
+		for (let i = 0; i < layout.n; i++) {
+			const item = viz.dim.items[i];
+			if (!item) continue;
+			const t = layout.angles[i];
+			const halfWedge = tau / layout.n / 2;
+			const t0 = t - halfWedge * wedgeFraction;
+			const t1 = t + halfWedge * wedgeFraction;
+			const rInner = layout.hubR;
+			const rOuter = layout.spikeRangeOuter + (hideSubscaleLabels ? 24 : 32);
+			targets.push({
+				key: `debate-spoke-${i}`,
+				d: annularSectorPathD(0, 0, rInner, rOuter, t0, t1),
+				item,
+				statementIndex: i
+			});
+		}
+		return targets;
+	});
+
+	/** Suppress duplicate click after touchend on debate targets. */
+	let debateTouchSelectAt = 0;
+
+	/**
+	 * @param {MouseEvent | TouchEvent | KeyboardEvent} event
+	 * @param {number} i
+	 */
+	function handleDebatePointerSelect(event, i) {
+		if (event.type === 'touchend') {
+			event.preventDefault();
+			debateTouchSelectAt = Date.now();
+			handleDebateLabelClick(event, i);
+			return;
+		}
+		if (event.type === 'click' && Date.now() - debateTouchSelectAt < 400) return;
+		handleDebateLabelClick(event, i);
+	}
+
+	/**
+	 * @param {MouseEvent | TouchEvent | KeyboardEvent} event
+	 * @param {object} item
+	 */
+	function handleDebateSpokePointerSelect(event, item) {
+		if (event.type === 'touchend') {
+			event.preventDefault();
+			debateTouchSelectAt = Date.now();
+			handleSpikeClick(event, item);
+			return;
+		}
+		if (event.type === 'click' && Date.now() - debateTouchSelectAt < 400) return;
+		handleSpikeClick(event, item);
+	}
 </script>
 
 {#if !viz || !layout.n}
@@ -1660,7 +1765,8 @@ const debateRadarFillOpacity = $derived.by(() => {
 					</g>
 				{/if}
 
-				<!-- Hover + click targets for statement spikes -->
+				<!-- Hover + click targets for statement spikes (full radial only; debate uses spoke wedges). -->
+				{#if !isDebateMode && statementSelectEnabled}
 				<g transform="translate({layout.cx},{layout.cy})" class="spike-hit-targets">
 					{#each spikeHoverTargets as t (t.key)}
 						<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -1688,6 +1794,34 @@ const debateRadarFillOpacity = $derived.by(() => {
 						/>
 					{/each}
 				</g>
+				{/if}
+
+				{#if isDebateMode && statementSelectEnabled}
+					<g transform="translate({layout.cx},{layout.cy})" class="debate-spoke-hit-targets">
+						{#each debateSpokeHitTargets as t (t.key)}
+							<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+							<path
+								d={t.d}
+								fill="transparent"
+								role="button"
+								tabindex="0"
+								aria-label={`Select tension: ${debateAxisLabel(t.statementIndex)}`}
+								class="debate-spoke-hit-target"
+								onmouseenter={(event) => setDebateLabelHover(event, t.statementIndex)}
+								onmousemove={(event) => setDebateLabelHover(event, t.statementIndex)}
+								onmouseleave={clearDotHover}
+								onclick={(event) => handleDebateSpokePointerSelect(event, t.item)}
+								ontouchend={(event) => handleDebateSpokePointerSelect(event, t.item)}
+								onkeydown={(event) => {
+									if (event.key === 'Enter' || event.key === ' ') {
+										event.preventDefault();
+										handleSpikeClick(event, t.item);
+									}
+								}}
+							/>
+						{/each}
+					</g>
+				{/if}
 
 				{#if showGroupingMarkers}
 					<!-- Thin radials from hub to inner edge of the outer grey ring (plot / spike band). -->
@@ -1817,84 +1951,68 @@ const debateRadarFillOpacity = $derived.by(() => {
 
 			{#if isDebateMode}
 				{@const dr = debateRadialLabelRadii(layout)}
-				<g class="debate-axis-labels" pointer-events="auto">
+				<g
+					class="debate-axis-labels"
+					pointer-events={statementSelectEnabled ? 'auto' : 'none'}
+				>
 					{#each spikeIndexList as i (`debate-label-${i}`)}
 						{@const t = layout.angles[i]}
-						{@const pl = debateAxisPoleLabelPair(i)}
 						{@const cos = Math.cos(t)}
 						{@const sin = Math.sin(t)}
-						{@const rIn = dr.rIn}
-						{@const rOut = dr.rOut}
-						{@const lrTension = debateTensionLrAlongSpoke(t, dr.lr)}
-						{@const poleRot = debatePoleLabelRotateDeg(t)}
-						{@const lxIn = layout.cx + rIn * cos}
-						{@const lyIn = layout.cy + rIn * sin}
-						{@const lxOut = layout.cx + rOut * cos}
-						{@const lyOut = layout.cy + rOut * sin}
-						{@const lx = layout.cx + lrTension * cos}
-						{@const ly = layout.cy + lrTension * sin}
+						{@const lrTension = clampDebateTensionLabelRadius(
+							layout.cx,
+							layout.cy,
+							width,
+							height,
+							t,
+							dr.lr,
+							layout.spikeRangeOuter + 12,
+							hideSubscaleLabels ? 40 : 52
+						)}
+						{@const labelOff = debateTensionLabelOffset(i, layout.n, t)}
+						{@const lx = layout.cx + lrTension * cos + labelOff.dx}
+						{@const ly = layout.cy + lrTension * sin + labelOff.dy}
+						{@const tensionTitleAnchor = debateTensionTitleAnchor(t)}
 						<g>
-							<g aria-hidden="true" pointer-events="none">
-								{#if pl.inner}
-									<text
-										x={lxIn}
-										y={lyIn}
-										fill="#94a3b8"
-										font-size="8.5"
-										font-weight="600"
-										letter-spacing="0.02em"
-										text-anchor="middle"
-										dominant-baseline="middle"
-										transform="rotate({poleRot} {lxIn} {lyIn})"
-										class="debate-axis-pole-label"
-									>
-										{pl.inner}
-									</text>
-								{/if}
-								{#if pl.outer}
-									<text
-										x={lxOut}
-										y={lyOut}
-										fill="#94a3b8"
-										font-size="8.5"
-										font-weight="600"
-										letter-spacing="0.02em"
-										text-anchor="middle"
-										dominant-baseline="middle"
-										transform="rotate({poleRot} {lxOut} {lyOut})"
-										class="debate-axis-pole-label"
-									>
-										{pl.outer}
-									</text>
-								{/if}
-							</g>
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<text
 								x={lx}
 								y={ly}
 								fill="#111827"
-								font-size="14"
+								font-size={hideSubscaleLabels ? 11 : 14}
 								font-weight="700"
 								letter-spacing="0.01em"
-								text-anchor="middle"
+								text-anchor={tensionTitleAnchor}
 								dominant-baseline="middle"
-								pointer-events="auto"
-								role="button"
-								tabindex="0"
+								pointer-events="none"
 								class="debate-axis-label-text"
-								onmouseenter={(event) => setDebateLabelHover(event, i)}
-								onmousemove={(event) => setDebateLabelHover(event, i)}
-								onmouseleave={clearDotHover}
-								onclick={(event) => handleDebateLabelClick(event, i)}
-								onkeydown={(event) => {
-									if (event.key === 'Enter' || event.key === ' ') {
-										event.preventDefault();
-										handleDebateLabelClick(event, i);
-									}
-								}}
+								aria-hidden={statementSelectEnabled ? 'true' : undefined}
 							>
 								{debateAxisLabel(i)}
 							</text>
+							{#if statementSelectEnabled}
+								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+								<circle
+									cx={lx}
+									cy={ly}
+									r={hideSubscaleLabels ? 36 : 22}
+									fill="transparent"
+									role="button"
+									tabindex="0"
+									class="debate-axis-label-hit"
+									aria-label={`Select tension: ${debateAxisLabel(i)}`}
+									onmouseenter={(event) => setDebateLabelHover(event, i)}
+									onmousemove={(event) => setDebateLabelHover(event, i)}
+									onmouseleave={clearDotHover}
+									onclick={(event) => handleDebatePointerSelect(event, i)}
+									ontouchend={(event) => handleDebatePointerSelect(event, i)}
+									onkeydown={(event) => {
+										if (event.key === 'Enter' || event.key === ' ') {
+											event.preventDefault();
+											handleDebateLabelClick(event, i);
+										}
+									}}
+								/>
+							{/if}
 						</g>
 					{/each}
 				</g>
@@ -2157,12 +2275,15 @@ const debateRadarFillOpacity = $derived.by(() => {
 	}
 
 	.debate-axis-label-text {
-		cursor: pointer;
-		-webkit-tap-highlight-color: transparent;
+		pointer-events: none;
+		user-select: none;
 	}
 
-	.debate-axis-pole-label {
-		pointer-events: none;
+	.debate-axis-label-hit,
+	.debate-spoke-hit-target {
+		cursor: pointer;
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
 	}
 
 	.radial-center-card {
