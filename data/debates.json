@@ -44,7 +44,7 @@
     },
     {
       "debate_id": "state_support",
-      "question": "How much should government step in when people are struggling financially because of cost of living?",
+      "question": "How much should government step in when people are struggling financially?",
       "scenario": "I’m struggling with rising costs and I’m trying to understand how much responsibility should fall on me versus what society or government should step in to help with.",
       "source_items": ["27_3", "32_7", "28_1"],
       "tensions": ["government responsibility", "income equalization", "fair use of public resources"]

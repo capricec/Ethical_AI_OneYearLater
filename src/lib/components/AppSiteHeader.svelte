@@ -50,7 +50,9 @@
 	function navItemClass(href) {
 		const p = $page.url.pathname;
 		const active =
-			(href === ROUTE_INTRO && isIntroRoute(p)) || (href === ROUTE_TOOL && isToolRoute(p));
+			(href === ROUTE_INTRO && isIntroRoute(p)) ||
+			(href === ROUTE_TOOL && isToolRoute(p)) ||
+			(href === ROUTE_METHODOLOGY && isMethodologyRoute(p));
 		return `block w-full px-4 py-2.5 text-left text-sm font-semibold transition-colors ${active ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-50'}`;
 	}
 
@@ -101,6 +103,9 @@
 					>
 						<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
 						<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+						<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+							>Methodology</a
+						>
 					</div>
 				{/if}
 			</div>
@@ -134,6 +139,9 @@
 					>
 						<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
 						<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+						<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+							>Methodology</a
+						>
 					</div>
 				{/if}
 			</div>
@@ -182,6 +190,9 @@
 							>
 								<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
 								<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+								<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+									>Methodology</a
+								>
 							</div>
 						{/if}
 					</div>
@@ -322,6 +333,9 @@
 						>
 							<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
 							<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+							<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+								>Methodology</a
+							>
 						</div>
 					{/if}
 				</div>

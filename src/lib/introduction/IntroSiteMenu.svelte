@@ -1,7 +1,14 @@
 <script>
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { ROUTE_INTRO, ROUTE_TOOL, isIntroRoute, isToolRoute } from '$lib/routes.js';
+	import {
+		ROUTE_INTRO,
+		ROUTE_TOOL,
+		ROUTE_METHODOLOGY,
+		isIntroRoute,
+		isToolRoute,
+		isMethodologyRoute
+	} from '$lib/routes.js';
 
 	let menuOpen = $state(false);
 	let wrapEl = $state(/** @type {HTMLDivElement | null} */ (null));
@@ -10,7 +17,9 @@
 	function navItemClass(href) {
 		const p = $page.url.pathname;
 		const active =
-			(href === ROUTE_INTRO && isIntroRoute(p)) || (href === ROUTE_TOOL && isToolRoute(p));
+			(href === ROUTE_INTRO && isIntroRoute(p)) ||
+			(href === ROUTE_TOOL && isToolRoute(p)) ||
+			(href === ROUTE_METHODOLOGY && isMethodologyRoute(p));
 		return `block w-full px-4 py-2.5 text-left text-sm font-semibold transition-colors ${active ? 'bg-white/15 text-white' : 'text-white/90 hover:bg-white/10'}`;
 	}
 
@@ -55,6 +64,9 @@
 			>
 				<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
 				<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+				<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+					>Methodology</a
+				>
 			</div>
 		{/if}
 	</div>
