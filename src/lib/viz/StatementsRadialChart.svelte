@@ -1,4 +1,5 @@
 <script>
+	import { tick } from 'svelte';
 	import * as d3 from 'd3';
 	import { modelColor } from '$lib/viz/modelColors.js';
 	import { statementLabel } from '$lib/ui/statementLabel.js';
@@ -97,6 +98,13 @@
 
 	/** Preview the same highlight/card as a wedge click while pointer is over the ring or its label. */
 	let hoverSubscaleKey = $state(/** @type {string | null} */ (null));
+	/** Measured height of the center subscale card (foreignObject must match content). */
+	let centerCardMeasureEl = $state(/** @type {HTMLDivElement | null} */ (null));
+	let centerCardContentH = $state(0);
+	/** Tall enough to measure full copy before shrinking the foreignObject. */
+	const CENTER_CARD_MEASURE_MAX_H = 320;
+	/** Border + subpixel slack so the bottom edge is not clipped. */
+	const CENTER_CARD_MEASURE_PAD_PX = 4;
 	let hoverClearTimeoutId = 0;
 	function armClearSubscaleHover() {
 		if (hoverClearTimeoutId) clearTimeout(hoverClearTimeoutId);
@@ -470,10 +478,6 @@
 		return s || '__none__';
 	}
 
-	/**
-	 * @param {Viz | null | undefined} vizIn
-	 * @param {unknown} key
-	 */
 	function centerCardForSubscaleKey(vizIn, key) {
 		const kn = normSubscaleKey(key);
 		if (kn === '__none__') return null;
@@ -499,18 +503,36 @@
 		const label = String(card.label ?? '').trim();
 		const description = String(card.description ?? '').trim();
 		const cardW = hideSubscaleLabels
-			? Math.max(150, Math.min(240, width * 0.58))
-			: Math.max(170, Math.min(260, width * 0.45));
-		const cardH = description ? 96 : 62;
+			? Math.max(150, Math.min(280, width * 0.58))
+			: Math.max(180, Math.min(280, width * 0.5));
 		const yUp = centerCardExtraYOffset(label);
 		return {
 			label,
 			description,
 			cardW,
-			cardH,
-			x: layout.cx - cardW / 2,
-			y: layout.cy - cardH / 2 - yUp
+			yUp,
+			x: layout.cx - cardW / 2
 		};
+	});
+
+	$effect(() => {
+		const el = centerCardMeasureEl;
+		effectiveHighlightSubscaleKey;
+		centerCardLayout?.cardW;
+		centerCardContentH = 0;
+		if (!el) return;
+		const measure = () => {
+			const rectH = el.getBoundingClientRect().height;
+			const scrollH = el.scrollHeight;
+			centerCardContentH =
+				Math.ceil(Math.max(rectH, scrollH)) + CENTER_CARD_MEASURE_PAD_PX;
+		};
+		tick().then(measure);
+		const ro = new ResizeObserver(() => {
+			tick().then(measure);
+		});
+		ro.observe(el);
+		return () => ro.disconnect();
 	});
 
 	/** Context rail highlights one subscale: hide other subscale wedge labels (option B). */
@@ -1917,15 +1939,22 @@ const debateRadarFillOpacity = $derived.by(() => {
 			</g>
 
 			{#if centerCardLayout}
+				{@const centerCardH =
+					centerCardContentH > 0 ? centerCardContentH : CENTER_CARD_MEASURE_MAX_H}
 				<foreignObject
 					x={centerCardLayout.x}
-					y={centerCardLayout.y}
+					y={layout.cy - centerCardH / 2 - centerCardLayout.yUp}
 					width={centerCardLayout.cardW}
-					height={centerCardLayout.cardH}
+					height={centerCardH}
+					overflow="visible"
 					aria-hidden="true"
 					pointer-events="none"
 				>
-					<div xmlns="http://www.w3.org/1999/xhtml" class="radial-center-card">
+					<div
+						xmlns="http://www.w3.org/1999/xhtml"
+						bind:this={centerCardMeasureEl}
+						class="radial-center-card"
+					>
 						<div class="radial-center-card-title">{centerCardLayout.label}</div>
 						{#if centerCardLayout.description}
 							<p class="radial-center-card-description">{centerCardLayout.description}</p>
@@ -2289,15 +2318,16 @@ const debateRadarFillOpacity = $derived.by(() => {
 	.radial-center-card {
 		box-sizing: border-box;
 		width: 100%;
-		height: 100%;
+		height: auto;
 		border: 1px solid #cbd5e1;
 		border-radius: 8px;
 		background: rgba(255, 255, 255, 0.96);
 		padding: 8px 10px;
 		display: flex;
 		flex-direction: column;
-		justify-content: center;
+		justify-content: flex-start;
 		gap: 4px;
+		overflow: visible;
 		box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
 	}
 
@@ -2313,11 +2343,8 @@ const debateRadarFillOpacity = $derived.by(() => {
 		font-size: 11px;
 		line-height: 1.35;
 		color: #475569;
-		display: -webkit-box;
-		line-clamp: 3;
-		-webkit-line-clamp: 3;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
+		overflow: visible;
+		white-space: normal;
 	}
 
 	/* Restore with pole label markup

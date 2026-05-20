@@ -1,8 +1,10 @@
 <script>
-	import IntroBackground from '$lib/introduction/IntroBackground.svelte';
-	import IntroRadialMotif from '$lib/introduction/IntroRadialMotif.svelte';
+	import IntroScrollyBackground from '$lib/introduction/IntroScrollyBackground.svelte';
 	import IntroSiteMenu from '$lib/introduction/IntroSiteMenu.svelte';
-	import { INTRO_BACKGROUND_SRC } from '$lib/introduction/introductionSlides.js';
+	import {
+		SURVEY_BG_OPACITY_PRE_SURVEY,
+		SURVEY_BG_SCALE_PRE_SURVEY
+	} from '$lib/introduction/introAssets.js';
 	import {
 		METHODOLOGY_OPENING,
 		METHODOLOGY_PARAGRAPHS,
@@ -18,12 +20,10 @@
 </svelte:head>
 
 <div class="relative min-h-[100dvh] w-full overflow-x-hidden bg-[#333333] text-white">
-	<div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
-		<IntroBackground src={INTRO_BACKGROUND_SRC} />
-	</div>
-	{#if !INTRO_BACKGROUND_SRC}
-		<IntroRadialMotif />
-	{/if}
+	<IntroScrollyBackground
+		surveyOpacity={SURVEY_BG_OPACITY_PRE_SURVEY}
+		surveyScale={SURVEY_BG_SCALE_PRE_SURVEY}
+	/>
 	<IntroSiteMenu />
 
 	<main class="relative z-10">

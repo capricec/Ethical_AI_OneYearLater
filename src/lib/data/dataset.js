@@ -4,7 +4,7 @@ import subscaleInterpretation from '../../../data/subscale_interpretation.json';
 import statementContext from '../../../data/statement_context.json';
 import questions from '../../../data/questions.json';
 import debates from '../../../data/debates.json';
-import debateAllModelsResponses from '../../../data/debate_all_models_responses.json';
+import debateAllModelsResponses from '../../../data/debate_all_models_responses_2026-05-20.json';
 
 export {
 	compiled,

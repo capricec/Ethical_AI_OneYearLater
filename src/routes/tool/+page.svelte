@@ -1,6 +1,7 @@
 <script>
 	import { onMount, tick } from 'svelte';
 	import { get } from 'svelte/store';
+	import { consumeIntroToolDeepLink } from '$lib/introduction/introToolDeepLink.js';
 	import {
 		selectedModel,
 		selectedModels,
@@ -37,7 +38,8 @@
 	import { sliceVizToSingleStatement } from '$lib/data/vizSliceSingleStatement.js';
 	import {
 		LEFT_TRAY_FEED_MODE,
-		leftTrayFeedTimingForViewport,
+		leftTrayDebateFeedTimingForViewport,
+		leftTrayValueFeedTimingForViewport,
 		LEFT_TRAY_MODEL_RESPONSE_MODE,
 		LEFT_TRAY_MODEL_BUBBLE_LAYOUT
 	} from '$lib/data/leftTrayFeedSeed.js';
@@ -196,6 +198,23 @@
 		syncViewport();
 		leftTrayControlsCollapsed = mq.matches;
 		mq.addEventListener('change', syncViewport);
+
+		const introLink = consumeIntroToolDeepLink();
+		if (introLink) {
+			tick().then(() => {
+				setSelectedDebateId(introLink.debateId);
+				setSelectedDebateSourceItemId(null);
+				setSelectedStatementId(null);
+				setSelectedModels(introLink.models);
+				setSelectedModel(null);
+				// Same feed as bottom module → COMPARE (includes debate_selection_card).
+				handleDebateStart({
+					debateId: introLink.debateId,
+					models: introLink.models
+				});
+			});
+		}
+
 		return () => mq.removeEventListener('change', syncViewport);
 	});
 
@@ -219,8 +238,12 @@
 		return new Promise((resolve) => setTimeout(resolve, delay));
 	}
 
-	function feedTiming() {
-		return leftTrayFeedTimingForViewport(viewportMobile);
+	function debateFeedTiming() {
+		return leftTrayDebateFeedTimingForViewport(viewportMobile);
+	}
+
+	function valueFeedTiming() {
+		return leftTrayValueFeedTimingForViewport(viewportMobile);
 	}
 
 	function beginFeedTyping() {
@@ -233,12 +256,21 @@
 
 	/** Pause with three-dot typing bubble visible (used for all streamed feed delays). */
 	async function waitFeed(ms) {
+		const delay = Math.max(0, Number(ms) || 0);
+		if (delay === 0) return;
 		beginFeedTyping();
+		await tick();
 		try {
-			await waitMs(ms);
+			await waitMs(delay);
 		} finally {
 			endFeedTyping();
 		}
+	}
+
+	/** Stop in-flight streamed feed (keeps messages already shown). */
+	function cancelActiveFeedSequence() {
+		feedSequenceToken += 1;
+		feedTypingDepth = 0;
 	}
 
 	$effect(() => {
@@ -327,7 +359,10 @@
 		if (next) {
 			setSelectedDebateSourceItemId(next);
 			applyStatementSelection(next);
-			appendFeedForSelectedStatement(next);
+			// Do not bump feedSequenceToken while a debate stream is running.
+			if (!String($selectedDebateId ?? '').trim()) {
+				appendFeedForSelectedStatement(next);
+			}
 		} else {
 			setSelectedDebateSourceItemId(null);
 			setSelectedStatementId(null);
@@ -336,8 +371,8 @@
 
 	/** @param {string} itemId */
 	async function appendFeedForSelectedStatement(itemId) {
-		const token = ++feedSequenceToken;
 		if (String($selectedDebateId ?? '').trim()) return;
+		const token = ++feedSequenceToken;
 		const viz = $statementsViz;
 		if (!viz?.dim?.items?.length || !viz.modelSeries?.length) return;
 		const idx = viz.dim.items.findIndex((it) => String(it?.item_id ?? '').trim() === itemId);
@@ -348,7 +383,7 @@
 			QUESTION_BY_ITEM_ID.get(itemId) ||
 			fullSurveyQuestionForStatement(itemId);
 		if (narratorQuestion) {
-			await waitFeed(feedTiming().beforeNarrationMs);
+			await waitFeed(valueFeedTiming().beforeNarrationMs);
 			if (token !== feedSequenceToken) return;
 			appendLeftTrayMessage({
 				type: 'section_title',
@@ -356,7 +391,7 @@
 				chunkBreak: true,
 				text: 'Value Statement'
 			});
-			await waitFeed(feedTiming().betweenModelMessagesMs);
+			await waitFeed(valueFeedTiming().sectionTitleToNarrationMs);
 			if (token !== feedSequenceToken) return;
 			appendLeftTrayMessage({
 				type: 'narration',
@@ -368,7 +403,7 @@
 		if (LEFT_TRAY_FEED_MODE === 'topic_choices') {
 			const options = DEBATE_CHOICES_BY_STATEMENT_ID.get(itemId) ?? [];
 			if (options.length) {
-				await waitFeed(feedTiming().narrationToModelsMs);
+				await waitFeed(valueFeedTiming().narrationToModelsMs);
 				if (token !== feedSequenceToken) return;
 				appendLeftTrayMessage({
 					type: 'topic_choices',
@@ -388,7 +423,7 @@
 				? viz.modelSeries.filter((s) => selected.includes(String(s?.fundModel ?? '').trim()))
 				: viz.modelSeries;
 
-		await waitFeed(feedTiming().narrationToModelsMs);
+		await waitFeed(valueFeedTiming().narrationToModelsMs);
 		if (token !== feedSequenceToken) return;
 
 		for (let i = 0; i < visibleSeries.length; i++) {
@@ -406,10 +441,8 @@
 					? `Average Response: ${Number.isFinite(meanForDisplay) ? meanForDisplay.toFixed(2) : 'n/a'}${scaleLabelForDisplay ? ` ${scaleLabelForDisplay}` : ''}`
 					: getFollowupResponseText(itemId, step, model) ||
 						`Average Response: ${Number.isFinite(meanForDisplay) ? meanForDisplay.toFixed(2) : 'n/a'}${scaleLabelForDisplay ? ` ${scaleLabelForDisplay}` : ''}`;
-			if (i > 0) {
-				await waitFeed(feedTiming().betweenModelMessagesMs);
-				if (token !== feedSequenceToken) return;
-			}
+			await waitFeed(valueFeedTiming().betweenModelMessagesMs);
+			if (token !== feedSequenceToken) return;
 			appendLeftTrayMessage({
 				type: 'model',
 				model,
@@ -445,7 +478,7 @@
 		}
 		if (!widestPair?.leftModel || !widestPair?.rightModel) return;
 
-		await waitFeed(feedTiming().beforeSectionMs);
+		await waitFeed(valueFeedTiming().beforeSectionMs);
 		if (token !== feedSequenceToken) return;
 		appendLeftTrayMessage({
 			type: 'debate_suggestion',
@@ -460,6 +493,7 @@
 	}
 
 	function goToRadialRoot() {
+		cancelActiveFeedSequence();
 		setSelectedStatementId(null);
 		setSelectedDebateSourceItemId(null);
 		setSelectedDebateId(null);
@@ -471,6 +505,10 @@
 	}
 
 	function goToDebateStatements() {
+		// Value-only drill-down: stop streamed statement feed; keep debate feed if a question is active.
+		if (!String($selectedDebateId ?? '').trim()) {
+			cancelActiveFeedSequence();
+		}
 		setSelectedStatementId(null);
 	}
 
@@ -736,7 +774,7 @@
 		const hasThreshold = Boolean(threshold0 || threshold1);
 		if (!hasAdvice && !hasThreshold) return;
 
-		await waitFeed(feedTiming().narrationToModelsMs);
+		await waitFeed(debateFeedTiming().narrationToModelsMs);
 		if (token !== feedSequenceToken) return;
 
 		let firstModelSectionTitle = true;
@@ -757,7 +795,7 @@
 			if (!items.length) return;
 
 			if (leadingSectionPause) {
-				await waitFeed(feedTiming().beforeSectionMs);
+				await waitFeed(debateFeedTiming().beforeSectionMs);
 				if (token !== feedSequenceToken) return;
 			}
 
@@ -769,7 +807,7 @@
 			firstModelSectionTitle = false;
 
 			for (let i = 0; i < items.length; i++) {
-				await waitFeed(feedTiming().betweenModelMessagesMs);
+				await waitFeed(debateFeedTiming().betweenModelMessagesMs);
 				if (token !== feedSequenceToken) return;
 				const { text, picked } = items[i];
 				const model = displayFundModelName(picked);
@@ -792,14 +830,14 @@
 		const debate = DEBATE_BY_ID.get(debateId);
 		const why = buildWhySummariesForDebate(debate, pickedModels[0], pickedModels[1]);
 		if (why?.whySegments?.length && why.text) {
-			await waitFeed(feedTiming().beforeSectionMs);
+			await waitFeed(debateFeedTiming().beforeSectionMs);
 			if (token !== feedSequenceToken) return;
 			appendLeftTrayMessage({
 				type: 'section_title',
 				gapTop: false,
 				text: 'WHY'
 			});
-			await waitFeed(feedTiming().betweenModelMessagesMs);
+			await waitFeed(debateFeedTiming().betweenModelMessagesMs);
 			if (token !== feedSequenceToken) return;
 			appendLeftTrayMessage({
 				type: 'why_narration',
@@ -1041,21 +1079,14 @@
 			{@const bumpViz = $selectedStatementId
 				? sliceVizToSingleStatement($statementsViz, $selectedStatementId)
 				: null}
-			<!-- Min row height must fit all model heatmap/timeline rows (matches compact vs desktop spacing in DimensionAggregateBumpChart). -->
-			<!-- Matches compact detailTopPad + model rows + heatmap bar (see DimensionAggregateBumpChart). -->
-			<!-- Extra room for follow-up speech bubble above the bump chart (see DimensionAggregateBumpChart). -->
+			<!-- Desktop: row height comes from the flex slot (chart scales model rows to fit). -->
 			{@const isMobileStatementChart = chartWidth < 768}
 			<!-- Mobile: fixed SVG height (bump + axis labels only); legend sits below in chart-wrap. -->
 			{@const compactBumpSvgH = 92}
-			{@const stmtDetailMinH = bumpViz
-				? isMobileStatementChart
-					? compactBumpSvgH
-					: 214 + bumpViz.modelSeries.length * 100 + 100
-				: 0}
 			{@const bumpSingleRowHeights = bumpViz
 				? isMobileStatementChart
 					? [compactBumpSvgH]
-					: [Math.max(statementBumpSlotH > 0 ? statementBumpSlotH : 360, stmtDetailMinH)]
+					: [statementBumpSlotH > 0 ? statementBumpSlotH : 360]
 				: []}
 			{@const debateHeaderModels =
 				$selectedModels.length > 0
@@ -1371,9 +1402,7 @@
 
 					<div
 						class="relative flex min-h-0 min-w-0 max-w-full flex-1 basis-0 flex-col bg-white order-1 md:order-2 md:basis-auto md:h-auto"
-						class:overflow-hidden={isStatementView && chartWidth >= 768}
-						class:overflow-y-auto={isStatementView && chartWidth < 768}
-						class:overflow-x-hidden={isStatementView && chartWidth < 768}
+						class:overflow-hidden={isStatementView}
 						class:overflow-visible={!isStatementView}
 					>
 						<div
@@ -1393,7 +1422,7 @@
 						</div>
 						{#if isStatementView && selectedSurveyQuestion}
 							<div
-								class="mx-auto mb-2.5 mt-0 w-[calc(100%-1.5rem)] max-w-[min(100%,calc(72rem-40px))] shrink-0 rounded-2xl border border-[#3B3A3A]/25 bg-[#3B3A3A]/10 px-3 py-2.5 text-left shadow-sm md:mb-6 md:mt-5 md:w-[calc(100%-2rem)] md:px-4 md:py-4"
+								class="mx-auto mb-2.5 mt-0 w-[calc(100%-1.5rem)] max-w-[min(100%,calc(72rem-40px))] shrink-0 rounded-2xl border border-[#3B3A3A]/25 bg-[#3B3A3A]/10 px-3 py-2.5 text-left shadow-sm md:mb-6 md:mt-2.5 md:w-[calc(100%-2rem)] md:px-4 md:py-4"
 							>
 								<p
 									class="mb-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500"
@@ -1407,18 +1436,14 @@
 						{/if}
 
 						<div
-							class="flex flex-col bg-white {isStatementView
-								? chartWidth < 768
-									? 'min-h-0 flex-1'
-									: 'flex-none'
-								: 'min-h-0 flex-1'} md:min-h-0 md:flex-1"
-							class:overflow-hidden={isStatementView && chartWidth >= 768}
-							class:overflow-visible={!isStatementView || chartWidth < 768}
+							class="flex min-h-0 flex-1 flex-col bg-white"
+							class:overflow-hidden={isStatementView}
+							class:overflow-visible={!isStatementView}
 						>
 							{#if isStatementView}
 								{#if bumpViz}
 									<div
-										class="flex w-full max-w-full flex-col overflow-x-hidden bg-white md:min-h-0 md:min-w-0 md:flex-1 md:overflow-y-auto"
+										class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
 									>
 										<div
 											class="mx-auto box-border flex w-full max-w-[min(100%,calc(72rem-40px))] flex-col items-stretch px-3 pb-1 pt-0 md:min-h-0 md:min-w-0 md:flex-1 md:px-4 md:pb-4 md:pt-3"

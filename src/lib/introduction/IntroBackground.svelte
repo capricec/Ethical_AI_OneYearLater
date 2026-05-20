@@ -14,7 +14,7 @@
 >
 	{#if src}
 		<img
-			class="h-auto w-auto max-h-[min(80vh,800px)] max-w-[min(80vh,800px)] object-contain"
+			class="h-auto w-auto max-h-[min(80vh,800px)] max-w-[min(80vh,800px)] object-contain transition-opacity duration-700 ease-out"
 			{src}
 			alt=""
 			decoding="async"

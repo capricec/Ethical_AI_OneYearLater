@@ -48,30 +48,75 @@ export const LEFT_TRAY_FEED_SEED = [
 ];
 
 /**
- * Timing controls for streamed feed messages when a radial statement is selected.
- * Tweak these values to speed up / slow down the chain effect.
+ * @typedef {object} LeftTrayFeedTiming
+ * @property {number} beforeNarrationMs
+ * @property {number} sectionTitleToNarrationMs
+ * @property {number} narrationToModelsMs
+ * @property {number} beforeSectionMs
+ * @property {number} betweenModelMessagesMs
  */
-export const LEFT_TRAY_FEED_TIMING = {
-	beforeNarrationMs: 120,
-	narrationToModelsMs: 450,
-	beforeSectionMs: 450,
-	betweenModelMessagesMs: 550
+
+/** Debate / compare feed — slower pacing for longer scenario and advice copy. */
+export const LEFT_TRAY_DEBATE_FEED_TIMING = {
+	beforeNarrationMs: 150,
+	sectionTitleToNarrationMs: 150,
+	narrationToModelsMs: 1500,
+	beforeSectionMs: 150,
+	betweenModelMessagesMs: 1500
 };
 
-/** ~2× desktop — more time to read on narrow screens. */
-export const LEFT_TRAY_FEED_TIMING_MOBILE = {
-	beforeNarrationMs: 500,
-	narrationToModelsMs: 1500,
-	beforeSectionMs: 1500,
+/** @type {LeftTrayFeedTiming} */
+export const LEFT_TRAY_DEBATE_FEED_TIMING_MOBILE = {
+	beforeNarrationMs: 150,
+	sectionTitleToNarrationMs: 150,
+	narrationToModelsMs: 3000,
+	beforeSectionMs: 1000,
 	betweenModelMessagesMs: 3000
 };
 
+/** Value statement feed (radial statement, no question) — faster populate. */
+export const LEFT_TRAY_VALUE_FEED_TIMING = {
+	beforeNarrationMs: 150,
+	sectionTitleToNarrationMs: 0,
+	narrationToModelsMs: 300,
+	beforeSectionMs: 120,
+	betweenModelMessagesMs: 500
+};
+
+/** @type {LeftTrayFeedTiming} */
+export const LEFT_TRAY_VALUE_FEED_TIMING_MOBILE = {
+	beforeNarrationMs: 150,
+	sectionTitleToNarrationMs: 0,
+	narrationToModelsMs: 1100,
+	beforeSectionMs: 350,
+	betweenModelMessagesMs: 850
+};
+
+/** @deprecated Use LEFT_TRAY_DEBATE_FEED_TIMING */
+export const LEFT_TRAY_FEED_TIMING = LEFT_TRAY_DEBATE_FEED_TIMING;
+
+/** @deprecated Use LEFT_TRAY_DEBATE_FEED_TIMING_MOBILE */
+export const LEFT_TRAY_FEED_TIMING_MOBILE = LEFT_TRAY_DEBATE_FEED_TIMING_MOBILE;
+
 /**
  * @param {boolean} [mobile]
- * @returns {typeof LEFT_TRAY_FEED_TIMING}
+ * @returns {LeftTrayFeedTiming}
  */
+export function leftTrayDebateFeedTimingForViewport(mobile = false) {
+	return mobile ? LEFT_TRAY_DEBATE_FEED_TIMING_MOBILE : LEFT_TRAY_DEBATE_FEED_TIMING;
+}
+
+/**
+ * @param {boolean} [mobile]
+ * @returns {LeftTrayFeedTiming}
+ */
+export function leftTrayValueFeedTimingForViewport(mobile = false) {
+	return mobile ? LEFT_TRAY_VALUE_FEED_TIMING_MOBILE : LEFT_TRAY_VALUE_FEED_TIMING;
+}
+
+/** @deprecated Use leftTrayDebateFeedTimingForViewport */
 export function leftTrayFeedTimingForViewport(mobile = false) {
-	return mobile ? LEFT_TRAY_FEED_TIMING_MOBILE : LEFT_TRAY_FEED_TIMING;
+	return leftTrayDebateFeedTimingForViewport(mobile);
 }
 
 /**
