@@ -271,6 +271,7 @@ export function computeStatementsViz(
 		};
 		return {
 			...e.item,
+			tension: String(e.item?.tension ?? '').trim(),
 			dimensionId: dim.id,
 			dimensionTitle: dim.title ?? constructTitle(dim.construct),
 			subscaleKey: sk,

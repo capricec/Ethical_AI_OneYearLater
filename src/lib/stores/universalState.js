@@ -197,13 +197,24 @@ export function setSelectedViewMode(mode) {
 }
 
 /**
- * @param {{ id?: string, type: string, text?: string, model?: string, side?: 'left' | 'right', gapTop?: boolean, chunkBreak?: boolean, statementId?: string, options?: { id: string, label: string }[], debateId?: string, suggestedModels?: string[], whySegments?: { kind: 'text' | 'model', text?: string, model?: string }[] }} message
+ * @param {{ id?: string, type: string, text?: string, model?: string, side?: 'left' | 'right', gapTop?: boolean, chunkBreak?: boolean, statementId?: string, options?: { id: string, label: string }[], debateOptions?: { id: string, label: string }[], debateId?: string, suggestedModels?: string[], debatePrompt?: boolean, valueStatement?: boolean, whySegments?: { kind: 'text' | 'model', text?: string, model?: string }[] }} message
  */
 export function appendLeftTrayMessage(message) {
 	const type = String(message?.type ?? '').trim() || 'narration';
 	const isTopicChoices = type === 'topic_choices';
 	const isDebateSelectionCard = type === 'debate_selection_card';
 	const isWhyNarration = type === 'why_narration';
+	const debateOptionsRaw = Array.isArray(message?.debateOptions) ? message.debateOptions : null;
+	const debateOptions =
+		debateOptionsRaw
+			?.map((o) => ({
+				id: String(o?.id ?? '').trim(),
+				label: String(o?.label ?? '').trim()
+			}))
+			.filter((o) => o.id && o.label) ?? [];
+	const isDebateSuggestionList = type === 'debate_suggestion' && debateOptions.length > 0;
+	if (type === 'debate_suggestion' && Array.isArray(message?.debateOptions) && debateOptions.length === 0)
+		return;
 	const rawSegments = Array.isArray(message?.whySegments) ? message.whySegments : null;
 	/** @type {{ kind: 'text' | 'model', text?: string, model?: string }[]} */
 	const whySegments = isWhyNarration
@@ -231,7 +242,8 @@ export function appendLeftTrayMessage(message) {
 		!isTopicChoices &&
 		!isDebateSelectionCard &&
 		!text &&
-		!(isWhyNarration && whySegments.length)
+		!(isWhyNarration && whySegments.length) &&
+		!isDebateSuggestionList
 	)
 		return;
 	if (isDebateSelectionCard) {
@@ -267,7 +279,10 @@ export function appendLeftTrayMessage(message) {
 			debateId: message?.debateId ? String(message.debateId).trim() : undefined,
 			suggestedModels: Array.isArray(message?.suggestedModels)
 				? message.suggestedModels.map((m) => String(m ?? '').trim()).filter(Boolean)
-				: undefined
+				: undefined,
+			debateOptions: debateOptions.length ? debateOptions : undefined,
+			debatePrompt: Boolean(message?.debatePrompt),
+			valueStatement: Boolean(message?.valueStatement)
 		}
 	]);
 }

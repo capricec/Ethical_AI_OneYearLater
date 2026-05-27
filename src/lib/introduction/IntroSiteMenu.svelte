@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { appPath } from '$lib/appPaths.js';
 	import {
 		ROUTE_INTRO,
 		ROUTE_TOOL,
@@ -62,9 +63,9 @@
 				class="absolute right-0 top-full z-50 mt-1 min-w-[12rem] rounded-lg border border-white/10 bg-[#2a2a2a]/95 py-1 shadow-lg backdrop-blur-sm"
 				role="menu"
 			>
-				<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
-				<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
-				<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+				<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
+				<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+				<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
 					>Methodology</a
 				>
 			</div>

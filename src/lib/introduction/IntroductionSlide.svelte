@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import IntroEnterToolCta from '$lib/introduction/IntroEnterToolCta.svelte';
 	import IntroQuestionConnectors from '$lib/introduction/IntroQuestionConnectors.svelte';
+	import { appPath } from '$lib/appPaths.js';
 	import { queueIntroToolDeepLink } from '$lib/introduction/introToolDeepLink.js';
 	import { ROUTE_TOOL } from '$lib/routes.js';
 	import { MODEL_ORDER, modelColor } from '$lib/viz/modelColors.js';
@@ -89,9 +90,9 @@
 		navigatingToTool = true;
 		queueIntroToolDeepLink(debateId);
 		try {
-			await goto(ROUTE_TOOL, { invalidateAll: true, keepFocus: false, noScroll: false });
+			await goto(appPath(ROUTE_TOOL), { invalidateAll: true, keepFocus: false, noScroll: false });
 		} catch {
-			window.location.assign(ROUTE_TOOL);
+			window.location.assign(appPath(ROUTE_TOOL));
 		} finally {
 			navigatingToTool = false;
 		}

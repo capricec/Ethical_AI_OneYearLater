@@ -71,7 +71,7 @@ export const INTRO_SLIDES = [
 		type: 'prose',
 		paragraphs: [
 			'Though the results from the World Values Survey are telling themselves, ethical questions are rarely about a single value. Real-life dilemmas involve competing priorities like freedom versus security, fairness versus merit, or personal autonomy versus family responsibility.',
-			'To further understand how these values impact the responses each model gives to everyday questions, each AI model was assigned its average survey score across several values, then asked to respond to everyday ethical dilemmas shaped by those competing priorities.'
+			'To understand how these values impact the models responses, each AI model was assigned its average survey score across several values, then asked to respond to 35 everyday ethical dilemmas shaped by those competing priorities.'
 		],
 		cta: { label: 'Enter the tool', href: ROUTE_TOOL }
 	},

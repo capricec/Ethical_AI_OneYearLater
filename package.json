@@ -5,13 +5,17 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
+		"dev:root": "BASE_PATH= vite dev",
+		"build": "vite build && node scripts/prepareStaticHosting.mjs",
+		"build:root": "BASE_PATH= vite build && BASE_PATH= node scripts/prepareStaticHosting.mjs",
+		"deploy:s3-redirects": "node scripts/uploadS3ExtensionlessRedirects.mjs",
 		"preview": "vite preview",
 		"generate:statement-averages": "node scripts/generateStatementModelAverages.mjs",
 		"prepare": "svelte-kit sync || echo ''"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.0",
+		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.50.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/vite": "^4.1.18",

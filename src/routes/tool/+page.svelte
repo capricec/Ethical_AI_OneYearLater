@@ -44,11 +44,18 @@
 		LEFT_TRAY_MODEL_BUBBLE_LAYOUT
 	} from '$lib/data/leftTrayFeedSeed.js';
 	import {
+		formatDebateTensionLabel,
+		normDebateTensionKey,
+		radialTensionLabelForStatement
+	} from '$lib/data/debateTensionLabels.js';
+	import {
 		getFollowupResponseText,
 		followupScaleStepFromConsensus
 	} from '$lib/data/followupResponses.js';
-	import AppSiteHeader from '$lib/components/AppSiteHeader.svelte';
+	import DebateCompareControls from '$lib/components/DebateCompareControls.svelte';
+	import ExperienceTopBar from '$lib/components/ExperienceTopBar.svelte';
 	import LeftTrayTypingIndicator from '$lib/components/LeftTrayTypingIndicator.svelte';
+	import VizValueHeader from '$lib/components/VizValueHeader.svelte';
 
 	/** @type {Map<string, string>} */
 	const STATEMENT_CONTEXT_BY_ID = new Map();
@@ -103,6 +110,47 @@
 	const DEBATE_BY_ID = new Map(
 		DEBATE_ROWS.map((d) => [String(d?.debate_id ?? '').trim(), d]).filter(([id]) => Boolean(id))
 	);
+
+	/**
+	 * Debates that include this statement in their value triad (`source_items`), or whose
+	 * `tensions` list includes the same normalized label. Triads use item ids; tension
+	 * strings in debates.json don't always match statement_encoding (e.g. 31_8 is
+	 * "anti-elite distrust" in encoding but "political distrust" in debates).
+	 * @param {string} itemId
+	 * @param {string} valueTensionRaw from statement / encoding (`item.tension`)
+	 */
+	function debatesForSelectedStatement(itemId, valueTensionRaw) {
+		const id = String(itemId ?? '').trim();
+		const tensionKey = normDebateTensionKey(valueTensionRaw);
+		/** @type {{ id: string, label: string }[]} */
+		const out = [];
+		const seen = new Set();
+		for (const d of DEBATE_ROWS) {
+			const debateId = String(d?.debate_id ?? '').trim();
+			const label = String(d?.question ?? '').trim() || debateId;
+			if (!debateId || seen.has(debateId)) continue;
+
+			const sourceItems = Array.isArray(d?.source_items)
+				? d.source_items.map((s) => String(s ?? '').trim()).filter(Boolean)
+				: [];
+			const inTriad = id && sourceItems.includes(id);
+
+			const rawTensions = Array.isArray(d?.tensions)
+				? d.tensions
+				: Array.isArray(d?.primary_tensions)
+					? d.primary_tensions
+					: [];
+			const tensionMatch =
+				tensionKey &&
+				rawTensions.some((t) => normDebateTensionKey(String(t ?? '')) === tensionKey);
+
+			if (!inTriad && !tensionMatch) continue;
+			seen.add(debateId);
+			out.push({ id: debateId, label });
+		}
+		out.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+		return out;
+	}
 	const STATEMENT_AVERAGE_BY_ITEM_MODEL = (() => {
 		/** @type {Map<string, { mean_value: number, scale_label: string }>} */
 		const map = new Map();
@@ -196,7 +244,6 @@
 			viewportMobile = mq.matches;
 		};
 		syncViewport();
-		leftTrayControlsCollapsed = mq.matches;
 		mq.addEventListener('change', syncViewport);
 
 		const introLink = consumeIntroToolDeepLink();
@@ -223,9 +270,6 @@
 	let radialCellH = $state(0);
 	let leftTrayFeedEl = $state(/** @type {HTMLDivElement | null} */ (null));
 	let feedSequenceToken = 0;
-	let hasUsedBottomControls = $state(false);
-	/** Default collapsed; onMount opens on desktop only (`md` and up). */
-	let leftTrayControlsCollapsed = $state(true);
 	/** Bump statement view: flex slot height so the SVG row fills the viewport. */
 	let statementBumpSlotH = $state(0);
 	/** Nested feed streams (typing indicator while any wait is active). */
@@ -297,24 +341,23 @@
 
 	/** @param {string} subscaleKey */
 	function handleRadialSubscaleClick(subscaleKey) {
-		if (!hasUsedBottomControls) leftTrayControlsCollapsed = true;
 		toggleSubscaleSelection(subscaleKey);
 	}
 
-	/** Bottom-tray topic selector (phase 2): debate topic from `debates.json`. */
-	function handleDebateTopicChange(/** @type {Event} */ e) {
-		hasUsedBottomControls = true;
-		leftTrayControlsCollapsed = false;
-		const value = String(/** @type {HTMLSelectElement} */ (e.currentTarget)?.value ?? '').trim();
-		setSelectedDebateId(value || null);
+	/** Top-bar question picker: debate topic from `debates.json`. */
+	function handleDebateTopicSelect(/** @type {string | null} */ debateId) {
+		const value = String(debateId ?? '').trim();
+		if (!value) {
+			goToRadialRoot();
+			return;
+		}
+		setSelectedDebateId(value);
 		setSelectedDebateSourceItemId(null);
 		setSelectedStatementId(null);
 	}
 
-	/** Bottom-tray model selector (phase 2): multi-select store with single-model compatibility bridge. */
+	/** Model selector: multi-select store with single-model compatibility bridge. */
 	function handleModelToggle(/** @type {string} */ model) {
-		hasUsedBottomControls = true;
-		leftTrayControlsCollapsed = false;
 		const current = Array.isArray($selectedModels) ? [...$selectedModels] : [];
 		/** `[]` means all models visible; first click isolates one model. */
 		let next;
@@ -352,7 +395,6 @@
 	/** Same toggle behavior as the statement list in the left tray. */
 	function handleRadialStatementSelect(/** @type {string} */ itemId) {
 		if (viewportMobile && String($selectedDebateId ?? '').trim()) return;
-		if (!hasUsedBottomControls) leftTrayControlsCollapsed = true;
 		const id = String(itemId ?? '').trim();
 		if (!id) return;
 		const next = $selectedStatementId === id ? null : id;
@@ -395,7 +437,7 @@
 			if (token !== feedSequenceToken) return;
 			appendLeftTrayMessage({
 				type: 'narration',
-				gapTop: true,
+				valueStatement: true,
 				text: narratorQuestion
 			});
 		}
@@ -452,31 +494,9 @@
 		}
 
 		if (String($selectedDebateId ?? '').trim()) return;
-		const debateOptions = DEBATE_CHOICES_BY_STATEMENT_ID.get(itemId) ?? [];
-		if (!debateOptions.length || viz.modelSeries.length < 2) return;
-		const debateChoice = debateOptions[0];
-		const debatePrompt = debateChoice?.label;
-		if (!debatePrompt || !debateChoice?.id) return;
-
-		let widestPair = null;
-		for (let a = 0; a < viz.modelSeries.length; a++) {
-			for (let b = a + 1; b < viz.modelSeries.length; b++) {
-				const mA = viz.modelSeries[a];
-				const mB = viz.modelSeries[b];
-				const vA = Number(mA?.itemMeans?.[idx]);
-				const vB = Number(mB?.itemMeans?.[idx]);
-				if (!Number.isFinite(vA) || !Number.isFinite(vB)) continue;
-				const gap = Math.abs(vA - vB);
-				if (!widestPair || gap > widestPair.gap) {
-					widestPair = {
-						leftModel: String(mA?.fundModel ?? ''),
-						rightModel: String(mB?.fundModel ?? ''),
-						gap
-					};
-				}
-			}
-		}
-		if (!widestPair?.leftModel || !widestPair?.rightModel) return;
+		const valueTension = String(item?.tension ?? '').trim();
+		const debateQuestionOptions = debatesForSelectedStatement(itemId, valueTension);
+		if (!debateQuestionOptions.length) return;
 
 		await waitFeed(valueFeedTiming().beforeSectionMs);
 		if (token !== feedSequenceToken) return;
@@ -484,11 +504,7 @@
 			type: 'debate_suggestion',
 			gapTop: true,
 			chunkBreak: true,
-			text:
-				`Suggested debate question: ${debatePrompt}\n` +
-				`Biggest disagreement on this statement: ${widestPair.leftModel} vs ${widestPair.rightModel}.`,
-			debateId: debateChoice.id,
-			suggestedModels: [widestPair.leftModel, widestPair.rightModel]
+			debateOptions: debateQuestionOptions
 		});
 	}
 
@@ -500,8 +516,6 @@
 		// Reset to "all models" state when exiting debate via header close.
 		setSelectedModels([]);
 		setSelectedModel(null);
-		// Mobile: keep bottom question module closed when returning to radial root.
-		leftTrayControlsCollapsed = viewportMobile;
 	}
 
 	function goToDebateStatements() {
@@ -527,28 +541,17 @@
 		});
 	}
 
-	/** @param {{ debateId?: string, suggestedModels?: string[] } | null | undefined} suggestion */
-	function handleDebateSuggestion(suggestion) {
-		const debateId = String(suggestion?.debateId ?? '').trim();
-		if (!debateId) return;
-		const models = Array.isArray(suggestion?.suggestedModels)
-			? suggestion.suggestedModels.map((m) => String(m ?? '').trim()).filter(Boolean)
-			: [];
+	/** Pick a debate from the feed list only: set topic, clear models/statement; do not run compare stream. */
+	function handlePickDebateQuestionOnly(/** @type {string} */ debateId) {
+		const id = String(debateId ?? '').trim();
+		if (!id) return;
+		cancelActiveFeedSequence();
 		feedSequenceToken += 1;
-		const feed = get(leftTrayFeed);
-		const lastMsg = feed.length ? feed[feed.length - 1] : null;
-		const fromLastFeedSuggestion =
-			lastMsg?.type === 'debate_suggestion' &&
-			String(lastMsg?.debateId ?? '').trim() === debateId;
-		setSelectedDebateId(debateId);
+		setSelectedDebateId(id);
 		setSelectedDebateSourceItemId(null);
 		setSelectedStatementId(null);
-		setSelectedModels(models);
-		if (models.length === 1) setSelectedModel(models[0]);
-		else setSelectedModel(null);
-		if (models.length === 2) {
-			handleDebateStart({ debateId, models, fromLastFeedSuggestion });
-		}
+		setSelectedModels([]);
+		setSelectedModel(null);
 	}
 
 	/** @param {string=} preferredDebateId */
@@ -584,12 +587,7 @@
 
 	/** @param {string} s */
 	function titleCaseTensionLabel(s) {
-		const t = String(s ?? '').trim();
-		if (!t) return '';
-		return t
-			.split(/\s+/)
-			.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-			.join(' ');
+		return formatDebateTensionLabel(s);
 	}
 
 	/** Counts a “meaningful” pairwise gap for debate WHY branching (strict >). */
@@ -742,9 +740,13 @@
 				: [];
 		if (!debateId || pickedModels.length !== 2) return;
 		const token = ++feedSequenceToken;
-		hasUsedBottomControls = true;
-		leftTrayControlsCollapsed = true;
-		const scenario = String(DEBATE_BY_ID.get(debateId)?.scenario ?? '').trim();
+		const debate = DEBATE_BY_ID.get(debateId);
+		const scenarioText = String(debate?.scenario ?? '')
+			.replace(/\s+/g, ' ')
+			.trim();
+		const thresholdPrompt = String(debate?.threshold ?? '')
+			.replace(/\s+/g, ' ')
+			.trim();
 		const fromLastFeedSuggestion = Boolean(opts?.fromLastFeedSuggestion);
 		if (!fromLastFeedSuggestion) {
 			appendLeftTrayMessage({
@@ -755,57 +757,52 @@
 				suggestedModels: [pickedModels[0], pickedModels[1]]
 			});
 		}
-		// Narration: scenario only; question is already on the selection card / nav.
-		const scenarioText = scenario.replace(/\s+/g, ' ').trim();
-		if (scenarioText) {
-			appendLeftTrayMessage({
-				type: 'narration',
-				gapTop: !fromLastFeedSuggestion,
-				text: scenarioText
-			});
-		}
 
 		const leftModelKey = normalizeModelKey(pickedModels[0]);
 		const opening0 = getAllModelsDebateResponse(debateId, pickedModels[0], 'opening');
 		const opening1 = getAllModelsDebateResponse(debateId, pickedModels[1], 'opening');
 		const threshold0 = getAllModelsDebateResponse(debateId, pickedModels[0], 'threshold');
 		const threshold1 = getAllModelsDebateResponse(debateId, pickedModels[1], 'threshold');
-		const hasAdvice = Boolean(opening0 || opening1);
-		const hasThreshold = Boolean(threshold0 || threshold1);
+		const hasAdvice = Boolean(scenarioText || opening0 || opening1);
+		const hasThreshold = Boolean(thresholdPrompt || threshold0 || threshold1);
 		if (!hasAdvice && !hasThreshold) return;
 
-		await waitFeed(debateFeedTiming().narrationToModelsMs);
-		if (token !== feedSequenceToken) return;
-
-		let firstModelSectionTitle = true;
 		/**
-		 * @param {string} title
-		 * @param {string} a
-		 * @param {string} b
-		 * @param {{ leadingSectionPause?: boolean }} [opts]
+		 * @param {{ leadingPause?: boolean, gapTop?: boolean }} [sectionOpts]
+		 * @returns {Promise<boolean>}
 		 */
-		async function emitPairModelSection(title, a, b, opts = {}) {
-			const leadingSectionPause = opts.leadingSectionPause !== false;
-			const t0 = String(a ?? '').trim();
-			const t1 = String(b ?? '').trim();
-			const items = [
-				{ text: t0, picked: pickedModels[0] },
-				{ text: t1, picked: pickedModels[1] }
-			].filter((x) => x.text);
-			if (!items.length) return;
-
-			if (leadingSectionPause) {
+		async function appendSectionTitle(title, sectionOpts = {}) {
+			if (sectionOpts.leadingPause) {
 				await waitFeed(debateFeedTiming().beforeSectionMs);
-				if (token !== feedSequenceToken) return;
+				if (token !== feedSequenceToken) return false;
 			}
-
 			appendLeftTrayMessage({
 				type: 'section_title',
-				gapTop: firstModelSectionTitle,
+				gapTop: Boolean(sectionOpts.gapTop),
 				text: title
 			});
-			firstModelSectionTitle = false;
+			return true;
+		}
 
+		/** Centered prompt bubble (scenario or threshold question). */
+		async function appendDebatePromptBubble(text) {
+			const copy = String(text ?? '').trim();
+			if (!copy) return;
+			await waitFeed(debateFeedTiming().betweenModelMessagesMs);
+			if (token !== feedSequenceToken) return;
+			appendLeftTrayMessage({
+				type: 'narration',
+				text: copy,
+				debatePrompt: true
+			});
+		}
+
+		/** @param {string} a @param {string} b */
+		async function appendModelPair(a, b) {
+			const items = [
+				{ text: String(a ?? '').trim(), picked: pickedModels[0] },
+				{ text: String(b ?? '').trim(), picked: pickedModels[1] }
+			].filter((x) => x.text);
 			for (let i = 0; i < items.length; i++) {
 				await waitFeed(debateFeedTiming().betweenModelMessagesMs);
 				if (token !== feedSequenceToken) return;
@@ -821,13 +818,27 @@
 			}
 		}
 
-		await emitPairModelSection('ADVICE', opening0, opening1, { leadingSectionPause: false });
+		await waitFeed(debateFeedTiming().narrationToModelsMs);
 		if (token !== feedSequenceToken) return;
-		await emitPairModelSection('THRESHOLD', threshold0, threshold1);
+
+		if (hasAdvice) {
+			if (!(await appendSectionTitle('ADVICE', { gapTop: !fromLastFeedSuggestion }))) return;
+			await appendDebatePromptBubble(scenarioText);
+			if (token !== feedSequenceToken) return;
+			await appendModelPair(opening0, opening1);
+		}
+
+		if (token !== feedSequenceToken) return;
+
+		if (hasThreshold) {
+			if (!(await appendSectionTitle('THRESHOLD', { leadingPause: true }))) return;
+			await appendDebatePromptBubble(thresholdPrompt);
+			if (token !== feedSequenceToken) return;
+			await appendModelPair(threshold0, threshold1);
+		}
 
 		// WHY section: synthetic value explanation from average positions & tensions (no extra model calls).
 		if (token !== feedSequenceToken) return;
-		const debate = DEBATE_BY_ID.get(debateId);
 		const why = buildWhySummariesForDebate(debate, pickedModels[0], pickedModels[1]);
 		if (why?.whySegments?.length && why.text) {
 			await waitFeed(debateFeedTiming().beforeSectionMs);
@@ -863,12 +874,6 @@
 			const el = document.getElementById(domId);
 			el?.scrollIntoView({ block: 'center', behavior: 'smooth', inline: 'nearest' });
 		});
-	});
-
-	$effect(() => {
-		const id = $selectedStatementId;
-		if (id == null || String(id).trim() === '') return;
-		leftTrayControlsCollapsed = true;
 	});
 
 	/** Subscale filter hides non-matching questions; clear statement if it falls outside the filter. */
@@ -1008,35 +1013,10 @@
 		const idx = Math.max(0, Math.min(scale.length - 1, step - lo));
 		return scale[idx] ?? '';
 	}
-
-	/**
-	 * @param {import('$lib/data/debatesAdapter.js').DebateRecord | null | undefined} debate
-	 * @param {string | null} statementId
-	 */
-	function primaryTensionForStatement(debate, statementId) {
-		const id = String(statementId ?? '').trim();
-		if (!debate || !id) return '';
-		const src = Array.isArray(debate.source_items) ? debate.source_items.map((s) => String(s)) : [];
-		const idx = src.indexOf(id);
-		if (idx < 0) return '';
-		const tensions = Array.isArray(debate.tensions)
-			? debate.tensions.map((t) => String(t ?? '').trim())
-			: Array.isArray(debate.primary_tensions)
-				? debate.primary_tensions.map((t) => String(t ?? '').trim())
-			: [];
-		return tensions[idx] ?? tensions[0] ?? '';
-	}
-
-	/** @param {any} item */
-	function navLabelForSelectedStatement(item) {
-		const t = String(item?.tension ?? '').trim();
-		if (t) return t;
-		return statementLabel(item);
-	}
 </script>
 
 <svelte:head>
-	<title>Ethical AI — One Year Later</title>
+	<title>Everyday Ethics of AI</title>
 </svelte:head>
 
 <div class="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900" data-tool-root>
@@ -1069,13 +1049,7 @@
 				: []}
 			{@const radialStatementSelectEnabled =
 				!(viewportMobile && String($selectedDebateId ?? '').trim())}
-			{@const latestDebateSuggestion =
-				[...$leftTrayFeed].reverse().find((m) => m?.type === 'debate_suggestion') ?? null}
 			{@const selectedSurveyQuestion = fullSurveyQuestionForStatement($selectedStatementId)}
-			{@const selectedPrimaryTension = primaryTensionForStatement(
-				$selectedDebate,
-				$selectedStatementId
-			)}
 			{@const bumpViz = $selectedStatementId
 				? sliceVizToSingleStatement($statementsViz, $selectedStatementId)
 				: null}
@@ -1088,29 +1062,44 @@
 					? [compactBumpSvgH]
 					: [statementBumpSlotH > 0 ? statementBumpSlotH : 360]
 				: []}
-			{@const debateHeaderModels =
-				$selectedModels.length > 0
-					? $selectedModels
-					: $selectedModel
-						? [$selectedModel]
-						: []}
-			{@const navQuestionText = $selectedDebateId
-				? `QUESTION: ${String($selectedDebate?.question ?? $selectedDebateId)}`
-				: ''}
-			{@const navValueText =
+			{@const navValueLabel =
 				isStatementView && bumpViz?.dim?.items?.[0]
-					? `VALUE: ${titleCaseTensionLabel(navLabelForSelectedStatement(bumpViz.dim.items[0]))}`
+					? radialTensionLabelForStatement(bumpViz.dim.items[0], $selectedDebate)
 					: ''}
-			{@const navCompareModels =
-				$selectedDebateId && debateHeaderModels.length === 2 ? debateHeaderModels : []}
+			{@const navValueText = navValueLabel ? `VALUE: ${navValueLabel}` : ''}
+			{@const hasSelectedDebate = Boolean(String($selectedDebateId ?? '').trim())}
+			{@const showMobileCompare = viewportMobile && hasSelectedDebate}
 			{@const radialFullBleed =
-				!isStatementView && !String($selectedDebateId ?? '').trim()}
+				!isStatementView && !hasSelectedDebate}
 
 			<div
 				class="flex h-[100vh] min-h-0 flex-col rounded-lg bg-slate-100 ring-1 ring-slate-300"
 				class:overflow-hidden={!radialFullBleed}
 				class:overflow-visible={radialFullBleed}
 			>
+				<ExperienceTopBar
+					topics={$debateTopicOptions}
+					selectedDebateId={$selectedDebateId}
+					valueText={navValueText}
+					showValue={viewportMobile && Boolean(navValueText)}
+					onSelectDebate={handleDebateTopicSelect}
+					onClearValue={isStatementView && bumpViz?.dim?.items?.[0]
+						? goToDebateStatements
+						: undefined}
+				/>
+
+				{#if showMobileCompare}
+					<DebateCompareControls
+						{visibleModels}
+						selectedModels={$selectedModels}
+						selectedDebateId={$selectedDebateId}
+						{allModelsShowing}
+						compact
+						onModelToggle={handleModelToggle}
+						onCompare={() => handleDebateStart()}
+					/>
+				{/if}
+
 				<div
 					class="flex min-h-0 flex-1 flex-col md:flex-row"
 					class:overflow-hidden={!radialFullBleed}
@@ -1118,11 +1107,11 @@
 				>
 					<!-- Dashboard left tray: selector stack anchored to bottom (text panel not in scope). -->
 					<aside
-						class="box-border flex min-h-0 w-full max-w-full flex-1 basis-0 flex-col overflow-hidden border-t border-slate-600 bg-[#3B3A3A] order-2 md:order-1 md:h-auto md:w-[35vw] md:min-w-[400px] md:max-w-[35vw] md:flex-none md:basis-auto md:border-r md:border-t-0"
+						class="box-border flex min-h-0 w-full max-w-full flex-1 basis-0 flex-col overflow-hidden border-t border-slate-600 bg-[#3B3A3A] order-2 md:order-1 md:h-auto md:w-[35vw] md:min-w-[400px] md:max-w-[500px] md:flex-none md:basis-auto md:border-r md:border-t-0"
 					>
 						<div class="flex min-h-0 flex-1 flex-col">
 							<div
-								class="min-h-0 flex-1 overflow-y-auto space-y-3 bg-[#3B3A3A] px-4 py-4"
+								class="left-tray-feed-scroll min-h-0 flex-1 overflow-y-auto space-y-3 bg-[#3B3A3A] px-4 py-4"
 								bind:this={leftTrayFeedEl}
 							>
 								{#each $leftTrayFeed as message, idx (message.id)}
@@ -1133,21 +1122,27 @@
 										{#if message.type === 'narration'}
 											<div class="flex w-full justify-center">
 												<div
-													class="w-[90%] rounded-2xl bg-[#4b4b4e] px-3 py-2 text-sm leading-relaxed text-white shadow-sm"
+													class="left-tray-chat-bubble {message.debatePrompt ||
+													message.valueStatement
+														? 'left-tray-transparent-bubble'
+														: ''}"
 												>
 													<p class="text-center whitespace-pre-line">{message.text}</p>
 												</div>
 											</div>
 										{:else if message.type === 'section_title'}
-											<p class="mt-[10px] text-center text-xs font-semibold uppercase tracking-wide text-slate-200">
+											<p
+												class="left-tray-feed-section-title left-tray-feed-section-title--after-chunk text-center text-xs font-semibold uppercase tracking-wide text-slate-200 {message.text ===
+												'Value Statement'
+													? 'left-tray-feed-section-title--value'
+													: ''}"
+											>
 												{message.text}
 											</p>
 										{:else if message.type === 'topic_choices'}
-											<div class="space-y-2 px-2">
+											<div class="left-tray-topic-block space-y-2 px-2">
 												<div class="flex w-full justify-center">
-													<div
-														class="w-[90%] rounded-2xl bg-[#4b4b4e] px-3 py-2 text-sm leading-relaxed text-white shadow-sm"
-													>
+													<div class="left-tray-chat-bubble">
 														<p class="text-center whitespace-pre-line">{message.text}</p>
 													</div>
 												</div>
@@ -1165,16 +1160,39 @@
 													</button>
 												{/each}
 											</div>
-										{:else if message.type === 'debate_suggestion' || message.type === 'debate_selection_card'}
+										{:else if message.type === 'debate_suggestion'}
+											{#if Array.isArray(message.debateOptions) && message.debateOptions.length}
+												<div class="left-tray-topic-block space-y-3 px-2">
+													<p
+														class="left-tray-feed-section-title--after-chunk text-center text-xs font-semibold uppercase tracking-wide text-slate-200"
+													>
+														Questions Exploring This Value
+													</p>
+													<div class="flex flex-col gap-2">
+														{#each message.debateOptions as opt (opt.id)}
+															<button
+																type="button"
+																class="left-tray-explore-question-btn w-full rounded-full bg-[#4b4b4e] border-1 border-[#4b4b4e] px-4 py-2.5 text-center text-sm font-medium leading-snug text-white transition-colors hover:border-white hover:border-1 focus-visible:outline-none"
+																onclick={() => handlePickDebateQuestionOnly(opt.id)}
+															>
+																{opt.label}
+															</button>
+														{/each}
+													</div>
+												</div>
+											{/if}
+										{:else if message.type === 'debate_selection_card'}
 											{@const leftModel = String(message.suggestedModels?.[0] ?? '')}
 											{@const rightModel = String(message.suggestedModels?.[1] ?? '')}
-											<div class="space-y-2 px-2">
-												<p class="text-center text-xs font-semibold uppercase tracking-wide text-slate-200">
-													{message.type === 'debate_selection_card' ? 'Question' : 'Suggested Question'}
+											<div class="left-tray-topic-block space-y-2 px-2">
+												<p
+													class="left-tray-feed-section-title--after-chunk text-center text-xs font-semibold uppercase tracking-wide text-slate-200"
+												>
+													Question
 												</p>
 												<div class="flex w-full justify-center">
 													<div
-														class="flex min-h-11 w-[90%] items-center justify-center rounded-2xl bg-[#4b4b4e] px-3 py-2 text-center text-sm leading-relaxed text-white shadow-sm"
+														class="left-tray-chat-bubble flex min-h-11 items-center justify-center text-center"
 													>
 														{String(
 															DEBATE_BY_ID.get(String(message.debateId ?? ''))?.question ??
@@ -1183,68 +1201,31 @@
 													</div>
 												</div>
 												<div class="my-4 flex items-center justify-center gap-2">
-													{#if message.type === 'debate_selection_card'}
-														<div
-															class="w-[100px] rounded-full px-2 py-1.5 text-center text-xs font-semibold text-white"
-															style={leftModel
-																? `background-color: ${modelColor(leftModel)};`
-																: 'background-color: #7a7a7a;'}
-														>
-															{leftModel || 'Model 1'}
-														</div>
-														<span class="text-xs font-semibold uppercase tracking-wide text-slate-300">
-															and
-														</span>
-														<div
-															class="w-[100px] rounded-full px-2 py-1.5 text-center text-xs font-semibold text-white"
-															style={rightModel
-																? `background-color: ${modelColor(rightModel)};`
-																: 'background-color: #7a7a7a;'}
-														>
-															{rightModel || 'Model 2'}
-														</div>
-													{:else}
-														<button
-															type="button"
-															class="w-[100px] cursor-pointer rounded-full px-2 py-1.5 text-xs font-semibold text-white"
-															style={leftModel
-																? `background-color: ${modelColor(leftModel)};`
-																: 'background-color: #7a7a7a;'}
-														>
-															{leftModel || 'Model 1'}
-														</button>
-														<span class="text-xs font-semibold uppercase tracking-wide text-slate-300">
-															and
-														</span>
-														<button
-															type="button"
-															class="w-[100px] cursor-pointer rounded-full px-2 py-1.5 text-xs font-semibold text-white"
-															style={rightModel
-																? `background-color: ${modelColor(rightModel)};`
-																: 'background-color: #7a7a7a;'}
-														>
-															{rightModel || 'Model 2'}
-														</button>
-													{/if}
-												</div>
-												{#if message.type === 'debate_suggestion'}
-													<div class="flex items-center justify-center">
-														<button
-															type="button"
-															class="h-10 min-w-[130px] cursor-pointer rounded-full bg-[#4b4b4e] px-5 text-center text-sm font-bold tracking-wide text-white"
-															onclick={() => handleDebateSuggestion(message)}
-														>
-															COMPARE
-														</button>
+													<div
+														class="w-[100px] rounded-full px-2 py-1.5 text-center text-xs font-semibold text-white"
+														style={leftModel
+															? `background-color: ${modelColor(leftModel)};`
+															: 'background-color: #7a7a7a;'}
+													>
+														{leftModel || 'Model 1'}
 													</div>
-												{/if}
+													<span class="text-xs font-semibold uppercase tracking-wide text-slate-300">
+														and
+													</span>
+													<div
+														class="w-[100px] rounded-full px-2 py-1.5 text-center text-xs font-semibold text-white"
+														style={rightModel
+															? `background-color: ${modelColor(rightModel)};`
+															: 'background-color: #7a7a7a;'}
+													>
+														{rightModel || 'Model 2'}
+													</div>
+												</div>
 											</div>
 										{:else if message.type === 'why_narration'}
 											<div class="flex w-full justify-center">
-												<div
-													class="w-[90%] rounded-2xl bg-[#4b4b4e] px-3 py-2 text-sm leading-relaxed text-white shadow-sm"
-												>
-													<p class="text-left">
+												<div class="left-tray-chat-bubble left-tray-transparent-bubble">
+													<p class="text-center">
 														{#if Array.isArray(message.whySegments) && message.whySegments.length}
 															{#each message.whySegments as seg, sidx (sidx)}
 																{#if seg.kind === 'model'}
@@ -1271,9 +1252,7 @@
 												class:justify-end={LEFT_TRAY_MODEL_BUBBLE_LAYOUT !== 'center' && message.side === 'right'}
 												class:justify-start={LEFT_TRAY_MODEL_BUBBLE_LAYOUT !== 'center' && message.side !== 'right'}
 											>
-												<div
-													class="w-[90%] rounded-2xl bg-[#4b4b4e] px-3 py-2 text-sm leading-relaxed text-white shadow-sm"
-												>
+												<div class="left-tray-chat-bubble">
 													{#if message.model}
 														<p
 															class="mb-1 text-[10px] font-semibold uppercase tracking-wide"
@@ -1294,108 +1273,15 @@
 									/>
 								{/if}
 							</div>
-							<div class="shrink-0 border-t border-slate-500 bg-[#5F5F5F] px-4 pb-4 pt-3 text-white">
-								<button
-									type="button"
-									class="relative flex w-full items-center justify-center text-center text-xs font-semibold uppercase tracking-wide text-slate-200"
-									onclick={() => {
-										leftTrayControlsCollapsed = !leftTrayControlsCollapsed;
-										if (!leftTrayControlsCollapsed) hasUsedBottomControls = true;
-									}}
-								>
-									<span>WHAT QUESTIONS ARE YOU ASKING AI?</span>
-									<span
-										aria-hidden="true"
-										class="absolute right-0 text-2xl leading-none"
-									>
-										{leftTrayControlsCollapsed ? '+' : '-'}
-									</span>
-								</button>
-								{#if !leftTrayControlsCollapsed}
-									<div class="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-200">
-										Question
-									</div>
-									<select
-										class="debate-topic-select mt-3 h-11 w-full rounded-full bg-[#3B3A3A] px-3 pr-14 text-center text-sm text-white outline-none [text-align-last:center]"
-										value={$selectedDebateId ?? ''}
-										onchange={handleDebateTopicChange}
-									>
-										<option value="">Select a question</option>
-										{#each $debateTopicOptions as topic (topic.id)}
-											<option value={topic.id}>{topic.label}</option>
-										{/each}
-									</select>
-									<div class="mt-4 text-[10px] font-semibold uppercase tracking-wide text-slate-200">
-										Models (pick 2)
-									</div>
-									<div class="tray-model-row mt-3 flex w-full flex-nowrap">
-										{#each visibleModels as model (model)}
-											{@const active = allModelsShowing || $selectedModels.includes(model)}
-											<button
-												type="button"
-												class="tray-model-btn min-w-0 flex-1 cursor-pointer rounded-full font-semibold text-white transition-opacity {active
-													? 'opacity-100'
-													: 'bg-[#7a7a7a] opacity-55 hover:opacity-75'}"
-												style={active ? `background-color: ${modelColor(model)};` : ''}
-												onclick={() => handleModelToggle(model)}
-											>
-												{model}
-											</button>
-										{/each}
-									</div>
-									<div class="mt-7 flex items-center justify-center">
-										<button
-											type="button"
-											class={`relative h-10 min-w-[210px] rounded-full bg-[#3B3A3A] px-5 pr-14 text-sm font-bold tracking-wide text-white ${
-												Boolean(String($selectedDebateId ?? '').trim()) && $selectedModels.length === 2
-													? 'cursor-pointer'
-													: 'cursor-not-allowed bg-[#4a4a4d]'
-											}`}
-											aria-disabled={!(
-												Boolean(String($selectedDebateId ?? '').trim()) &&
-												$selectedModels.length === 2
-											)}
-											onclick={() => {
-												if (
-													!(
-														Boolean(String($selectedDebateId ?? '').trim()) &&
-														$selectedModels.length === 2
-													)
-												)
-													return;
-												handleDebateStart();
-											}}
-										>
-											<span
-												class:opacity-50={!(
-													Boolean(String($selectedDebateId ?? '').trim()) &&
-													$selectedModels.length === 2
-												)}
-											>
-												COMPARE
-											</span>
-											<span
-												role="button"
-												tabindex="0"
-												class="absolute right-0 top-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-[#3B3A3A] bg-[#66666b] text-xl font-bold text-white hover:bg-[#74747a]"
-												onclick={(event) => {
-													event.stopPropagation();
-													handleRandomizedDebateStart();
-												}}
-												onkeydown={(event) => {
-													if (event.key === 'Enter' || event.key === ' ') {
-														event.preventDefault();
-														event.stopPropagation();
-														handleRandomizedDebateStart();
-													}
-												}}
-												aria-label="Randomize debate topic and models"
-											>
-												🎲
-											</span>
-										</button>
-									</div>
-								{/if}
+							<div class="hidden shrink-0 md:block">
+								<DebateCompareControls
+									{visibleModels}
+									selectedModels={$selectedModels}
+									selectedDebateId={$selectedDebateId}
+									{allModelsShowing}
+									onModelToggle={handleModelToggle}
+									onCompare={() => handleDebateStart()}
+								/>
 							</div>
 						</div>
 					</aside>
@@ -1405,24 +1291,17 @@
 						class:overflow-hidden={isStatementView}
 						class:overflow-visible={!isStatementView}
 					>
-						<div
-							class={`z-30 shrink-0 ${radialFullBleed ? 'absolute left-0 right-0 top-0 bg-transparent' : 'relative bg-white'}`}
-						>
-							<AppSiteHeader
-								transparentBackground={radialFullBleed}
-								densePadding={(isStatementView || $selectedDebateId) && chartWidth < 768}
-								questionText={navQuestionText}
+						{#if !viewportMobile && navValueText}
+							<VizValueHeader
 								valueText={navValueText}
-								compareModels={navCompareModels}
-								onClearQuestion={$selectedDebateId ? goToRadialRoot : undefined}
 								onClearValue={isStatementView && bumpViz?.dim?.items?.[0]
 									? goToDebateStatements
 									: undefined}
 							/>
-						</div>
+						{/if}
 						{#if isStatementView && selectedSurveyQuestion}
 							<div
-								class="mx-auto mb-2.5 mt-0 w-[calc(100%-1.5rem)] max-w-[min(100%,calc(72rem-40px))] shrink-0 rounded-2xl border border-[#3B3A3A]/25 bg-[#3B3A3A]/10 px-3 py-2.5 text-left shadow-sm md:mb-6 md:mt-2.5 md:w-[calc(100%-2rem)] md:px-4 md:py-4"
+								class="mx-auto mb-2.5 mt-3 w-[calc(100%-1.5rem)] max-w-[min(100%,calc(72rem-40px))] shrink-0 rounded-2xl border border-[#3B3A3A]/25 bg-[#3B3A3A]/10 px-3 py-2.5 text-left shadow-sm md:mb-6 md:w-[calc(100%-2rem)] md:px-4 md:py-4"
 							>
 								<p
 									class="mb-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-500"
@@ -1523,9 +1402,7 @@
 									bind:clientHeight={radialCellH}
 									class="relative flex min-h-0 flex-1 flex-col overflow-visible bg-white {radialFullBleed
 										? 'p-0'
-										: 'p-2'} {$selectedDebateId && chartWidth < 768
-										? 'pb-2'
-										: ''}"
+										: 'p-2'}"
 								>
 									<div class="relative min-h-0 w-full flex-1 overflow-visible">
 										<StatementsRadialChart
@@ -1556,64 +1433,60 @@
 </div>
 
 <style>
-	/* Closed select: centered label; open list: left-aligned options (where supported). */
-	:global(select.debate-topic-select) {
-		/* Use custom caret so right inset is consistent across browsers. */
-		appearance: none;
-		-webkit-appearance: none;
-		-moz-appearance: none;
-		padding-right: 2.75rem;
-		-webkit-padding-end: 2.75rem;
-		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 6 5-6' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-		background-repeat: no-repeat;
-		background-size: 12px 12px;
-		background-position: right 1rem center;
-	}
-
-	:global(select.debate-topic-select option) {
-		text-align: left;
-	}
-
-	/* Mobile: fit five model names in one row; readable type, minimal padding. */
-	.tray-model-row {
-		gap: 1px;
-		margin-left: -8px;
-		margin-right: -8px;
-		width: calc(100% + 16px);
-	}
-
-	.tray-model-btn {
-		flex: 1 1 0;
-		box-sizing: border-box;
-		padding: 5px 2px;
-		font-size: 11px;
-		line-height: 1.15;
-		letter-spacing: -0.01em;
-		text-align: center;
-		white-space: nowrap;
-	}
-
-	@media (min-width: 375px) {
-		.tray-model-btn {
-			font-size: 12px;
-			padding: 5px 3px;
+	@media (max-width: 767px) {
+		.left-tray-feed-scroll {
+			padding-left: 11px;
+			padding-right: 11px;
 		}
-	}
 
-	@media (min-width: 768px) {
-		.tray-model-row {
-			gap: 0.5rem;
-			margin-left: 0;
-			margin-right: 0;
+		.left-tray-topic-block {
+			padding-left: 0;
+			padding-right: 0;
+		}
+
+		.left-tray-chat-bubble {
 			width: 100%;
+			padding-left: 7px;
+			padding-right: 7px;
 		}
+	}
 
-		.tray-model-btn {
-			padding: 6px 8px;
-			font-size: 0.75rem;
-			line-height: 1rem;
-			letter-spacing: 0;
-		}
+	.left-tray-chat-bubble {
+		width: 90%;
+		border-radius: 1rem;
+		background-color: #4b4b4e;
+		padding: 0.5rem 0.75rem;
+		font-size: 0.875rem;
+		line-height: 1.625;
+		color: #fff;
+		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	}
+
+	/* Value statement, scenario, threshold, and WHY — text only, no bubble chrome. */
+	.left-tray-chat-bubble.left-tray-transparent-bubble {
+		background-color: transparent;
+		box-shadow: none;
+		border: none;
+	}
+
+	/* ADVICE / THRESHOLD / WHY / Value Statement — section header rhythm. */
+	.left-tray-feed-section-title {
+		margin-top: calc(1.75rem + 10px);
+		margin-bottom: -10px;
+	}
+
+	.left-tray-feed-section-title--value {
+		margin-bottom: -10px;
+	}
+
+	/* Same gap from chunk divider line to header as Value Statement (1.75rem). */
+	.left-tray-feed-section-title--after-chunk {
+		margin-top: 1.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.left-tray-explore-question-btn {
+		cursor: pointer;
 	}
 
 	.statement-mobile-legend {

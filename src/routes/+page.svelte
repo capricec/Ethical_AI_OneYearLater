@@ -4,7 +4,7 @@
 </script>
 
 <svelte:head>
-	<title>Introduction — Everyday Ethics of AI</title>
+	<title>Everyday Ethics of AI</title>
 </svelte:head>
 
 <div class="relative h-[100dvh] w-full overflow-hidden bg-[#333333] text-white">

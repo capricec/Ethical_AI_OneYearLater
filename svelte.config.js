@@ -1,12 +1,22 @@
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-static';
+
+/** Deployed at https://originaldatum.com/EverydayEthics — override for local root dev. */
+const base = process.env.BASE_PATH ?? '/EverydayEthics';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	kit: {
-		// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-		adapter: adapter()
+		paths: {
+			base
+		},
+		// Writes a static site to ./build (visible in Finder) for preview or static hosting.
+		adapter: adapter({
+			pages: 'build',
+			assets: 'build',
+			fallback: 'index.html',
+			precompress: false,
+			strict: true
+		})
 	},
 	vitePlugin: {
 		dynamicCompileOptions: ({ filename }) =>

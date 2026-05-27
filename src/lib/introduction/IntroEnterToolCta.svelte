@@ -1,11 +1,13 @@
 <script>
 	import { goto } from '$app/navigation';
+	import { appPath } from '$lib/appPaths.js';
 	import { ROUTE_TOOL } from '$lib/routes.js';
 
 	/** @type {{ label: string, href?: string, pill?: boolean, outlinePill?: boolean }} */
 	let { label, href = ROUTE_TOOL, pill = false, outlinePill = false } = $props();
 
 	let navigating = $state(false);
+	const resolvedHref = $derived(appPath(href));
 
 	const pillClass =
 		'rounded-full bg-[#212121] px-6 py-3.5 text-sm font-normal leading-none text-white shadow-sm transition-opacity hover:bg-[#2a2a2a] md:px-7 md:py-4';
@@ -24,14 +26,14 @@
 		if (navigating) return;
 		navigating = true;
 		try {
-			await goto(href, { invalidateAll: true, keepFocus: false, noScroll: false });
+			await goto(resolvedHref, { invalidateAll: true, keepFocus: false, noScroll: false });
 		} catch {
-			window.location.assign(href);
+			window.location.assign(resolvedHref);
 			return;
 		}
 		requestAnimationFrame(() => {
-			if (window.location.pathname === href && !document.querySelector('[data-tool-root]')) {
-				window.location.assign(href);
+			if (window.location.pathname === resolvedHref && !document.querySelector('[data-tool-root]')) {
+				window.location.assign(resolvedHref);
 			}
 			navigating = false;
 		});
@@ -39,7 +41,7 @@
 </script>
 
 <a
-	{href}
+	href={resolvedHref}
 	data-sveltekit-preload-data="hover"
 	class="relative z-30 inline-flex items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white {buttonClass}"
 	class:opacity-70={navigating}

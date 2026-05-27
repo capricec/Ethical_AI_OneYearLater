@@ -24,7 +24,7 @@ export const LEFT_TRAY_FEED_SEED = [
 	{
 		id: 'intro-1.2',
 		type: 'narration',
-		text: 'Select a question below or explore the value wheel. Gray areas show where the models had consensus, while colored regions reveal where ethics diverge.'
+		text: 'Select a question above or explore the value wheel. Gray areas show where the models had consensus, while colored regions reveal where ethics diverge.'
 	},
 	/*{
 		id: 'intro-2',

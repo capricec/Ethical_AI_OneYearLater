@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { modelColor } from '$lib/viz/modelColors.js';
+	import { appPath } from '$lib/appPaths.js';
 	import {
 		ROUTE_INTRO,
 		ROUTE_TOOL,
@@ -101,9 +102,9 @@
 						class="absolute right-0 top-full z-50 mt-1 min-w-[12rem] rounded-lg bg-white py-1 shadow-lg"
 						role="menu"
 					>
-						<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
-						<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
-						<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+						<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
+						<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+						<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
 							>Methodology</a
 						>
 					</div>
@@ -137,9 +138,9 @@
 						class="absolute right-0 top-full z-50 mt-1 min-w-[12rem] rounded-lg bg-white py-1 shadow-lg"
 						role="menu"
 					>
-						<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
-						<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
-						<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+						<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
+						<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+						<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
 							>Methodology</a
 						>
 					</div>
@@ -188,9 +189,9 @@
 								class="absolute right-0 top-full z-50 mt-1 min-w-[12rem] rounded-lg bg-white py-1 shadow-lg"
 								role="menu"
 							>
-								<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
-								<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
-								<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+								<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
+								<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+								<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
 									>Methodology</a
 								>
 							</div>
@@ -331,9 +332,9 @@
 							class="absolute right-0 top-full z-50 mt-1 min-w-[12rem] rounded-lg bg-white py-1 shadow-lg"
 							role="menu"
 						>
-							<a href={ROUTE_INTRO} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
-							<a href={ROUTE_TOOL} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
-							<a href={ROUTE_METHODOLOGY} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
+							<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
+							<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+							<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
 								>Methodology</a
 							>
 						</div>

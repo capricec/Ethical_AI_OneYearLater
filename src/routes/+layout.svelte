@@ -1,7 +1,7 @@
 <script>
 	import { afterNavigate } from '$app/navigation';
+	import { assetPath } from '$lib/appPaths.js';
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
 
@@ -14,5 +14,7 @@
 	});
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+	<link rel="icon" href={assetPath('/favicon.png')} type="image/png" />
+</svelte:head>
 {@render children()}
