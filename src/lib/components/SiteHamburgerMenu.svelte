@@ -5,9 +5,11 @@
 	import {
 		ROUTE_INTRO,
 		ROUTE_TOOL,
+		ROUTE_IDEOLOGY_PROFILE,
 		ROUTE_METHODOLOGY,
 		isIntroRoute,
 		isToolRoute,
+		isIdeologyProfileRoute,
 		isMethodologyRoute
 	} from '$lib/routes.js';
 
@@ -16,6 +18,22 @@
 
 	let menuOpen = $state(false);
 	let wrapEl = $state(/** @type {HTMLDivElement | null} */ (null));
+	let menuTop = $state(0);
+	let menuRight = $state(0);
+
+	function syncMenuPosition() {
+		if (!wrapEl) return;
+		const btn = wrapEl.querySelector('button');
+		if (!(btn instanceof HTMLElement)) return;
+		const rect = btn.getBoundingClientRect();
+		menuTop = rect.bottom + 4;
+		menuRight = Math.max(8, window.innerWidth - rect.right);
+	}
+
+	function toggleMenu() {
+		menuOpen = !menuOpen;
+		if (menuOpen) syncMenuPosition();
+	}
 
 	/** @param {string} href */
 	function navItemClass(href) {
@@ -23,6 +41,7 @@
 		const active =
 			(href === ROUTE_INTRO && isIntroRoute(p)) ||
 			(href === ROUTE_TOOL && isToolRoute(p)) ||
+			(href === ROUTE_IDEOLOGY_PROFILE && isIdeologyProfileRoute(p)) ||
 			(href === ROUTE_METHODOLOGY && isMethodologyRoute(p));
 		return `block w-full px-4 py-2.5 text-left text-sm font-semibold transition-colors ${active ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-50'}`;
 	}
@@ -34,6 +53,18 @@
 		};
 		document.addEventListener('click', onDoc);
 		return () => document.removeEventListener('click', onDoc);
+	});
+
+	$effect(() => {
+		if (!menuOpen) return;
+		syncMenuPosition();
+		const onReposition = () => syncMenuPosition();
+		window.addEventListener('resize', onReposition);
+		window.addEventListener('scroll', onReposition, true);
+		return () => {
+			window.removeEventListener('resize', onReposition);
+			window.removeEventListener('scroll', onReposition, true);
+		};
 	});
 </script>
 
@@ -48,7 +79,7 @@
 		aria-label="Site menu"
 		onclick={(e) => {
 			e.stopPropagation();
-			menuOpen = !menuOpen;
+			toggleMenu();
 		}}
 	>
 		<span class="block h-0.5 w-5 rounded-full bg-current"></span>
@@ -57,11 +88,17 @@
 	</button>
 	{#if menuOpen}
 		<div
-			class="absolute right-0 top-full z-50 mt-1 min-w-[12rem] rounded-lg bg-white py-1 shadow-lg"
+			class="fixed z-[200] min-w-[12rem] rounded-lg bg-white py-1 shadow-lg ring-1 ring-slate-200/80"
+			style={`top: ${menuTop}px; right: ${menuRight}px;`}
 			role="menu"
 		>
 			<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
 			<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+			<a
+				href={appPath(ROUTE_IDEOLOGY_PROFILE)}
+				class={navItemClass(ROUTE_IDEOLOGY_PROFILE)}
+				role="menuitem">Ideologic Profiles</a
+			>
 			<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
 				>Methodology</a
 			>

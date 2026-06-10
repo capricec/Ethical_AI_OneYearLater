@@ -1,0 +1,876 @@
+{
+  "generated_at": "2026-06-10T15:45:38.494Z",
+  "statement_count": 58,
+  "statements": [
+    {
+      "item_id": "23_1",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: when jobs are scarce, men should have more right to a job than women?"
+    },
+    {
+      "item_id": "23_2",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: when jobs are scarce, employers should give priority to people of this country over immigrants?"
+    },
+    {
+      "item_id": "23_3",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: if a woman earns more money than her husband, its almost certain to cause problems?"
+    },
+    {
+      "item_id": "23_4",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: adult children have the duty to provide long-term care for their parents?"
+    },
+    {
+      "item_id": "23_5",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: one of my main goals in life has been to make my parents proud?"
+    },
+    {
+      "item_id": "23_6",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: when a mother works for pay, the children suffer?"
+    },
+    {
+      "item_id": "23_7",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: on the whole, men make better political leaders than women do?"
+    },
+    {
+      "item_id": "23_8",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: a university education is more important for a boy than for a girl?"
+    },
+    {
+      "item_id": "23_9",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: on the whole, men make better business executives than women do?"
+    },
+    {
+      "item_id": "23_10",
+      "dimension_id": 23,
+      "dimension_title": "Family Values",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: being a housewife/homeworker is just as fulfilling as working for pay?"
+    },
+    {
+      "item_id": "27_1",
+      "dimension_id": 27,
+      "dimension_title": "Economic Ideology",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "forced_choice_pair"
+      },
+      "meanings": {
+        "min": "Incomes should be made more equal",
+        "max": "There should be greater incentives for individual effort"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning incomes should be made more equal and 10 meaning there should be greater incentives for individual effort, where would you place your view?"
+    },
+    {
+      "item_id": "27_2",
+      "dimension_id": 27,
+      "dimension_title": "Economic Ideology",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "forced_choice_pair"
+      },
+      "meanings": {
+        "min": "Private ownership of business and industry should be increased",
+        "max": "Government ownership of business and industry should be increased"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning private ownership of business and industry should be increased and 10 meaning government ownership of business and industry should be increased, where would you place your view?"
+    },
+    {
+      "item_id": "27_3",
+      "dimension_id": 27,
+      "dimension_title": "Economic Ideology",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "forced_choice_pair"
+      },
+      "meanings": {
+        "min": "Government should take more responsibility to ensure that everyone is provided for",
+        "max": "People should take more responsibility to provide for themselves"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning government should take more responsibility to ensure that everyone is provided for and 10 meaning people should take more responsibility to provide for themselves, where would you place your view?"
+    },
+    {
+      "item_id": "27_4",
+      "dimension_id": 27,
+      "dimension_title": "Economic Ideology",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "forced_choice_pair"
+      },
+      "meanings": {
+        "min": "Competition is good",
+        "max": "Competition is harmful"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning competition is good and 10 meaning competition is harmful, where would you place your view?"
+    },
+    {
+      "item_id": "27_5",
+      "dimension_id": 27,
+      "dimension_title": "Economic Ideology",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "forced_choice_pair"
+      },
+      "meanings": {
+        "min": "Hard work usually brings a better life",
+        "max": "Success depends on luck and connections"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning hard work usually brings a better life and 10 meaning success depends on luck and connections, where would you place your view?"
+    },
+    {
+      "item_id": "27_6",
+      "dimension_id": 27,
+      "dimension_title": "Economic Ideology",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "forced_choice_pair"
+      },
+      "meanings": {
+        "min": "Protecting the environment should be prioritized",
+        "max": "Economic growth should be prioritized"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning protecting the environment should be prioritized and 10 meaning economic growth should be prioritized, where would you place your view?"
+    },
+    {
+      "item_id": "28_1",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate claiming government benefits you are not entitled to?"
+    },
+    {
+      "item_id": "28_2",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate avoiding a fare on public transport?"
+    },
+    {
+      "item_id": "28_3",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate stealing property?"
+    },
+    {
+      "item_id": "28_4",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate cheating on taxes?"
+    },
+    {
+      "item_id": "28_5",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate accepting a bribe?"
+    },
+    {
+      "item_id": "28_6",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate homosexuality?"
+    },
+    {
+      "item_id": "28_7",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate abortion?"
+    },
+    {
+      "item_id": "28_8",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate divorce?"
+    },
+    {
+      "item_id": "28_9",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate sex before marriage?"
+    },
+    {
+      "item_id": "28_10",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate suicide?"
+    },
+    {
+      "item_id": "28_11",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate euthanasia?"
+    },
+    {
+      "item_id": "28_12",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate a man beating his wife?"
+    },
+    {
+      "item_id": "28_13",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate parents beating children?"
+    },
+    {
+      "item_id": "28_14",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate violence against other people?"
+    },
+    {
+      "item_id": "28_15",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate political violence?"
+    },
+    {
+      "item_id": "28_16",
+      "dimension_id": 28,
+      "dimension_title": "Social Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "justifiability"
+      },
+      "meanings": {
+        "min": "never justifiable",
+        "max": "always justifiable"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning never justifiable to 10 meaning always justifiable how would you rate death penalty?"
+    },
+    {
+      "item_id": "30_1",
+      "dimension_id": 30,
+      "dimension_title": "Electoral Integrity",
+      "scale": {
+        "min": 1,
+        "max": 4,
+        "type": "frequency"
+      },
+      "meanings": {
+        "min": "Very Often",
+        "max": "Not Often at All"
+      },
+      "prompt": "On a scale from 1-4, 1 meaning very often and 4 meaning not often at all, how would you rate: votes are counted fairly?"
+    },
+    {
+      "item_id": "30_2",
+      "dimension_id": 30,
+      "dimension_title": "Electoral Integrity",
+      "scale": {
+        "min": 1,
+        "max": 4,
+        "type": "frequency"
+      },
+      "meanings": {
+        "min": "Very Often",
+        "max": "Not Often at All"
+      },
+      "prompt": "On a scale from 1-4, 1 meaning very often and 4 meaning not often at all, how would you rate: opposition candidates are prevented from running?"
+    },
+    {
+      "item_id": "30_3",
+      "dimension_id": 30,
+      "dimension_title": "Electoral Integrity",
+      "scale": {
+        "min": 1,
+        "max": 4,
+        "type": "frequency"
+      },
+      "meanings": {
+        "min": "Very Often",
+        "max": "Not Often at All"
+      },
+      "prompt": "On a scale from 1-4, 1 meaning very often and 4 meaning not often at all, how would you rate: voters are bribed?"
+    },
+    {
+      "item_id": "30_4",
+      "dimension_id": 30,
+      "dimension_title": "Electoral Integrity",
+      "scale": {
+        "min": 1,
+        "max": 4,
+        "type": "frequency"
+      },
+      "meanings": {
+        "min": "Very Often",
+        "max": "Not Often at All"
+      },
+      "prompt": "On a scale from 1-4, 1 meaning very often and 4 meaning not often at all, how would you rate: journalists provide fair coverage of elections?"
+    },
+    {
+      "item_id": "30_5",
+      "dimension_id": 30,
+      "dimension_title": "Electoral Integrity",
+      "scale": {
+        "min": 1,
+        "max": 4,
+        "type": "frequency"
+      },
+      "meanings": {
+        "min": "Very Often",
+        "max": "Not Often at All"
+      },
+      "prompt": "On a scale from 1-4, 1 meaning very often and 4 meaning not often at all, how would you rate: election officials are fair?"
+    },
+    {
+      "item_id": "30_6",
+      "dimension_id": 30,
+      "dimension_title": "Electoral Integrity",
+      "scale": {
+        "min": 1,
+        "max": 4,
+        "type": "frequency"
+      },
+      "meanings": {
+        "min": "Very Often",
+        "max": "Not Often at All"
+      },
+      "prompt": "On a scale from 1-4, 1 meaning very often and 4 meaning not often at all, how would you rate: rich people buy elections?"
+    },
+    {
+      "item_id": "30_7",
+      "dimension_id": 30,
+      "dimension_title": "Electoral Integrity",
+      "scale": {
+        "min": 1,
+        "max": 4,
+        "type": "frequency"
+      },
+      "meanings": {
+        "min": "Very Often",
+        "max": "Not Often at All"
+      },
+      "prompt": "On a scale from 1-4, 1 meaning very often and 4 meaning not often at all, how would you rate: voters are threatened with violence?"
+    },
+    {
+      "item_id": "30_8",
+      "dimension_id": 30,
+      "dimension_title": "Electoral Integrity",
+      "scale": {
+        "min": 1,
+        "max": 4,
+        "type": "frequency"
+      },
+      "meanings": {
+        "min": "Very Often",
+        "max": "Not Often at All"
+      },
+      "prompt": "On a scale from 1-4, 1 meaning very often and 4 meaning not often at all, how would you rate: voters are offered a genuine choice?"
+    },
+    {
+      "item_id": "31_1",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: in a national crisis, the press should back the government?"
+    },
+    {
+      "item_id": "31_2",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: police should maintain security even if restricting protests?"
+    },
+    {
+      "item_id": "31_3",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: leader should overrule parliament?"
+    },
+    {
+      "item_id": "31_4",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: leaders should decide based on judgment, not people?"
+    },
+    {
+      "item_id": "31_5",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: policies should follow scientific evidence?"
+    },
+    {
+      "item_id": "31_6",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: trust ordinary people over experts?"
+    },
+    {
+      "item_id": "31_7",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: the people should make most important decisions?"
+    },
+    {
+      "item_id": "31_8",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: politicians are out of touch?"
+    },
+    {
+      "item_id": "31_9",
+      "dimension_id": 31,
+      "dimension_title": "Political Preferences",
+      "scale": {
+        "min": 1,
+        "max": 6,
+        "type": "likert_agree"
+      },
+      "meanings": {
+        "min": "Strongly Disagree",
+        "max": "Strongly Agree"
+      },
+      "prompt": "On a scale from 1-6, 1 meaning strongly disagree and 6 meaning strongly agree, how would you rate: country divided between elites and citizens?"
+    },
+    {
+      "item_id": "32_1",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: tax the rich and subsidize the poor?"
+    },
+    {
+      "item_id": "32_2",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: religious authorities interpret laws?"
+    },
+    {
+      "item_id": "32_3",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: free elections?"
+    },
+    {
+      "item_id": "32_4",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: state aid for unemployment?"
+    },
+    {
+      "item_id": "32_5",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: army takes over if government is incompetent?"
+    },
+    {
+      "item_id": "32_6",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: civil rights protect people?"
+    },
+    {
+      "item_id": "32_7",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: state makes incomes equal?"
+    },
+    {
+      "item_id": "32_8",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: people obey rulers?"
+    },
+    {
+      "item_id": "32_9",
+      "dimension_id": 32,
+      "dimension_title": "Democratic Values",
+      "scale": {
+        "min": 1,
+        "max": 10,
+        "type": "importance"
+      },
+      "meanings": {
+        "min": "Not Essential Democracy",
+        "max": "Essential to Democracy"
+      },
+      "prompt": "On a scale from 1-10, 1 meaning not essential democracy and 10 meaning essential to democracy, how would you rate: women have equal rights?"
+    }
+  ]
+}

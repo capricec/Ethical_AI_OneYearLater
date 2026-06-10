@@ -5,6 +5,7 @@ import statementContext from '../../../data/statement_context.json';
 import questions from '../../../data/questions.json';
 import debates from '../../../data/debates.json';
 import debateAllModelsResponses from '../../../data/debate_all_models_responses_2026-05-20.json';
+import archetypeResponseMatrix from '../../../data/archetype_response_matrix.json';
 
 export {
 	compiled,
@@ -13,5 +14,6 @@ export {
 	statementContext,
 	questions,
 	debates,
-	debateAllModelsResponses
+	debateAllModelsResponses,
+	archetypeResponseMatrix
 };

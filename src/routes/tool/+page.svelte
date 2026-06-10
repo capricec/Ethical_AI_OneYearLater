@@ -3,6 +3,10 @@
 	import { get } from 'svelte/store';
 	import { consumeIntroToolDeepLink } from '$lib/introduction/introToolDeepLink.js';
 	import {
+		buildEncodingItemById,
+		fullSurveyQuestionForStatement as fullSurveyQuestionFromEncoding
+	} from '$lib/data/fullSurveyQuestion.js';
+	import {
 		selectedModel,
 		selectedModels,
 		selectedDebateId,
@@ -64,24 +68,7 @@
 			if (it?.item_id) STATEMENT_CONTEXT_BY_ID.set(String(it.item_id), String(it.context ?? ''));
 		}
 	}
-	/** @type {Map<string, { scale: { min: number, max: number, type?: string }, statementValues: { min?: string, max?: string }, item: any }>} */
-	const ENCODING_ITEM_BY_ID = new Map();
-	for (const dim of encoding ?? []) {
-		const scale = {
-			min: Number(dim?.scale?.min),
-			max: Number(dim?.scale?.max),
-			type: String(dim?.scale?.type ?? '').trim()
-		};
-		const statementValues = {
-			min: String(dim?.statement_values?.min ?? '').trim(),
-			max: String(dim?.statement_values?.max ?? '').trim()
-		};
-		for (const it of dim?.items ?? []) {
-			const itemId = String(it?.item_id ?? '').trim();
-			if (!itemId) continue;
-			ENCODING_ITEM_BY_ID.set(itemId, { scale, statementValues, item: it });
-		}
-	}
+	const ENCODING_ITEM_BY_ID = buildEncodingItemById(encoding);
 	const QUESTION_BY_ITEM_ID = new Map(
 		(questions ?? []).map((q) => [String(q?.item_id ?? '').trim(), String(q?.question ?? '').trim()])
 	);
@@ -967,35 +954,7 @@
 
 	/** @param {string | null} statementId */
 	function fullSurveyQuestionForStatement(statementId) {
-		const key = String(statementId ?? '').trim();
-		if (!key) return '';
-		const row = ENCODING_ITEM_BY_ID.get(key);
-		if (!row) return '';
-		const min = Number(row.scale?.min);
-		const max = Number(row.scale?.max);
-		const minTxt = String(row.statementValues?.min ?? '').trim();
-		const maxTxt = String(row.statementValues?.max ?? '').trim();
-		const baseItem = row.item ?? {};
-		const text = String(baseItem.text ?? '').trim();
-		const left = String(baseItem.left ?? '').trim();
-		const right = String(baseItem.right ?? '').trim();
-		const type = String(row.scale?.type ?? '').trim();
-
-		if (type === 'justifiability' && text) {
-			return `On a scale from ${min}-${max}, ${min} meaning never justifiable to ${max} meaning always justifiable how would you rate ${text.toLowerCase()}?`;
-		}
-		if (type === 'forced_choice_pair' && left && right) {
-			return `On a scale from ${min}-${max}, ${min} meaning ${left.toLowerCase()} and ${max} meaning ${right.toLowerCase()}, where would you place your view?`;
-		}
-		if (type === 'frequency' && text) {
-			const lo = minTxt || `${min}`;
-			const hi = maxTxt || `${max}`;
-			return `On a scale from ${min}-${max}, ${min} meaning ${lo.toLowerCase()} and ${max} meaning ${hi.toLowerCase()}, how would you rate: ${text.toLowerCase()}?`;
-		}
-		if (text && minTxt && maxTxt) {
-			return `On a scale from ${min}-${max}, ${min} meaning ${minTxt.toLowerCase()} and ${max} meaning ${maxTxt.toLowerCase()}, how would you rate: ${text.toLowerCase()}?`;
-		}
-		return text || left || right;
+		return fullSurveyQuestionFromEncoding(statementId, ENCODING_ITEM_BY_ID);
 	}
 
 	/**

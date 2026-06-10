@@ -5,9 +5,11 @@
 	import {
 		ROUTE_INTRO,
 		ROUTE_TOOL,
+		ROUTE_IDEOLOGY_PROFILE,
 		ROUTE_METHODOLOGY,
 		isIntroRoute,
 		isToolRoute,
+		isIdeologyProfileRoute,
 		isMethodologyRoute
 	} from '$lib/routes.js';
 
@@ -20,6 +22,7 @@
 		const active =
 			(href === ROUTE_INTRO && isIntroRoute(p)) ||
 			(href === ROUTE_TOOL && isToolRoute(p)) ||
+			(href === ROUTE_IDEOLOGY_PROFILE && isIdeologyProfileRoute(p)) ||
 			(href === ROUTE_METHODOLOGY && isMethodologyRoute(p));
 		return `block w-full px-4 py-2.5 text-left text-sm font-semibold transition-colors ${active ? 'bg-white/15 text-white' : 'text-white/90 hover:bg-white/10'}`;
 	}
@@ -65,6 +68,11 @@
 			>
 				<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
 				<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+				<a
+					href={appPath(ROUTE_IDEOLOGY_PROFILE)}
+					class={navItemClass(ROUTE_IDEOLOGY_PROFILE)}
+					role="menuitem">Ideologic Profiles</a
+				>
 				<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
 					>Methodology</a
 				>

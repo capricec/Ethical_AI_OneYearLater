@@ -11,6 +11,7 @@
 		"deploy:s3-redirects": "node scripts/uploadS3ExtensionlessRedirects.mjs",
 		"preview": "vite preview",
 		"generate:statement-averages": "node scripts/generateStatementModelAverages.mjs",
+		"generate:full-survey-statements": "node scripts/generateFullSurveyStatements.mjs",
 		"prepare": "svelte-kit sync || echo ''"
 	},
 	"devDependencies": {

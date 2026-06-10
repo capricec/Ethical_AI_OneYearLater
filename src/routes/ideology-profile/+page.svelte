@@ -1,0 +1,179 @@
+<script>
+	import { onMount } from 'svelte';
+	import SiteHamburgerMenu from '$lib/components/SiteHamburgerMenu.svelte';
+	import IdeologyProfileTray from '$lib/components/IdeologyProfileTray.svelte';
+	import IdeologyBuilderPanel from '$lib/components/IdeologyBuilderPanel.svelte';
+	import StatementsRadialChart from '$lib/viz/StatementsRadialChart.svelte';
+	import { MODEL_ORDER } from '$lib/viz/modelColors.js';
+	import { STATEMENT_ORDER_SUBSCALE } from '$lib/data/computeStatementsViz.js';
+	import {
+		selectedModel,
+		statementsViz,
+		setRadialStatementOrder,
+		setSelectedStatementId,
+		setSelectedDebateId,
+		setSubscaleFilter
+	} from '$lib/stores/universalState.js';
+	import {
+		rankedArchetypes,
+		customIdeologyResponses,
+		ideologyBuilderOpen,
+		ensureIdeologyModelSelected,
+		selectIdeologyModel,
+		openIdeologyBuilder,
+		closeIdeologyBuilder,
+		setCustomIdeologyResponses,
+		hideCustomIdeologyFromRanking
+	} from '$lib/stores/ideologyProfileState.js';
+	import { modelSurveyResponsesForBuilder, buildItemScaleMeta } from '$lib/data/archetypeSimilarity.js';
+	import { encoding } from '$lib/data/dataset.js';
+	import statementModelAveragesRaw from '../../../data/statement_model_averages.json';
+
+	const MOBILE_VIEWPORT_MQ = '(max-width: 767px)';
+	const scaleMeta = buildItemScaleMeta(encoding);
+	const averagesRows = Array.isArray(statementModelAveragesRaw?.rows)
+		? statementModelAveragesRaw.rows
+		: [];
+
+	let viewportMobile = $state(false);
+	let radialCellW = $state(0);
+	let radialCellH = $state(0);
+	let builderDraft = $state(/** @type {Record<string, number>} */ ({}));
+
+	const visibleModels = $derived(
+		MODEL_ORDER.filter((m) =>
+			($statementsViz?.modelSeries ?? []).some((s) => s.fundModel === m)
+		)
+	);
+
+	const radialSquare = $derived.by(() => {
+		const w = Math.max(radialCellW, 1) - 16;
+		if (viewportMobile) {
+			return Math.max(260, Math.min(360, Math.floor(w)));
+		}
+		return Math.max(
+			260,
+			Math.floor(Math.min(w, Math.max(radialCellH, 1) - 16))
+		);
+	});
+
+	const ideologyModel = $derived(String($selectedModel ?? '').trim());
+
+	const ideologySelectedModels = $derived(
+		ideologyModel ? [ideologyModel] : []
+	);
+
+	onMount(() => {
+		setSelectedDebateId(null);
+		setSelectedStatementId(null);
+		setSubscaleFilter(null);
+		setRadialStatementOrder(STATEMENT_ORDER_SUBSCALE);
+		ensureIdeologyModelSelected();
+
+		const mq = window.matchMedia(MOBILE_VIEWPORT_MQ);
+		const syncViewport = () => {
+			viewportMobile = mq.matches;
+		};
+		syncViewport();
+		mq.addEventListener('change', syncViewport);
+		return () => mq.removeEventListener('change', syncViewport);
+	});
+
+	function handleOpenBuilder() {
+		const model = ensureIdeologyModelSelected();
+		const existing = $customIdeologyResponses;
+		builderDraft =
+			existing && Object.keys(existing).length
+				? { ...existing }
+				: modelSurveyResponsesForBuilder(model, averagesRows, scaleMeta);
+		openIdeologyBuilder();
+	}
+
+	function handleBuilderDraftChange(responses) {
+		builderDraft = { ...responses };
+	}
+
+	function handleBuilderSave(responses) {
+		setCustomIdeologyResponses(responses);
+		builderDraft = { ...responses };
+	}
+</script>
+
+<svelte:head>
+	<title>Ideology Profile — Everyday Ethics of AI</title>
+</svelte:head>
+
+<div class="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900" data-ideology-profile-root>
+	<div
+		class="flex min-h-0 flex-col rounded-lg bg-slate-100 ring-1 ring-slate-300 md:h-[100vh] md:overflow-hidden"
+	>
+		<header
+			class="sticky top-0 z-[100] w-full shrink-0 bg-[#4B4B4E] px-3 py-3 md:relative md:px-4"
+		>
+			<div class="flex items-center justify-end gap-2">
+				<div class="shrink-0">
+					<SiteHamburgerMenu lightIcon />
+				</div>
+			</div>
+		</header>
+
+		{#if $statementsViz}
+			<div
+				class="flex flex-col md:min-h-0 md:flex-1 md:flex-row md:overflow-hidden"
+			>
+				<div
+					class="relative z-0 order-1 shrink-0 bg-white md:order-1 md:flex md:min-h-0 md:min-w-0 md:flex-1 md:flex-col md:overflow-hidden"
+				>
+					<div
+						class="flex shrink-0 flex-col items-center justify-center overflow-visible px-2 py-2 md:min-h-0 md:flex-1 md:px-4 md:py-4"
+						bind:clientWidth={radialCellW}
+						bind:clientHeight={radialCellH}
+					>
+						<div
+							class="relative w-full max-w-full overflow-visible md:min-h-0 md:flex-1"
+							style={viewportMobile ? `height: ${radialSquare}px` : undefined}
+						>
+							<StatementsRadialChart
+								width={radialSquare}
+								height={radialSquare}
+								viz={$statementsViz}
+								selectedModel={$selectedModel}
+								selectedModels={ideologySelectedModels}
+								debatePrimaryTensions={[]}
+								radialSortMode={STATEMENT_ORDER_SUBSCALE}
+								onRadialSortModeChange={() => {}}
+								highlightSubscaleKey={null}
+								onSubscaleWedgeClick={() => {}}
+								statementSelectEnabled={false}
+								onStatementSelect={() => {}}
+							/>
+						</div>
+					</div>
+				</div>
+
+				<aside
+					class="order-2 w-full max-w-full shrink-0 border-t border-slate-300 bg-slate-100 md:order-2 md:flex md:min-h-0 md:w-[35vw] md:min-w-[320px] md:max-w-[440px] md:flex-col md:overflow-hidden md:border-l md:border-t-0"
+				>
+					<IdeologyProfileTray
+						models={visibleModels}
+						selectedModel={ideologyModel}
+						rankings={$rankedArchetypes}
+						onSelectModel={selectIdeologyModel}
+						onOpenBuilder={handleOpenBuilder}
+						onRemoveCustom={hideCustomIdeologyFromRanking}
+					/>
+				</aside>
+			</div>
+		{:else}
+			<p class="p-4 text-sm text-slate-500">No data.</p>
+		{/if}
+	</div>
+</div>
+
+<IdeologyBuilderPanel
+	open={$ideologyBuilderOpen}
+	draftResponses={builderDraft}
+	onDraftChange={handleBuilderDraftChange}
+	onSave={handleBuilderSave}
+	onClose={closeIdeologyBuilder}
+/>
