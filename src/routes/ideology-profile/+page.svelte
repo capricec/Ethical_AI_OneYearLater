@@ -100,10 +100,10 @@
 </script>
 
 <svelte:head>
-	<title>Ideology Profile — Everyday Ethics of AI</title>
+	<title>Ideologic Profiles — Everyday Ethics of AI</title>
 </svelte:head>
 
-<div class="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900" data-ideology-profile-root>
+<div class="min-h-0 overflow-x-hidden bg-slate-100 text-slate-900 md:min-h-screen" data-ideology-profile-root>
 	<div
 		class="flex min-h-0 flex-col rounded-lg bg-slate-100 ring-1 ring-slate-300 md:h-[100vh] md:overflow-hidden"
 	>
@@ -122,15 +122,15 @@
 				class="flex flex-col md:min-h-0 md:flex-1 md:flex-row md:overflow-hidden"
 			>
 				<div
-					class="relative z-0 order-1 shrink-0 bg-white md:order-1 md:flex md:min-h-0 md:min-w-0 md:flex-1 md:flex-col md:overflow-hidden"
+					class="relative z-0 order-1 shrink-0 overflow-hidden bg-white md:order-1 md:flex md:min-h-0 md:min-w-0 md:flex-1 md:flex-col"
 				>
 					<div
-						class="flex shrink-0 flex-col items-center justify-center overflow-visible px-2 py-2 md:min-h-0 md:flex-1 md:px-4 md:py-4"
+						class="flex shrink-0 flex-col items-center justify-center px-2 py-2 md:min-h-0 md:flex-1 md:overflow-hidden md:px-4 md:py-4"
 						bind:clientWidth={radialCellW}
 						bind:clientHeight={radialCellH}
 					>
 						<div
-							class="relative w-full max-w-full overflow-visible md:min-h-0 md:flex-1"
+							class="relative mx-auto w-full max-w-full md:min-h-0 md:flex-1"
 							style={viewportMobile ? `height: ${radialSquare}px` : undefined}
 						>
 							<StatementsRadialChart

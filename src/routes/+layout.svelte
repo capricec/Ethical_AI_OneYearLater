@@ -1,9 +1,15 @@
 <script>
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, beforeNavigate } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { assetPath } from '$lib/appPaths.js';
+	import { closeIdeologyBuilder } from '$lib/stores/ideologyProfileState.js';
 	import './layout.css';
 
 	let { children } = $props();
+
+	beforeNavigate(() => {
+		closeIdeologyBuilder();
+	});
 
 	afterNavigate(() => {
 		window.scrollTo(0, 0);
@@ -17,4 +23,7 @@
 <svelte:head>
 	<link rel="icon" href={assetPath('/favicon.png')} type="image/png" />
 </svelte:head>
-{@render children()}
+
+{#key $page.url.pathname}
+	{@render children()}
+{/key}

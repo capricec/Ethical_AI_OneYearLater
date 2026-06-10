@@ -46,6 +46,15 @@
 		return `block w-full px-4 py-2.5 text-left text-sm font-semibold transition-colors ${active ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-50'}`;
 	}
 
+	function closeMenu() {
+		menuOpen = false;
+	}
+
+	$effect(() => {
+		$page.url.pathname;
+		menuOpen = false;
+	});
+
 	onMount(() => {
 		const onDoc = (/** @type {MouseEvent} */ e) => {
 			const t = e.target;
@@ -92,15 +101,23 @@
 			style={`top: ${menuTop}px; right: ${menuRight}px;`}
 			role="menu"
 		>
-			<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem">Introduction</a>
-			<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem">Tool</a>
+			<a href={appPath(ROUTE_INTRO)} class={navItemClass(ROUTE_INTRO)} role="menuitem" onclick={closeMenu}
+				>Introduction</a
+			>
+			<a href={appPath(ROUTE_TOOL)} class={navItemClass(ROUTE_TOOL)} role="menuitem" onclick={closeMenu}
+				>Tool</a
+			>
 			<a
 				href={appPath(ROUTE_IDEOLOGY_PROFILE)}
 				class={navItemClass(ROUTE_IDEOLOGY_PROFILE)}
-				role="menuitem">Ideologic Profiles</a
+				role="menuitem"
+				onclick={closeMenu}>Ideologic Profiles</a
 			>
-			<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
-				>Methodology</a
+			<a
+				href={appPath(ROUTE_METHODOLOGY)}
+				class={navItemClass(ROUTE_METHODOLOGY)}
+				role="menuitem"
+				onclick={closeMenu}>Methodology</a
 			>
 		</div>
 	{/if}
