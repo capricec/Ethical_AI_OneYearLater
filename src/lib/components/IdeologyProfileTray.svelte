@@ -8,11 +8,19 @@
 		selectedModel: string,
 		rankings: import('$lib/data/archetypeSimilarity.js').ArchetypeRankingRow[],
 		onSelectModel?: (model: string) => void,
-		onOpenBuilder?: () => void,
+		onOpenQuiz?: () => void,
+		onRefineCustom?: () => void,
 		onRemoveCustom?: () => void
 	}} */
-	let { models = [], selectedModel = '', rankings = [], onSelectModel, onOpenBuilder, onRemoveCustom } =
-		$props();
+	let {
+		models = [],
+		selectedModel = '',
+		rankings = [],
+		onSelectModel,
+		onOpenQuiz,
+		onRefineCustom,
+		onRemoveCustom
+	} = $props();
 
 	const bubbleColor = $derived(modelColor(selectedModel));
 </script>
@@ -40,6 +48,7 @@
 						{bubbleColor}
 						isCustom={row.isCustom}
 						onRemove={row.isCustom ? onRemoveCustom : undefined}
+						onRefine={row.isCustom ? onRefineCustom : undefined}
 					/>
 				</li>
 			{/each}
@@ -50,9 +59,9 @@
 		<button
 			type="button"
 			class="w-full rounded-full bg-[#4B4B4E] px-4 py-3 text-center text-xs font-semibold leading-snug text-white transition-colors hover:bg-[#434346] md:text-sm"
-			onclick={() => onOpenBuilder?.()}
+			onclick={() => onOpenQuiz?.()}
 		>
-			Don&rsquo;t like these ideologies? Make your own.
+			Which AI model aligns with you? Take the quiz.
 		</button>
 	</div>
 </div>

@@ -3,13 +3,16 @@
 	import { archetypeResponseMatrix, encoding } from '$lib/data/dataset.js';
 	import {
 		archetypeSurveyResponses,
-		buildItemScaleMeta
+		buildItemScaleMeta,
+		buildIdeologyDistinctivenessWeightShares,
+		completeIdeologySurveyResponses
 	} from '$lib/data/archetypeSimilarity.js';
 	import {
 		buildEncodingItemById,
 		builderStatementLabelForStatement
 	} from '$lib/data/fullSurveyQuestion.js';
 	import fullSurveyStatements from '../../../data/full_survey_statements.json';
+	import statementModelAveragesRaw from '../../../data/statement_model_averages.json';
 
 	/** @type {{
 		open: boolean,
@@ -29,8 +32,24 @@
 	const statements = Array.isArray(fullSurveyStatements?.statements)
 		? fullSurveyStatements.statements
 		: [];
+	const averagesRows = Array.isArray(statementModelAveragesRaw?.rows)
+		? statementModelAveragesRaw.rows
+		: [];
 	const scaleMeta = buildItemScaleMeta(encoding);
 	const encodingItemById = buildEncodingItemById(encoding);
+
+	const weightedStatements = $derived.by(() => {
+		const { shares } = buildIdeologyDistinctivenessWeightShares(averagesRows, scaleMeta);
+		const stmtById = new Map(statements.map((s) => [s.item_id, s]));
+		/** @type {{ item_id: string, scale?: object, meanings?: object }[]} */
+		const ordered = [];
+		for (const share of shares) {
+			const stmt = stmtById.get(share.itemId);
+			if (!stmt) continue;
+			ordered.push({ ...stmt });
+		}
+		return ordered;
+	});
 
 	const archetypeTabs = $derived.by(() => {
 		const ids = Array.isArray(archetypeResponseMatrix?.archetypes)
@@ -75,14 +94,14 @@
 	}
 
 	function handleSave() {
-		onSave?.({ ...draftResponses });
+		onSave?.(completeIdeologySurveyResponses(draftResponses, averagesRows, scaleMeta));
 		onClose?.();
 	}
 </script>
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-stretch justify-center bg-black/50 p-0 md:items-center md:p-6"
+		class="fixed inset-0 z-[150] flex items-stretch justify-center bg-black/50 p-0 md:items-center md:p-6"
 		role="presentation"
 		onclick={(e) => {
 			if (e.target === e.currentTarget) onClose?.();
@@ -92,7 +111,7 @@
 		}}
 	>
 		<div
-			class="flex h-full w-full max-w-3xl flex-col bg-[#4B4B4E] shadow-2xl md:max-h-[min(90vh,820px)] md:rounded-2xl"
+			class="flex h-full w-full max-w-3xl flex-col bg-[#232324] shadow-2xl md:max-h-[min(90vh,820px)] md:rounded-2xl"
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="ideology-builder-title"
@@ -140,7 +159,7 @@
 			</header>
 
 			<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4 md:px-8 md:py-5">
-				{#each statements as stmt (stmt.item_id)}
+				{#each weightedStatements as stmt (stmt.item_id)}
 					{@const lo = Number(stmt.scale?.min ?? 1)}
 					{@const hi = Number(stmt.scale?.max ?? 6)}
 					{@const current = draftResponses[stmt.item_id] ?? Math.round((lo + hi) / 2)}

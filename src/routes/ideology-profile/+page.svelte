@@ -1,8 +1,11 @@
 <script>
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import SiteHamburgerMenu from '$lib/components/SiteHamburgerMenu.svelte';
 	import IdeologyProfileTray from '$lib/components/IdeologyProfileTray.svelte';
 	import IdeologyBuilderPanel from '$lib/components/IdeologyBuilderPanel.svelte';
+	import IdeologyQuizPanel from '$lib/components/IdeologyQuizPanel.svelte';
 	import StatementsRadialChart from '$lib/viz/StatementsRadialChart.svelte';
 	import { MODEL_ORDER } from '$lib/viz/modelColors.js';
 	import { STATEMENT_ORDER_SUBSCALE } from '$lib/data/computeStatementsViz.js';
@@ -17,15 +20,27 @@
 	import {
 		rankedArchetypes,
 		customIdeologyResponses,
+		customIdeologySource,
+		customIdeologyQuizAnswers,
 		ideologyBuilderOpen,
+		ideologyQuizOpen,
 		ensureIdeologyModelSelected,
 		selectIdeologyModel,
 		openIdeologyBuilder,
 		closeIdeologyBuilder,
+		openIdeologyQuiz,
+		closeIdeologyQuiz,
 		setCustomIdeologyResponses,
+		setCustomIdeologyFromQuiz,
 		hideCustomIdeologyFromRanking
 	} from '$lib/stores/ideologyProfileState.js';
-	import { modelSurveyResponsesForBuilder, buildItemScaleMeta } from '$lib/data/archetypeSimilarity.js';
+	import { get } from 'svelte/store';
+	import { appPath } from '$lib/appPaths.js';
+	import {
+		ROUTE_IDEOLOGY_PROFILE,
+		isIdeologyQuizDeepLink
+	} from '$lib/routes.js';
+	import { modelSurveyResponsesForBuilder, buildItemScaleMeta, ideologyBuilderResponsesFromFull } from '$lib/data/archetypeSimilarity.js';
 	import { encoding } from '$lib/data/dataset.js';
 	import statementModelAveragesRaw from '../../../data/statement_model_averages.json';
 
@@ -39,6 +54,8 @@
 	let radialCellW = $state(0);
 	let radialCellH = $state(0);
 	let builderDraft = $state(/** @type {Record<string, number>} */ ({}));
+	/** @type {Record<string, 'A' | 'B'> | null} */
+	let pendingQuizAnswers = $state(null);
 
 	const visibleModels = $derived(
 		MODEL_ORDER.filter((m) =>
@@ -79,12 +96,23 @@
 		return () => mq.removeEventListener('change', syncViewport);
 	});
 
+	$effect(() => {
+		if (!isIdeologyQuizDeepLink($page.url.searchParams)) return;
+		openIdeologyQuiz();
+		goto(appPath(ROUTE_IDEOLOGY_PROFILE), {
+			replaceState: true,
+			keepFocus: true,
+			noScroll: true
+		});
+	});
+
 	function handleOpenBuilder() {
+		pendingQuizAnswers = null;
 		const model = ensureIdeologyModelSelected();
 		const existing = $customIdeologyResponses;
 		builderDraft =
 			existing && Object.keys(existing).length
-				? { ...existing }
+				? ideologyBuilderResponsesFromFull(existing, scaleMeta)
 				: modelSurveyResponsesForBuilder(model, averagesRows, scaleMeta);
 		openIdeologyBuilder();
 	}
@@ -94,8 +122,28 @@
 	}
 
 	function handleBuilderSave(responses) {
-		setCustomIdeologyResponses(responses);
+		const prevSource = get(customIdeologySource);
+		const quizAnswers = pendingQuizAnswers ?? get(customIdeologyQuizAnswers);
+		const source =
+			pendingQuizAnswers || prevSource === 'quiz' || prevSource === 'refined'
+				? 'refined'
+				: 'builder';
+		setCustomIdeologyResponses(responses, true, source, quizAnswers);
 		builderDraft = { ...responses };
+		pendingQuizAnswers = null;
+	}
+
+	function handleQuizAdd(responses, quizAnswers, topMatchModel) {
+		setCustomIdeologyFromQuiz(responses, quizAnswers);
+		const model = String(topMatchModel ?? '').trim();
+		if (model) selectIdeologyModel(model);
+	}
+
+	function handleQuizRefine(draft, quizAnswers) {
+		builderDraft = { ...draft };
+		pendingQuizAnswers = { ...quizAnswers };
+		closeIdeologyQuiz();
+		openIdeologyBuilder();
 	}
 </script>
 
@@ -159,7 +207,8 @@
 						selectedModel={ideologyModel}
 						rankings={$rankedArchetypes}
 						onSelectModel={selectIdeologyModel}
-						onOpenBuilder={handleOpenBuilder}
+						onOpenQuiz={openIdeologyQuiz}
+						onRefineCustom={handleOpenBuilder}
 						onRemoveCustom={hideCustomIdeologyFromRanking}
 					/>
 				</aside>
@@ -176,4 +225,12 @@
 	onDraftChange={handleBuilderDraftChange}
 	onSave={handleBuilderSave}
 	onClose={closeIdeologyBuilder}
+/>
+
+<IdeologyQuizPanel
+	open={$ideologyQuizOpen}
+	models={visibleModels}
+	onClose={closeIdeologyQuiz}
+	onQuizComplete={handleQuizAdd}
+	onRefine={handleQuizRefine}
 />

@@ -38,7 +38,9 @@
 		{#if statementText}
 			<div class="viz-tooltip-statement viz-tooltip-statement--radial">{statementText}</div>
 		{/if}
-		<div class="viz-tooltip-hint">{radialHintText}</div>
+		{#if radialHintText}
+			<div class="viz-tooltip-hint">{radialHintText}</div>
+		{/if}
 	{:else if variant === 'radial-model'}
 		<div class="viz-tooltip-kicker viz-tooltip-kicker--tight">SURVEY QUESTION</div>
 		{#if statementText}

@@ -1,0 +1,183 @@
+{
+    "version": "3.0",
+    "name": "Everyday Ethics Value Alignment Quiz (WVS-Structured 10Q)",
+    "type": "hybrid_tradeoff_and_moral_threshold_mapping",
+  
+    "survey_items": [
+      "28_10","28_11","23_2","28_7","31_2","28_8","28_9","31_6","23_5","30_5",
+      "31_9","32_8","28_6","27_3","23_4","23_10","27_1","30_1","31_7","31_4",
+      "31_8","31_1","32_1","30_2","31_5"
+    ],
+  
+    "questions": [
+  
+      {
+        "id": "q1_speech_harm_tradeoff",
+        "type": "tradeoff",
+        "prompt": "How should social media handle controversial content?",
+        "option_a": "Allow it unless it directly violates the law.",
+        "option_b": "Remove it if it could cause significant social harm, even if legal.",
+        "mapping": {
+          "A": { "28_10": 1, "23_2": 1, "28_7": 1 },
+          "B": { "23_4": 1, "23_10": 1, "31_6": 1 }
+        }
+      },
+      {
+        "id": "q6_abortion_norm",
+        "type": "moral_threshold",
+        "prompt": "Which take on abortion is closest to yours?",
+        "option_a": "Abortion is generally acceptable in most circumstances.",
+        "option_b": "Abortion is generally unacceptable except in rare cases.",
+        "mapping": {
+          "A": { "23_2": 1, "23_4": 0.5, "28_6": 0.5 },
+          "B": { "23_10": 1, "27_1": 0.5 }
+        }
+      },
+  
+      
+  
+      {
+        "id": "q3_fairness_tradeoff",
+        "type": "tradeoff",
+        "prompt": "How should society distribute rewards?",
+        "option_a": "Focused on reducing inequality.",
+        "option_b": "Focused on rewarding effort and individual responsibility.",
+        "mapping": {
+          "A": { "30_1": 1, "30_2": 1, "32_8": 1 },
+          "B": { "30_5": 1, "32_1": 1, "31_5": 1 }
+        }
+      },
+      {
+        "id": "q8_divorce_norm",
+        "type": "moral_threshold",
+        "prompt": "Which take on divorce is closest to yours?",
+        "option_a": "Divorce is a normal and acceptable part of life.",
+        "option_b": "Divorce should generally be avoided and discouraged.",
+        "mapping": {
+          "A": { "28_10": 1, "28_11": 0.5 },
+          "B": { "27_1": 1, "27_3": 1 }
+        }
+      },
+  
+  
+  
+      {
+        "id": "q5_collective_vs_individual",
+        "type": "tradeoff",
+        "prompt": "When individual rights conflict with community wellbeing, which takes priority?",
+        "option_a": "Protect individual rights first.",
+        "option_b": "Prioritize collective wellbeing.",
+        "mapping": {
+          "A": { "28_8": 1, "28_11": 1 },
+          "B": { "30_1": 1, "31_6": 1, "23_4": 1 }
+        }
+      },
+  
+     
+  
+      {
+        "id": "q7_homosexuality_norm",
+        "type": "moral_threshold",
+        "prompt": "Which take on homosexuality is closest to yours?",
+        "option_a": "Homosexuality is completely acceptable.",
+        "option_b": "Homosexuality is generally unacceptable or should be discouraged.",
+        "mapping": {
+          "A": { "28_11": 1, "28_6": 1 },
+          "B": { "27_1": 1, "31_9": 0.5 }
+        }
+      },
+
+      {
+        "id": "q4_expertise_vs_people",
+        "type": "tradeoff",
+        "prompt": "What should happen when experts disagree with public opinion?",
+        "option_a": "Experts should guide decisions.",
+        "option_b": "Public intuition should carry equal weight.",
+        "mapping": {
+          "A": { "31_2": 1, "31_9": 1, "31_7": 1 },
+          "B": { "28_6": 1, "28_9": 1, "32_1": 1 }
+        }
+      },
+  
+     
+  
+      {
+        "id": "q9_life_and_moral_boundaries",
+        "type": "moral_threshold",
+        "prompt": "Which take on end-of-life decisions is closest to yours?",
+        "option_a": "People should have autonomy over end-of-life decisions.",
+        "option_b": "End-of-life decisions should be strongly restricted.",
+        "mapping": {
+          "A": { "28_9": 1, "23_2": 0.5, "28_6": 1 },
+          "B": { "23_10": 1, "31_4": 1, "31_1": 0.5 }
+        }
+      },
+      {
+        "id": "q2_authority_vs_autonomy",
+        "type": "tradeoff",
+        "prompt": "Should the government ever increase monitoring to improve safety?",
+        "option_a": "It is sometimesacceptable if it improves stability and order.",
+        "option_b": "It is never acceptable due to the risks to individual freedom.",
+        "mapping": {
+          "A": { "31_1": 1, "31_2": 1, "28_8": 1 },
+          "B": { "28_10": 1, "28_11": 1, "28_6": 1 }
+        }
+      },
+  
+      {
+        "id": "q10_social_duty_norms",
+        "type": "moral_threshold",
+        "prompt": "Which take on family obligations is closest to yours?",
+        "option_a": "Adult children have strong duties to care for parents.",
+        "option_b": "Family obligations should not be enforced as moral duties.",
+        "mapping": {
+          "A": { "27_1": 1, "31_9": 1, "28_8": 0.5 },
+          "B": { "28_10": 1, "28_6": 1 }
+        }
+      }
+  
+    ],
+
+    "ideology_themes": [
+      {
+        "id": "government_regulation_speech",
+        "label": "Government regulation of speech",
+        "items": ["28_7", "31_6"]
+      },
+      {
+        "id": "protecting_vulnerable_groups",
+        "label": "Protecting vulnerable groups",
+        "items": ["23_4", "32_8", "31_5"]
+      },
+      {
+        "id": "international_cooperation",
+        "label": "International cooperation",
+        "items": ["23_2", "23_5"]
+      },
+      {
+        "id": "harm_reduction",
+        "label": "Harm reduction",
+        "items": ["28_6", "28_9", "28_10", "28_11"]
+      },
+      {
+        "id": "role_of_tradition",
+        "label": "Role of tradition in society",
+        "items": ["27_3", "31_9", "23_10"]
+      },
+      {
+        "id": "economic_fairness",
+        "label": "Economic fairness and redistribution",
+        "items": ["30_1", "30_2", "30_5", "32_1", "27_1"]
+      },
+      {
+        "id": "authority_and_order",
+        "label": "Authority and social order",
+        "items": ["31_1", "31_2", "31_4", "31_7", "31_8"]
+      },
+      {
+        "id": "individual_autonomy",
+        "label": "Individual autonomy",
+        "items": ["28_8"]
+      }
+    ]
+  }

@@ -7,6 +7,7 @@
 		minLabel?: string,
 		maxLabel?: string,
 		value: number,
+		weightPct?: number | null,
 		disabled?: boolean,
 		onChange?: (value: number) => void
 	}} */
@@ -18,16 +19,34 @@
 		minLabel = '',
 		maxLabel = '',
 		value,
+		weightPct = null,
 		disabled = false,
 		onChange
 	} = $props();
 
 	const lo = $derived(Math.min(min, max));
 	const hi = $derived(Math.max(min, max));
+
+	function formatWeightPct(pct) {
+		if (!Number.isFinite(pct) || pct <= 0) return '0%';
+		if (pct < 0.1) return '<0.1%';
+		if (pct >= 10) return `${Math.round(pct)}%`;
+		return `${pct.toFixed(1)}%`;
+	}
 </script>
 
 <div class="space-y-2 border-b border-white/10 py-6 last:border-b-0 md:py-7">
-	<p class="text-sm leading-snug text-white/95">{label}</p>
+	<div class="flex items-start justify-between gap-3">
+		<p class="min-w-0 flex-1 text-sm leading-snug text-white/95">{label}</p>
+		{#if weightPct != null}
+			<span
+				class="shrink-0 pt-0.5 text-[10px] font-semibold tabular-nums tracking-wide text-white/45"
+				title="Share of total weight in ideology similarity (higher when models disagree more)"
+			>
+				{formatWeightPct(weightPct)}
+			</span>
+		{/if}
+	</div>
 	<div class="flex items-center gap-2">
 		<span class="w-[4.5rem] shrink-0 text-[10px] leading-tight text-white/60">{minLabel || lo}</span>
 		<input

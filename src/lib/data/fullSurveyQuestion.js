@@ -112,7 +112,7 @@ export function builderStatementLabelForEncodingRow(row) {
 		return 'Where would you place your view?';
 	}
 	if (text) {
-		const normalized = text.endsWith('?') ? text : `${text}?`;
+		const normalized = text.endsWith('?') ? text.slice(0, -1).trimEnd() : text;
 		return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 	}
 	return 'Where would you place your view?';

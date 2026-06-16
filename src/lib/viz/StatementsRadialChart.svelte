@@ -70,7 +70,7 @@
 	 * @property {{ aggregate: object, item: object }} labels
 	 */
 
-	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), selectedModels?: string[], debatePrimaryTensions?: string[], radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void), statementSelectEnabled?: boolean, onStatementSelect?: ((itemId: string) => void) }} */
+	/** @type {{ width: number, height: number, viz: Viz, selectedModel: (string|null), selectedModels?: string[], debatePrimaryTensions?: string[], radialSortMode?: ('subscale'|'divergence'), onRadialSortModeChange?: ((mode: 'subscale'|'divergence') => void), highlightSubscaleKey?: (string|null), onSubscaleWedgeClick?: ((subscaleKey: string) => void), statementHoverEnabled?: boolean, statementSelectEnabled?: boolean, onStatementSelect?: ((itemId: string) => void) }} */
 	let {
 		width,
 		height,
@@ -82,6 +82,7 @@
 		onRadialSortModeChange = () => {},
 		highlightSubscaleKey = null,
 		onSubscaleWedgeClick = () => {},
+		statementHoverEnabled = true,
 		statementSelectEnabled = true,
 		onStatementSelect = () => {}
 	} = $props();
@@ -1820,8 +1821,8 @@ const debateRadarFillOpacity = $derived.by(() => {
 					</g>
 				{/if}
 
-				<!-- Hover + click targets for statement spikes (full radial only; debate uses spoke wedges). -->
-				{#if !isDebateMode && statementSelectEnabled}
+				<!-- Hover targets for statement spikes (full radial only; debate uses spoke wedges). -->
+				{#if !isDebateMode && statementHoverEnabled}
 				<g transform="translate({layout.cx},{layout.cy})" class="spike-hit-targets">
 					{#each spikeHoverTargets as t (t.key)}
 						<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -1833,20 +1834,26 @@ const debateRadarFillOpacity = $derived.by(() => {
 							stroke-linecap="round"
 							stroke-linejoin="round"
 							opacity={opacityForStatementIndex(t.statementIndex)}
-							role="button"
-							tabindex="0"
-							aria-label={`Select statement: ${statementLabel(t.item)}`}
+							role={statementSelectEnabled ? 'button' : undefined}
+							tabindex={statementSelectEnabled ? 0 : undefined}
+							aria-label={statementSelectEnabled
+								? `Select statement: ${statementLabel(t.item)}`
+								: `Statement: ${statementLabel(t.item)}`}
 							onmouseenter={(event) => setDotHover(event, t.model, t.item, t.responseText)}
 							onmousemove={(event) => setDotHover(event, t.model, t.item, t.responseText)}
 							onmouseleave={clearDotHover}
 							onmousedown={preventMouseFocusRing}
-							onclick={(event) => handleSpikeClick(event, t.item)}
-							onkeydown={(event) => {
-								if (event.key === 'Enter' || event.key === ' ') {
-									event.preventDefault();
-									handleSpikeClick(event, t.item);
-								}
-							}}
+							onclick={statementSelectEnabled
+								? (event) => handleSpikeClick(event, t.item)
+								: undefined}
+							onkeydown={statementSelectEnabled
+								? (event) => {
+										if (event.key === 'Enter' || event.key === ' ') {
+											event.preventDefault();
+											handleSpikeClick(event, t.item);
+										}
+									}
+								: undefined}
 						/>
 					{/each}
 				</g>
@@ -2183,6 +2190,7 @@ const debateRadarFillOpacity = $derived.by(() => {
 				statementText={tooltip.statementText}
 				model={tooltip.model}
 				responseText={tooltip.responseText}
+				radialHintText={statementSelectEnabled ? 'Click for more information' : ''}
 			/>
 		{/if}
 

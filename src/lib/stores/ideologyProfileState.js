@@ -14,15 +14,24 @@ const averagesRows = Array.isArray(statementModelAveragesRaw?.rows)
 	? statementModelAveragesRaw.rows
 	: [];
 
+const loaded = loadCustomFromSession();
+
 /** Survey-space slider values keyed by item_id. */
 export const customIdeologyResponses = writable(
-	/** @type {Record<string, number> | null} */ (loadCustomFromSession()?.responses ?? null)
+	/** @type {Record<string, number> | null} */ (loaded?.responses ?? null)
 );
 
 /** When false, custom responses are kept for the builder but hidden from the ranking list. */
-export const customIdeologyInRanking = writable(loadCustomFromSession()?.inRanking ?? false);
+export const customIdeologyInRanking = writable(loaded?.inRanking ?? false);
+
+/** @type {import('svelte/store').Writable<'quiz' | 'refined' | 'builder' | null>} */
+export const customIdeologySource = writable(loaded?.source ?? null);
+
+/** @type {import('svelte/store').Writable<Record<string, 'A' | 'B'> | null>} */
+export const customIdeologyQuizAnswers = writable(loaded?.quizAnswers ?? null);
 
 export const ideologyBuilderOpen = writable(false);
+export const ideologyQuizOpen = writable(false);
 
 export const rankedArchetypes = derived(
 	[selectedModel, customIdeologyResponses, customIdeologyInRanking],
@@ -39,7 +48,14 @@ export const rankedArchetypes = derived(
 	}
 );
 
-/** @returns {{ responses: Record<string, number> | null, inRanking: boolean } | null} */
+/**
+ * @returns {{
+ *   responses: Record<string, number> | null,
+ *   inRanking: boolean,
+ *   source: ('quiz' | 'refined' | 'builder') | null,
+ *   quizAnswers: Record<string, 'A' | 'B'> | null
+ * } | null}
+ */
 function loadCustomFromSession() {
 	if (typeof sessionStorage === 'undefined') return null;
 	try {
@@ -47,17 +63,29 @@ function loadCustomFromSession() {
 		if (!raw) return null;
 		const parsed = JSON.parse(raw);
 		if (!parsed?.responses || typeof parsed.responses !== 'object') return null;
+		const source = parsed.source;
+		const validSource =
+			source === 'quiz' || source === 'refined' || source === 'builder' ? source : null;
+		const quizAnswers =
+			parsed.quiz_answers && typeof parsed.quiz_answers === 'object' ? parsed.quiz_answers : null;
 		return {
 			responses: parsed.responses,
-			inRanking: parsed.in_ranking !== false
+			inRanking: parsed.in_ranking !== false,
+			source: validSource,
+			quizAnswers
 		};
 	} catch {
 		return null;
 	}
 }
 
-/** @param {Record<string, number> | null} responses @param {boolean} inRanking */
-function persistCustomToSession(responses, inRanking) {
+/**
+ * @param {Record<string, number> | null} responses
+ * @param {boolean} inRanking
+ * @param {('quiz' | 'refined' | 'builder') | null} [source]
+ * @param {Record<string, 'A' | 'B'> | null} [quizAnswers]
+ */
+function persistCustomToSession(responses, inRanking, source = null, quizAnswers = null) {
 	if (typeof sessionStorage === 'undefined') return;
 	try {
 		if (!responses || !Object.keys(responses).length) {
@@ -69,6 +97,8 @@ function persistCustomToSession(responses, inRanking) {
 			JSON.stringify({
 				responses,
 				in_ranking: inRanking,
+				source: source ?? undefined,
+				quiz_answers: quizAnswers ?? undefined,
 				updated_at: new Date().toISOString()
 			})
 		);
@@ -77,26 +107,67 @@ function persistCustomToSession(responses, inRanking) {
 	}
 }
 
-/** @param {Record<string, number> | null} responses @param {boolean} [inRanking] */
-export function setCustomIdeologyResponses(responses, inRanking = true) {
+/**
+ * @param {Record<string, number> | null} responses
+ * @param {boolean} [inRanking]
+ * @param {('quiz' | 'refined' | 'builder') | null} [source]
+ * @param {Record<string, 'A' | 'B'> | null} [quizAnswers]
+ */
+export function setCustomIdeologyResponses(
+	responses,
+	inRanking = true,
+	source = 'builder',
+	quizAnswers = null
+) {
 	const next =
 		responses && typeof responses === 'object' && Object.keys(responses).length
 			? { ...responses }
 			: null;
+	const nextInRanking = Boolean(next && inRanking);
+	const nextSource = next ? source : null;
+	const nextQuizAnswers = next ? quizAnswers : null;
+
 	customIdeologyResponses.set(next);
-	customIdeologyInRanking.set(Boolean(next && inRanking));
-	persistCustomToSession(next, Boolean(next && inRanking));
+	customIdeologyInRanking.set(nextInRanking);
+	customIdeologySource.set(nextSource);
+	customIdeologyQuizAnswers.set(nextQuizAnswers);
+	persistCustomToSession(next, nextInRanking, nextSource, nextQuizAnswers);
+}
+
+/**
+ * @param {Record<string, number>} responses
+ * @param {Record<string, 'A' | 'B'>} quizAnswers
+ */
+export function setCustomIdeologyFromQuiz(responses, quizAnswers) {
+	setCustomIdeologyResponses(responses, true, 'quiz', { ...quizAnswers });
+}
+
+export function clearIdeologyQuizAnswers() {
+	customIdeologyQuizAnswers.set(null);
+	persistCustomToSession(
+		get(customIdeologyResponses),
+		get(customIdeologyInRanking),
+		get(customIdeologySource),
+		null
+	);
 }
 
 export function hideCustomIdeologyFromRanking() {
 	if (!get(customIdeologyResponses)) return;
 	customIdeologyInRanking.set(false);
-	persistCustomToSession(get(customIdeologyResponses), false);
+	persistCustomToSession(
+		get(customIdeologyResponses),
+		false,
+		get(customIdeologySource),
+		get(customIdeologyQuizAnswers)
+	);
 }
 
 export function clearCustomIdeology() {
 	customIdeologyResponses.set(null);
 	customIdeologyInRanking.set(false);
+	customIdeologySource.set(null);
+	customIdeologyQuizAnswers.set(null);
 	persistCustomToSession(null, false);
 }
 
@@ -106,6 +177,14 @@ export function openIdeologyBuilder() {
 
 export function closeIdeologyBuilder() {
 	ideologyBuilderOpen.set(false);
+}
+
+export function openIdeologyQuiz() {
+	ideologyQuizOpen.set(true);
+}
+
+export function closeIdeologyQuiz() {
+	ideologyQuizOpen.set(false);
 }
 
 /** Ensure a single model is selected for ideology profile views. */

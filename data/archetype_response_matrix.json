@@ -34,9 +34,9 @@
       "responses": {
         "progressive_liberal": 1,
         "moderate_liberal": 1,
-        "moderate_conservative": 3,
-        "traditional_conservative": 5,
-        "populist_right": 5,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
         "libertarian": 1,
         "technocrat": 1
       }
@@ -47,8 +47,8 @@
       "responses": {
         "progressive_liberal": 2,
         "moderate_liberal": 3,
-        "moderate_conservative": 4,
-        "traditional_conservative": 5,
+        "moderate_conservative": 5,
+        "traditional_conservative": 6,
         "populist_right": 6,
         "libertarian": 2,
         "technocrat": 3
@@ -59,12 +59,12 @@
       "dimension": "Family Values",
       "responses": {
         "progressive_liberal": 1,
-        "moderate_liberal": 2,
-        "moderate_conservative": 3,
-        "traditional_conservative": 5,
-        "populist_right": 5,
-        "libertarian": 2,
-        "technocrat": 2
+        "moderate_liberal": 1,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
+        "libertarian": 1,
+        "technocrat": 1
       }
     },
     {
@@ -98,12 +98,12 @@
       "dimension": "Family Values",
       "responses": {
         "progressive_liberal": 1,
-        "moderate_liberal": 2,
-        "moderate_conservative": 3,
-        "traditional_conservative": 5,
-        "populist_right": 5,
-        "libertarian": 2,
-        "technocrat": 2
+        "moderate_liberal": 1,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
+        "libertarian": 1,
+        "technocrat": 1
       }
     },
     {
@@ -112,11 +112,11 @@
       "responses": {
         "progressive_liberal": 1,
         "moderate_liberal": 1,
-        "moderate_conservative": 3,
-        "traditional_conservative": 5,
-        "populist_right": 5,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
         "libertarian": 1,
-        "technocrat": 2
+        "technocrat": 1
       }
     },
     {
@@ -125,9 +125,9 @@
       "responses": {
         "progressive_liberal": 1,
         "moderate_liberal": 1,
-        "moderate_conservative": 2,
-        "traditional_conservative": 4,
-        "populist_right": 4,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
         "libertarian": 1,
         "technocrat": 1
       }
@@ -138,11 +138,11 @@
       "responses": {
         "progressive_liberal": 1,
         "moderate_liberal": 1,
-        "moderate_conservative": 3,
-        "traditional_conservative": 5,
-        "populist_right": 5,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
         "libertarian": 1,
-        "technocrat": 2
+        "technocrat": 1
       }
     },
     {
@@ -167,7 +167,7 @@
         "moderate_conservative": 7,
         "traditional_conservative": 8,
         "populist_right": 8,
-        "libertarian": 9,
+        "libertarian": 10,
         "technocrat": 5
       }
     },
@@ -175,13 +175,13 @@
       "item_id": "27_2",
       "dimension": "Economic Ideology",
       "responses": {
-        "progressive_liberal": 7,
-        "moderate_liberal": 6,
-        "moderate_conservative": 3,
-        "traditional_conservative": 2,
-        "populist_right": 2,
-        "libertarian": 1,
-        "technocrat": 5
+        "progressive_liberal": 8,
+        "moderate_liberal": 8,
+        "moderate_conservative": 8,
+        "traditional_conservative": 8,
+        "populist_right": 8,
+        "libertarian": 8,
+        "technocrat": 8
       }
     },
     {
@@ -201,13 +201,13 @@
       "item_id": "27_4",
       "dimension": "Economic Ideology",
       "responses": {
-        "progressive_liberal": 6,
-        "moderate_liberal": 5,
-        "moderate_conservative": 3,
-        "traditional_conservative": 2,
-        "populist_right": 2,
-        "libertarian": 1,
-        "technocrat": 4
+        "progressive_liberal": 9,
+        "moderate_liberal": 9,
+        "moderate_conservative": 9,
+        "traditional_conservative": 9,
+        "populist_right": 9,
+        "libertarian": 9,
+        "technocrat": 9
       }
     },
     {
@@ -215,25 +215,25 @@
       "dimension": "Economic Ideology",
       "responses": {
         "progressive_liberal": 8,
-        "moderate_liberal": 7,
-        "moderate_conservative": 4,
-        "traditional_conservative": 3,
-        "populist_right": 3,
-        "libertarian": 2,
-        "technocrat": 5
+        "moderate_liberal": 8,
+        "moderate_conservative": 8,
+        "traditional_conservative": 8,
+        "populist_right": 8,
+        "libertarian": 8,
+        "technocrat": 8
       }
     },
     {
       "item_id": "27_6",
       "dimension": "Economic Ideology",
       "responses": {
-        "progressive_liberal": 2,
-        "moderate_liberal": 3,
-        "moderate_conservative": 6,
+        "progressive_liberal": 7,
+        "moderate_liberal": 7,
+        "moderate_conservative": 7,
         "traditional_conservative": 7,
-        "populist_right": 8,
-        "libertarian": 6,
-        "technocrat": 4
+        "populist_right": 7,
+        "libertarian": 7,
+        "technocrat": 7
       }
     },
     {
@@ -253,13 +253,13 @@
       "item_id": "28_2",
       "dimension": "Social Values",
       "responses": {
-        "progressive_liberal": 1,
-        "moderate_liberal": 1,
-        "moderate_conservative": 1,
-        "traditional_conservative": 1,
-        "populist_right": 1,
-        "libertarian": 1,
-        "technocrat": 1
+        "progressive_liberal": 2,
+        "moderate_liberal": 2,
+        "moderate_conservative": 2,
+        "traditional_conservative": 2,
+        "populist_right": 2,
+        "libertarian": 2,
+        "technocrat": 2
       }
     },
     {
@@ -281,10 +281,10 @@
       "responses": {
         "progressive_liberal": 1,
         "moderate_liberal": 1,
-        "moderate_conservative": 2,
-        "traditional_conservative": 2,
-        "populist_right": 3,
-        "libertarian": 3,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
+        "libertarian": 1,
         "technocrat": 1
       }
     },
@@ -307,9 +307,9 @@
       "responses": {
         "progressive_liberal": 10,
         "moderate_liberal": 9,
-        "moderate_conservative": 6,
-        "traditional_conservative": 2,
-        "populist_right": 2,
+        "moderate_conservative": 8,
+        "traditional_conservative": 3,
+        "populist_right": 4,
         "libertarian": 10,
         "technocrat": 9
       }
@@ -319,10 +319,10 @@
       "dimension": "Social Values",
       "responses": {
         "progressive_liberal": 9,
-        "moderate_liberal": 7,
+        "moderate_liberal": 8,
         "moderate_conservative": 4,
         "traditional_conservative": 2,
-        "populist_right": 2,
+        "populist_right": 3,
         "libertarian": 8,
         "technocrat": 6
       }
@@ -333,9 +333,9 @@
       "responses": {
         "progressive_liberal": 10,
         "moderate_liberal": 9,
-        "moderate_conservative": 7,
-        "traditional_conservative": 4,
-        "populist_right": 4,
+        "moderate_conservative": 8,
+        "traditional_conservative": 6,
+        "populist_right": 6,
         "libertarian": 10,
         "technocrat": 8
       }
@@ -347,8 +347,8 @@
         "progressive_liberal": 10,
         "moderate_liberal": 9,
         "moderate_conservative": 6,
-        "traditional_conservative": 2,
-        "populist_right": 2,
+        "traditional_conservative": 4,
+        "populist_right": 4,
         "libertarian": 10,
         "technocrat": 8
       }
@@ -357,20 +357,20 @@
       "item_id": "28_10",
       "dimension": "Social Values",
       "responses": {
-        "progressive_liberal": 6,
-        "moderate_liberal": 5,
-        "moderate_conservative": 3,
-        "traditional_conservative": 2,
-        "populist_right": 2,
-        "libertarian": 8,
-        "technocrat": 4
+        "progressive_liberal": 4,
+        "moderate_liberal": 3,
+        "moderate_conservative": 2,
+        "traditional_conservative": 1,
+        "populist_right": 1,
+        "libertarian": 5,
+        "technocrat": 3
       }
     },
     {
       "item_id": "28_11",
       "dimension": "Social Values",
       "responses": {
-        "progressive_liberal": 9,
+        "progressive_liberal": 8,
         "moderate_liberal": 8,
         "moderate_conservative": 6,
         "traditional_conservative": 4,
@@ -397,12 +397,12 @@
       "dimension": "Social Values",
       "responses": {
         "progressive_liberal": 1,
-        "moderate_liberal": 2,
-        "moderate_conservative": 3,
-        "traditional_conservative": 4,
-        "populist_right": 5,
-        "libertarian": 2,
-        "technocrat": 2
+        "moderate_liberal": 1,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
+        "libertarian": 1,
+        "technocrat": 1
       }
     },
     {
@@ -413,7 +413,7 @@
         "moderate_liberal": 1,
         "moderate_conservative": 1,
         "traditional_conservative": 1,
-        "populist_right": 2,
+        "populist_right": 1,
         "libertarian": 1,
         "technocrat": 1
       }
@@ -424,10 +424,10 @@
       "responses": {
         "progressive_liberal": 1,
         "moderate_liberal": 1,
-        "moderate_conservative": 2,
-        "traditional_conservative": 2,
-        "populist_right": 4,
-        "libertarian": 2,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
+        "libertarian": 1,
         "technocrat": 1
       }
     },
@@ -436,12 +436,12 @@
       "dimension": "Social Values",
       "responses": {
         "progressive_liberal": 3,
-        "moderate_liberal": 4,
-        "moderate_conservative": 7,
-        "traditional_conservative": 8,
-        "populist_right": 9,
-        "libertarian": 6,
-        "technocrat": 6
+        "moderate_liberal": 3,
+        "moderate_conservative": 3,
+        "traditional_conservative": 3,
+        "populist_right": 3,
+        "libertarian": 3,
+        "technocrat": 3
       }
     },
     {
@@ -450,10 +450,10 @@
       "responses": {
         "progressive_liberal": 2,
         "moderate_liberal": 2,
-        "moderate_conservative": 2,
-        "traditional_conservative": 2,
-        "populist_right": 3,
-        "libertarian": 2,
+        "moderate_conservative": 3,
+        "traditional_conservative": 3,
+        "populist_right": 4,
+        "libertarian": 3,
         "technocrat": 2
       }
     },
@@ -474,26 +474,26 @@
       "item_id": "30_3",
       "dimension": "Electoral Integrity",
       "responses": {
-        "progressive_liberal": 4,
-        "moderate_liberal": 4,
-        "moderate_conservative": 4,
-        "traditional_conservative": 4,
-        "populist_right": 4,
-        "libertarian": 4,
-        "technocrat": 4
+        "progressive_liberal": 2,
+        "moderate_liberal": 2,
+        "moderate_conservative": 2,
+        "traditional_conservative": 2,
+        "populist_right": 2,
+        "libertarian": 2,
+        "technocrat": 2
       }
     },
     {
       "item_id": "30_4",
       "dimension": "Electoral Integrity",
       "responses": {
-        "progressive_liberal": 2,
-        "moderate_liberal": 2,
+        "progressive_liberal": 3,
+        "moderate_liberal": 3,
         "moderate_conservative": 3,
         "traditional_conservative": 3,
-        "populist_right": 4,
+        "populist_right": 3,
         "libertarian": 3,
-        "technocrat": 2
+        "technocrat": 3
       }
     },
     {
@@ -502,10 +502,10 @@
       "responses": {
         "progressive_liberal": 2,
         "moderate_liberal": 2,
-        "moderate_conservative": 2,
-        "traditional_conservative": 2,
-        "populist_right": 3,
-        "libertarian": 2,
+        "moderate_conservative": 3,
+        "traditional_conservative": 3,
+        "populist_right": 4,
+        "libertarian": 3,
         "technocrat": 2
       }
     },
@@ -513,39 +513,39 @@
       "item_id": "30_6",
       "dimension": "Electoral Integrity",
       "responses": {
-        "progressive_liberal": 1,
-        "moderate_liberal": 2,
+        "progressive_liberal": 3,
+        "moderate_liberal": 3,
         "moderate_conservative": 3,
         "traditional_conservative": 3,
-        "populist_right": 2,
+        "populist_right": 3,
         "libertarian": 3,
-        "technocrat": 2
+        "technocrat": 3
       }
     },
     {
       "item_id": "30_7",
       "dimension": "Electoral Integrity",
       "responses": {
-        "progressive_liberal": 4,
-        "moderate_liberal": 4,
-        "moderate_conservative": 4,
-        "traditional_conservative": 4,
-        "populist_right": 3,
-        "libertarian": 4,
-        "technocrat": 4
+        "progressive_liberal": 1,
+        "moderate_liberal": 1,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
+        "libertarian": 1,
+        "technocrat": 1
       }
     },
     {
       "item_id": "30_8",
       "dimension": "Electoral Integrity",
       "responses": {
-        "progressive_liberal": 2,
-        "moderate_liberal": 2,
-        "moderate_conservative": 2,
-        "traditional_conservative": 2,
+        "progressive_liberal": 3,
+        "moderate_liberal": 3,
+        "moderate_conservative": 3,
+        "traditional_conservative": 3,
         "populist_right": 3,
-        "libertarian": 2,
-        "technocrat": 2
+        "libertarian": 3,
+        "technocrat": 3
       }
     },
     {
@@ -554,8 +554,8 @@
       "responses": {
         "progressive_liberal": 2,
         "moderate_liberal": 3,
-        "moderate_conservative": 4,
-        "traditional_conservative": 5,
+        "moderate_conservative": 3,
+        "traditional_conservative": 4,
         "populist_right": 5,
         "libertarian": 1,
         "technocrat": 3
@@ -578,12 +578,12 @@
       "item_id": "31_3",
       "dimension": "Political Preferences",
       "responses": {
-        "progressive_liberal": 1,
-        "moderate_liberal": 1,
+        "progressive_liberal": 2,
+        "moderate_liberal": 2,
         "moderate_conservative": 2,
-        "traditional_conservative": 3,
-        "populist_right": 4,
-        "libertarian": 1,
+        "traditional_conservative": 2,
+        "populist_right": 2,
+        "libertarian": 2,
         "technocrat": 2
       }
     },
@@ -591,9 +591,9 @@
       "item_id": "31_4",
       "dimension": "Political Preferences",
       "responses": {
-        "progressive_liberal": 1,
-        "moderate_liberal": 2,
-        "moderate_conservative": 3,
+        "progressive_liberal": 2,
+        "moderate_liberal": 3,
+        "moderate_conservative": 4,
         "traditional_conservative": 4,
         "populist_right": 4,
         "libertarian": 1,
@@ -605,9 +605,9 @@
       "dimension": "Political Preferences",
       "responses": {
         "progressive_liberal": 6,
-        "moderate_liberal": 5,
-        "moderate_conservative": 4,
-        "traditional_conservative": 3,
+        "moderate_liberal": 6,
+        "moderate_conservative": 5,
+        "traditional_conservative": 4,
         "populist_right": 2,
         "libertarian": 3,
         "technocrat": 6
@@ -646,7 +646,7 @@
         "progressive_liberal": 4,
         "moderate_liberal": 4,
         "moderate_conservative": 4,
-        "traditional_conservative": 4,
+        "traditional_conservative": 5,
         "populist_right": 6,
         "libertarian": 4,
         "technocrat": 3
@@ -656,12 +656,12 @@
       "item_id": "31_9",
       "dimension": "Political Preferences",
       "responses": {
-        "progressive_liberal": 4,
+        "progressive_liberal": 5,
         "moderate_liberal": 4,
-        "moderate_conservative": 3,
-        "traditional_conservative": 3,
+        "moderate_conservative": 4,
+        "traditional_conservative": 5,
         "populist_right": 6,
-        "libertarian": 3,
+        "libertarian": 5,
         "technocrat": 3
       }
     },
@@ -684,9 +684,9 @@
       "responses": {
         "progressive_liberal": 1,
         "moderate_liberal": 1,
-        "moderate_conservative": 2,
-        "traditional_conservative": 4,
-        "populist_right": 5,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
         "libertarian": 1,
         "technocrat": 1
       }
@@ -699,7 +699,7 @@
         "moderate_liberal": 10,
         "moderate_conservative": 10,
         "traditional_conservative": 10,
-        "populist_right": 8,
+        "populist_right": 10,
         "libertarian": 10,
         "technocrat": 10
       }
@@ -708,13 +708,13 @@
       "item_id": "32_4",
       "dimension": "Democratic Values",
       "responses": {
-        "progressive_liberal": 8,
+        "progressive_liberal": 7,
         "moderate_liberal": 7,
-        "moderate_conservative": 4,
-        "traditional_conservative": 2,
-        "populist_right": 2,
-        "libertarian": 1,
-        "technocrat": 4
+        "moderate_conservative": 7,
+        "traditional_conservative": 7,
+        "populist_right": 7,
+        "libertarian": 7,
+        "technocrat": 7
       }
     },
     {
@@ -723,9 +723,9 @@
       "responses": {
         "progressive_liberal": 1,
         "moderate_liberal": 1,
-        "moderate_conservative": 2,
-        "traditional_conservative": 3,
-        "populist_right": 5,
+        "moderate_conservative": 1,
+        "traditional_conservative": 1,
+        "populist_right": 1,
         "libertarian": 1,
         "technocrat": 1
       }
@@ -736,24 +736,24 @@
       "responses": {
         "progressive_liberal": 10,
         "moderate_liberal": 10,
-        "moderate_conservative": 9,
-        "traditional_conservative": 8,
-        "populist_right": 6,
+        "moderate_conservative": 10,
+        "traditional_conservative": 10,
+        "populist_right": 10,
         "libertarian": 10,
-        "technocrat": 9
+        "technocrat": 10
       }
     },
     {
       "item_id": "32_7",
       "dimension": "Democratic Values",
       "responses": {
-        "progressive_liberal": 7,
-        "moderate_liberal": 6,
-        "moderate_conservative": 3,
+        "progressive_liberal": 2,
+        "moderate_liberal": 2,
+        "moderate_conservative": 2,
         "traditional_conservative": 2,
         "populist_right": 2,
-        "libertarian": 1,
-        "technocrat": 4
+        "libertarian": 2,
+        "technocrat": 2
       }
     },
     {
@@ -775,9 +775,9 @@
       "responses": {
         "progressive_liberal": 10,
         "moderate_liberal": 10,
-        "moderate_conservative": 9,
-        "traditional_conservative": 7,
-        "populist_right": 5,
+        "moderate_conservative": 10,
+        "traditional_conservative": 10,
+        "populist_right": 10,
         "libertarian": 10,
         "technocrat": 10
       }

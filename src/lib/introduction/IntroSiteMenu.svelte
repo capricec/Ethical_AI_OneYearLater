@@ -7,6 +7,7 @@
 		ROUTE_TOOL,
 		ROUTE_IDEOLOGY_PROFILE,
 		ROUTE_METHODOLOGY,
+		ideologyProfileQuizHref,
 		isIntroRoute,
 		isToolRoute,
 		isIdeologyProfileRoute,
@@ -72,6 +73,11 @@
 					href={appPath(ROUTE_IDEOLOGY_PROFILE)}
 					class={navItemClass(ROUTE_IDEOLOGY_PROFILE)}
 					role="menuitem">Ideologic Profiles</a
+				>
+				<a
+					href={ideologyProfileQuizHref()}
+					class="block w-full px-4 py-2.5 text-left text-sm font-semibold text-white/90 transition-colors hover:bg-white/10"
+					role="menuitem">Ideology Quiz</a
 				>
 				<a href={appPath(ROUTE_METHODOLOGY)} class={navItemClass(ROUTE_METHODOLOGY)} role="menuitem"
 					>Methodology</a
