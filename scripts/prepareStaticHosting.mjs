@@ -46,15 +46,20 @@ function writeExtensionlessRedirectStub(route) {
 <body><p><a href="${target}">Continue</a></p></body>
 </html>
 `;
-	fs.mkdirSync(stubsDir, { recursive: true });
+	fs.mkdirSync(path.dirname(stubPath), { recursive: true });
 	fs.writeFileSync(stubPath, html, 'utf8');
 }
 
 const routes = ['tool', 'ideology-profile', 'methodology', 'introduction'];
+const nestedRoutes = ['ideology-profile/quiz-1'];
 
 for (const route of routes) {
 	ensureRouteDir(route);
 	writeExtensionlessRedirectStub(route);
+}
+
+for (const route of nestedRoutes) {
+	ensureRouteDir(route);
 }
 
 console.log(`
@@ -64,6 +69,7 @@ Deploy the build/ folder as usual, then upload extensionless redirects (S3 keys 
 
   aws s3 cp build/.s3-stubs/tool s3://YOUR_BUCKET/EverydayEthics/tool --content-type "text/html"
   aws s3 cp build/.s3-stubs/ideology-profile s3://YOUR_BUCKET/EverydayEthics/ideology-profile --content-type "text/html"
+  aws s3 sync build/ideology-profile/quiz-1/ s3://YOUR_BUCKET/EverydayEthics/ideology-profile/quiz-1/ --content-type "text/html"
   aws s3 cp build/.s3-stubs/methodology s3://YOUR_BUCKET/EverydayEthics/methodology --content-type "text/html"
   aws s3 cp build/.s3-stubs/introduction s3://YOUR_BUCKET/EverydayEthics/introduction --content-type "text/html"
 

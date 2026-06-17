@@ -25,7 +25,23 @@ if (!fs.existsSync(stubsDir)) {
 	process.exit(1);
 }
 
-const routes = fs.readdirSync(stubsDir).filter((name) => !name.startsWith('.'));
+const routes = [];
+
+/** @param {string} dir @param {string} [prefix] */
+function collectStubRoutes(dir, prefix = '') {
+	for (const name of fs.readdirSync(dir)) {
+		if (name.startsWith('.')) continue;
+		const full = path.join(dir, name);
+		const route = prefix ? `${prefix}/${name}` : name;
+		if (fs.statSync(full).isDirectory()) {
+			collectStubRoutes(full, route);
+		} else {
+			routes.push(route);
+		}
+	}
+}
+
+collectStubRoutes(stubsDir);
 
 for (const route of routes) {
 	const local = path.join(stubsDir, route);
