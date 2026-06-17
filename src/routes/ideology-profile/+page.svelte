@@ -41,6 +41,7 @@
 		isIdeologyQuizDeepLink
 	} from '$lib/routes.js';
 	import { modelSurveyResponsesForBuilder, buildItemScaleMeta, ideologyBuilderResponsesFromFull } from '$lib/data/archetypeSimilarity.js';
+	import { computeCustomSurveyResults, isCompleteQuizAnswers } from '$lib/data/quizScoring.js';
 	import { encoding } from '$lib/data/dataset.js';
 	import statementModelAveragesRaw from '../../../data/statement_model_averages.json';
 
@@ -56,6 +57,8 @@
 	let builderDraft = $state(/** @type {Record<string, number>} */ ({}));
 	/** @type {Record<string, 'A' | 'B'> | null} */
 	let pendingQuizAnswers = $state(null);
+	/** @type {{ surveyResponses: Record<string, number>, quizAnswers: Record<string, 'A' | 'B'> | null } | null} */
+	let pendingIdeologyResults = $state(null);
 
 	const visibleModels = $derived(
 		MODEL_ORDER.filter((m) =>
@@ -128,15 +131,42 @@
 			pendingQuizAnswers || prevSource === 'quiz' || prevSource === 'refined'
 				? 'refined'
 				: 'builder';
-		setCustomIdeologyResponses(responses, true, source, quizAnswers);
+		const savedQuizAnswers = isCompleteQuizAnswers(quizAnswers) ? { ...quizAnswers } : null;
+		setCustomIdeologyResponses(responses, true, source, savedQuizAnswers);
 		builderDraft = { ...responses };
 		pendingQuizAnswers = null;
+
+		pendingIdeologyResults = {
+			surveyResponses: { ...responses },
+			quizAnswers: savedQuizAnswers
+		};
+		closeIdeologyBuilder();
+		openIdeologyQuiz();
 	}
 
 	function handleQuizAdd(responses, quizAnswers, topMatchModel) {
 		setCustomIdeologyFromQuiz(responses, quizAnswers);
 		const model = String(topMatchModel ?? '').trim();
 		if (model) selectIdeologyModel(model);
+	}
+
+	function handleIdeologyResultsClose() {
+		closeIdeologyQuiz();
+		pendingIdeologyResults = null;
+	}
+
+	function handleIdeologyResultsConsumed() {
+		const payload = pendingIdeologyResults;
+		if (!payload) return;
+		const computed = computeCustomSurveyResults(
+			payload.surveyResponses,
+			encoding,
+			averagesRows,
+			visibleModels,
+			{ insightMode: 'builder' }
+		);
+		if (computed?.topMatch.model) selectIdeologyModel(computed.topMatch.model);
+		pendingIdeologyResults = null;
 	}
 
 	function handleQuizRefine(draft, quizAnswers) {
@@ -230,7 +260,10 @@
 <IdeologyQuizPanel
 	open={$ideologyQuizOpen}
 	models={visibleModels}
-	onClose={closeIdeologyQuiz}
+	externalResults={pendingIdeologyResults}
+	onExternalResultsConsumed={handleIdeologyResultsConsumed}
+	onClose={handleIdeologyResultsClose}
 	onQuizComplete={handleQuizAdd}
 	onRefine={handleQuizRefine}
+	onEditBuilder={handleOpenBuilder}
 />

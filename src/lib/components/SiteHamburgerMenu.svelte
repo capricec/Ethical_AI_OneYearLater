@@ -118,7 +118,7 @@
 				href={ideologyProfileQuizHref()}
 				class="block w-full px-4 py-2.5 text-left text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
 				role="menuitem"
-				onclick={closeMenu}>Ideology Quiz</a
+				onclick={closeMenu}>Take the quiz</a
 			>
 			<a
 				href={appPath(ROUTE_METHODOLOGY)}

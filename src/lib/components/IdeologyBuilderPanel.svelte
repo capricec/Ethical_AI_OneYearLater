@@ -183,7 +183,7 @@
 					class="w-full rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100 md:py-3.5"
 					onclick={handleSave}
 				>
-					Save custom ideology
+					See Ideology Results
 				</button>
 			</footer>
 		</div>

@@ -116,7 +116,7 @@
         "id": "q2_authority_vs_autonomy",
         "type": "tradeoff",
         "prompt": "Should the government ever increase monitoring to improve safety?",
-        "option_a": "It is sometimesacceptable if it improves stability and order.",
+        "option_a": "It is sometimes acceptable if it improves stability and order.",
         "option_b": "It is never acceptable due to the risks to individual freedom.",
         "mapping": {
           "A": { "31_1": 1, "31_2": 1, "28_8": 1 },

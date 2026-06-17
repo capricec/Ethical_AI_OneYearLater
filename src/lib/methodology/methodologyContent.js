@@ -54,5 +54,13 @@ export const METHODOLOGY_SECTIONS = [
 			'To capture this, I mapped each question to a set of value triads drawn from different parts of the survey, allowing multiple values to be represented at once. I then fed each model its average survey scores across these values and asked it to respond to everyday ethical dilemmas shaped by those competing priorities. This made it possible to analyze not just what a model says in principle, but how it balances competing priorities in practice.',
 			'The goal was to move beyond static classifications and examine how values are actually prioritized in context.'
 		]
+	},
+	{
+		id: 'quiz',
+		title: 'The Quiz',
+		paragraphs: [
+			'The survey provides a structured way to measure values, but most people encounter values through decisions and tradeoffs.',
+			'To make these patterns more accessible, I developed a short value-alignment quiz based on the survey results. Rather than asking users to complete the full survey, the quiz presents a series of tradeoffs and ethical judgments that capture the value dimensions where the models differ most. Each response is mapped back to the underlying survey framework, allowing a users answers to be compared directly against the average value profiles of each model.'
+		]
 	}
 ];

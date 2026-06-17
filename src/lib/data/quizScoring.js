@@ -12,6 +12,10 @@ import {
 	displayToSurveyValue,
 	roundToNearestStep
 } from '$lib/data/archetypeSimilarity.js';
+import {
+	buildEncodingItemById,
+	builderStatementLabelForStatement
+} from '$lib/data/fullSurveyQuestion.js';
 
 /** Map quiz signal strength into inner band of each item scale (not full lo–hi). */
 const QUIZ_VALUE_FLOOR = 0.2;
@@ -22,14 +26,19 @@ const QUIZ_VALUE_CEILING = 0.8;
  * @typedef {Record<string, QuizChoice>} QuizAnswers
  * @typedef {{ model: string, similarityPct: number }} QuizModelRankingRow
  * @typedef {{ model: string, similarityPct: number }} QuizModelMatch
- * @typedef {{ itemId: string, label: string, agreementPct: number }} QuizItemInsight
+ * @typedef {{
+ *   id: string,
+ *   prompt: string,
+ *   userChoiceLabel?: string | null,
+ *   agreementPct: number
+ * }} IdeologyInsight
  * @typedef {{
  *   completeSurveyResponses: Record<string, number>,
  *   discriminatingSurveyResponses: Record<string, number>,
  *   topMatch: QuizModelMatch,
  *   runnerUp: QuizModelMatch | null,
- *   strongestAgreement: QuizItemInsight[],
- *   strongestDisagreement: QuizItemInsight[]
+ *   strongestAgreement: IdeologyInsight[],
+ *   strongestDisagreement: IdeologyInsight[]
  * }} QuizResults
  */
 
@@ -62,6 +71,13 @@ export function getQuizIdeologyThemes() {
 		.filter((t) => t.id && t.label && t.items.length);
 }
 
+/** @param {QuizAnswers | null | undefined} answers */
+export function isCompleteQuizAnswers(answers) {
+	const questions = getQuizQuestions();
+	if (!answers || !questions.length) return false;
+	return questions.every((q) => answers[q.id] === 'A' || answers[q.id] === 'B');
+}
+
 /**
  * @param {Map<string, number>} profileA
  * @param {Map<string, number>} profileB
@@ -79,55 +95,17 @@ function itemAgreementPct(profileA, profileB, itemId, scaleMeta) {
 }
 
 /**
- * @param {Map<string, number>} userProfile
- * @param {Map<string, number>} otherProfile
- * @param {string[]} itemIds
- * @param {Map<string, import('$lib/data/archetypeSimilarity.js').ItemScaleMeta>} scaleMeta
- * @param {Map<string, string>} tensionLabels
+ * @param {IdeologyInsight[]} insights
+ * @returns {{ strongestAgreement: IdeologyInsight[], strongestDisagreement: IdeologyInsight[] }}
  */
-function rankSurveyItemInsights(userProfile, otherProfile, itemIds, scaleMeta, tensionLabels) {
-	/** @type {QuizItemInsight[]} */
-	const insights = [];
-	for (const itemId of itemIds) {
-		const agreementPct = itemAgreementPct(userProfile, otherProfile, itemId, scaleMeta);
-		if (agreementPct === null) continue;
-		insights.push({
-			itemId,
-			label: formatTensionLabel(tensionLabels.get(itemId) ?? itemId),
-			agreementPct
-		});
-	}
-	insights.sort((a, b) => b.agreementPct - a.agreementPct || a.label.localeCompare(b.label));
-	return insights;
-}
-
-/**
- * @param {unknown} encoding
- * @returns {Map<string, string>}
- */
-export function buildItemTensionLabels(encoding) {
-	/** @type {Map<string, string>} */
-	const labels = new Map();
-	for (const dim of encoding ?? []) {
-		for (const item of dim?.items ?? []) {
-			const itemId = String(item?.item_id ?? '').trim();
-			const tension = String(item?.tension ?? '').trim();
-			if (itemId && tension) labels.set(itemId, tension);
-		}
-	}
-	return labels;
-}
-
-/**
- * @param {string} label
- */
-function formatTensionLabel(label) {
-	return String(label ?? '')
-		.trim()
-		.split(/\s+/)
-		.filter(Boolean)
-		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-		.join(' ');
+function splitTopAgreementDisagreement(insights) {
+	const strongestAgreement = insights.slice(0, 2);
+	const agreeIds = new Set(strongestAgreement.map((item) => item.id));
+	const strongestDisagreement = [...insights]
+		.filter((item) => !agreeIds.has(item.id))
+		.sort((a, b) => a.agreementPct - b.agreementPct || a.prompt.localeCompare(b.prompt))
+		.slice(0, 2);
+	return { strongestAgreement, strongestDisagreement };
 }
 
 /**
@@ -320,6 +298,62 @@ export function deriveCompleteSurveyFromQuiz(answers, matrix, encoding, averages
 }
 
 /**
+ * Model match results for a completed custom survey profile.
+ *
+ * @param {Record<string, number>} completeSurvey
+ * @param {unknown} encoding
+ * @param {Array<{ item_id?: string, fund_model?: string, mean_value?: number }>} averagesRows
+ * @param {string[]} models
+ * @param {{ quizAnswers?: QuizAnswers | null, insightMode?: 'quiz' | 'builder' }} [options]
+ * @returns {QuizResults | null}
+ */
+export function computeCustomSurveyResults(
+	completeSurvey,
+	encoding,
+	averagesRows,
+	models,
+	options = {}
+) {
+	const scaleMeta = buildItemScaleMeta(encoding);
+	const modelRankings = rankModelsByCustomSurveySimilarity(
+		completeSurvey,
+		models,
+		encoding,
+		averagesRows
+	);
+	const topMatch = modelRankings[0];
+	if (!topMatch) return null;
+
+	const runnerUp = modelRankings[1] ?? null;
+	const quizAnswers = options.quizAnswers ?? null;
+	const insightMode = options.insightMode ?? 'builder';
+	/** @type {IdeologyInsight[]} */
+	let insights = [];
+
+	if (insightMode === 'quiz' && isCompleteQuizAnswers(quizAnswers)) {
+		insights = rankQuizQuestionInsights(quizAnswers, topMatch.model, averagesRows, scaleMeta);
+	} else {
+		insights = rankBuilderItemInsights(completeSurvey, topMatch.model, encoding, averagesRows, scaleMeta);
+	}
+
+	const { strongestAgreement, strongestDisagreement } = splitTopAgreementDisagreement(insights);
+	const discriminating = Object.fromEntries(
+		IDEOLOGY_DISCRIMINATING_ITEM_IDS.filter((itemId) =>
+			Number.isFinite(Number(completeSurvey[itemId]))
+		).map((itemId) => [itemId, completeSurvey[itemId]])
+	);
+
+	return {
+		completeSurveyResponses: { ...completeSurvey },
+		discriminatingSurveyResponses: discriminating,
+		topMatch,
+		runnerUp,
+		strongestAgreement,
+		strongestDisagreement
+	};
+}
+
+/**
  * Quiz results for display: agreement-scored matches and item insights.
  *
  * @param {QuizAnswers} answers
@@ -338,43 +372,11 @@ export function computeQuizResults(answers, matrix, encoding, averagesRows, mode
 		getQuizSurveyItemIds()
 	);
 	const completeSurvey = completeIdeologySurveyResponses(discriminating, averagesRows, scaleMeta);
-	const userProfile = buildCustomDisplayProfile(completeSurvey, scaleMeta);
 
-	const modelRankings = rankModelsByCustomSurveySimilarity(
-		completeSurvey,
-		models,
-		encoding,
-		averagesRows
-	);
-	const topMatch = modelRankings[0];
-	if (!topMatch) return null;
-
-	const runnerUp = modelRankings[1] ?? null;
-	const topModelProfile = buildModelDisplayProfile(topMatch.model, averagesRows, scaleMeta);
-	const tensionLabels = buildItemTensionLabels(encoding);
-	const quizSignaledItemIds = Object.keys(discriminating);
-	const itemInsights = rankSurveyItemInsights(
-		userProfile,
-		topModelProfile,
-		quizSignaledItemIds,
-		scaleMeta,
-		tensionLabels
-	);
-	const strongestAgreement = itemInsights.slice(0, 2);
-	const agreeIds = new Set(strongestAgreement.map((item) => item.itemId));
-	const strongestDisagreement = [...itemInsights]
-		.filter((item) => !agreeIds.has(item.itemId))
-		.sort((a, b) => a.agreementPct - b.agreementPct || a.label.localeCompare(b.label))
-		.slice(0, 2);
-
-	return {
-		completeSurveyResponses: completeSurvey,
-		discriminatingSurveyResponses: discriminating,
-		topMatch,
-		runnerUp,
-		strongestAgreement,
-		strongestDisagreement
-	};
+	return computeCustomSurveyResults(completeSurvey, encoding, averagesRows, models, {
+		quizAnswers: answers,
+		insightMode: 'quiz'
+	});
 }
 
 /**
@@ -396,14 +398,8 @@ export function buildModelQuizVectorForQuestion(
 	const question = (quiz?.questions ?? []).find((q) => String(q?.id ?? '') === questionId);
 	if (!question) return new Float64Array(0);
 
-	const itemIds = new Set();
-	for (const side of ['A', 'B']) {
-		const mapping = question.mapping?.[side];
-		if (!mapping) continue;
-		for (const itemId of Object.keys(mapping)) itemIds.add(String(itemId).trim());
-	}
-
-	const dimensions = [...itemIds];
+	const dimensions = getQuestionMappedItemIds(question);
+	if (!dimensions.length) return new Float64Array(0);
 	const profile = buildModelDisplayProfile(model, averagesRows, scaleMeta);
 	return buildIdeologyUnitVector(profile, scaleMeta, dimensions);
 }
@@ -445,18 +441,34 @@ export function rankModelsByQuizSimilarity(answers, models, averagesRows, encodi
 }
 
 /**
- * @param {QuizAnswers} answers
+ * Stable item list for a quiz question (union of A/B mapping keys).
+ *
  * @param {typeof quizMapping.questions[number]} question
  */
-export function buildUserQuizVectorForQuestion(answers, question) {
+function getQuestionMappedItemIds(question) {
+	const itemIds = new Set();
+	for (const side of ['A', 'B']) {
+		const mapping = question?.mapping?.[side];
+		if (!mapping) continue;
+		for (const itemId of Object.keys(mapping)) itemIds.add(String(itemId).trim());
+	}
+	return [...itemIds].sort();
+}
+
+/**
+ * @param {QuizAnswers} answers
+ * @param {typeof quizMapping.questions[number]} question
+ * @param {string[]} [dimensions]
+ */
+export function buildUserQuizVectorForQuestion(answers, question, dimensions = null) {
 	const choice = answers[String(question?.id ?? '').trim()];
 	if (choice !== 'A' && choice !== 'B') return new Float64Array(0);
 	const mapping = question?.mapping?.[choice];
 	if (!mapping) return new Float64Array(0);
 
-	const dimensions = Object.keys(mapping).map((id) => String(id).trim());
-	const indexByItem = itemIndexByDimension(dimensions);
-	const raw = new Float64Array(dimensions.length);
+	const dims = dimensions ?? getQuestionMappedItemIds(question);
+	const indexByItem = itemIndexByDimension(dims);
+	const raw = new Float64Array(dims.length);
 	for (const [itemId, weight] of Object.entries(mapping)) {
 		const idx = indexByItem.get(String(itemId).trim());
 		if (idx === undefined) continue;
@@ -464,4 +476,86 @@ export function buildUserQuizVectorForQuestion(answers, question) {
 		if (Number.isFinite(w) && w > 0) raw[idx] += w;
 	}
 	return l2Normalize(raw);
+}
+
+/**
+ * Per-question alignment between the user's choice and a model on that question's mapped items.
+ *
+ * @param {QuizAnswers} answers
+ * @param {string} model
+ * @param {Array<{ item_id?: string, fund_model?: string, mean_value?: number }>} averagesRows
+ * @param {Map<string, import('$lib/data/archetypeSimilarity.js').ItemScaleMeta>} scaleMeta
+ * @param {typeof quizMapping} [quiz]
+ * @returns {IdeologyInsight[]}
+ */
+export function rankQuizQuestionInsights(answers, model, averagesRows, scaleMeta, quiz = quizMapping) {
+	const questions = getQuizQuestions();
+	/** @type {IdeologyInsight[]} */
+	const insights = [];
+
+	for (const question of questions) {
+		const questionId = String(question?.id ?? '').trim();
+		const choice = answers[questionId];
+		if (choice !== 'A' && choice !== 'B') continue;
+
+		const dimensions = getQuestionMappedItemIds(question);
+		if (!dimensions.length) continue;
+
+		const userVec = buildUserQuizVectorForQuestion(answers, question, dimensions);
+		const modelVec = buildModelQuizVectorForQuestion(model, questionId, averagesRows, scaleMeta, quiz);
+		if (!userVec.length || userVec.length !== modelVec.length) continue;
+
+		const weights = new Float64Array(userVec.length);
+		const unit = 1 / userVec.length;
+		for (let i = 0; i < userVec.length; i++) weights[i] = unit;
+
+		const agreementPct = Math.round(weightedCosineSimilarity(userVec, modelVec, weights) * 100);
+		const prompt = String(question.prompt ?? '').trim();
+		const userChoiceLabel =
+			choice === 'A'
+				? String(question.option_a ?? '').trim()
+				: String(question.option_b ?? '').trim();
+
+		insights.push({
+			id: questionId,
+			prompt,
+			userChoiceLabel,
+			agreementPct
+		});
+	}
+
+	insights.sort((a, b) => b.agreementPct - a.agreementPct || a.prompt.localeCompare(b.prompt));
+	return insights;
+}
+
+/**
+ * Builder slider alignment vs top model on discriminating survey items.
+ *
+ * @param {Record<string, number>} completeSurvey
+ * @param {string} model
+ * @param {unknown} encoding
+ * @param {Array<{ item_id?: string, fund_model?: string, mean_value?: number }>} averagesRows
+ * @param {Map<string, import('$lib/data/archetypeSimilarity.js').ItemScaleMeta>} scaleMeta
+ * @returns {IdeologyInsight[]}
+ */
+function rankBuilderItemInsights(completeSurvey, model, encoding, averagesRows, scaleMeta) {
+	const userProfile = buildCustomDisplayProfile(completeSurvey, scaleMeta);
+	const topModelProfile = buildModelDisplayProfile(model, averagesRows, scaleMeta);
+	const encodingItemById = buildEncodingItemById(encoding);
+	/** @type {IdeologyInsight[]} */
+	const insights = [];
+
+	for (const itemId of IDEOLOGY_DISCRIMINATING_ITEM_IDS) {
+		const agreementPct = itemAgreementPct(userProfile, topModelProfile, itemId, scaleMeta);
+		if (agreementPct === null) continue;
+		insights.push({
+			id: itemId,
+			prompt: builderStatementLabelForStatement(itemId, encodingItemById),
+			userChoiceLabel: null,
+			agreementPct
+		});
+	}
+
+	insights.sort((a, b) => b.agreementPct - a.agreementPct || a.prompt.localeCompare(b.prompt));
+	return insights;
 }

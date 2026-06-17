@@ -1,23 +1,38 @@
 <script>
 	import { archetypeResponseMatrix, encoding } from '$lib/data/dataset.js';
 	import { ideologyBuilderResponsesFromFull, buildItemScaleMeta } from '$lib/data/archetypeSimilarity.js';
-	import { computeQuizResults, getQuizQuestions } from '$lib/data/quizScoring.js';
-	import { customIdeologyQuizAnswers, clearIdeologyQuizAnswers } from '$lib/stores/ideologyProfileState.js';
+	import { computeQuizResults, computeCustomSurveyResults, getQuizQuestions, isCompleteQuizAnswers } from '$lib/data/quizScoring.js';
+	import { customIdeologyQuizAnswers, customIdeologyResponses, customIdeologySource, clearIdeologyQuizAnswers } from '$lib/stores/ideologyProfileState.js';
 	import { modelColor } from '$lib/viz/modelColors.js';
 	import statementModelAveragesRaw from '../../../data/statement_model_averages.json';
 
 	/** @type {{
 		open: boolean,
 		models: string[],
+		externalResults?: {
+			surveyResponses: Record<string, number>,
+			quizAnswers?: Record<string, 'A' | 'B'> | null
+		} | null,
+		onExternalResultsConsumed?: () => void,
 		onClose?: () => void,
 		onQuizComplete?: (
 			responses: Record<string, number>,
 			answers: Record<string, 'A' | 'B'>,
 			topMatchModel?: string
 		) => void,
-		onRefine?: (draftResponses: Record<string, number>, answers: Record<string, 'A' | 'B'>) => void
+		onRefine?: (draftResponses: Record<string, number>, answers: Record<string, 'A' | 'B'>) => void,
+		onEditBuilder?: () => void
 	}} */
-	let { open = false, models = [], onClose, onQuizComplete, onRefine } = $props();
+	let {
+		open = false,
+		models = [],
+		externalResults = null,
+		onExternalResultsConsumed,
+		onClose,
+		onQuizComplete,
+		onRefine,
+		onEditBuilder
+	} = $props();
 
 	const questions = getQuizQuestions();
 	const averagesRows = Array.isArray(statementModelAveragesRaw?.rows)
@@ -30,47 +45,89 @@
 	let answers = $state({});
 	let showResults = $state(false);
 	let quizOpened = $state(false);
+	/** @type {{ surveyResponses: Record<string, number>, quizAnswers: Record<string, 'A' | 'B'> | null } | null} */
+	let builderResultsSnapshot = $state(null);
+	/** @type {'quiz' | 'builder' | null} */
+	let resultsInsightMode = $state(null);
 
 	const currentQuestion = $derived(questions[step] ?? null);
 	const answeredCount = $derived(
 		questions.filter((q) => answers[q.id] === 'A' || answers[q.id] === 'B').length
 	);
 	const allAnswered = $derived(answeredCount === questions.length && questions.length > 0);
+	const canRetakeQuiz = $derived(isCompleteQuizAnswers(answers));
 
 	const results = $derived.by(() => {
-		if (!showResults || !allAnswered) return null;
-		return computeQuizResults(answers, archetypeResponseMatrix, encoding, averagesRows, models);
+		if (builderResultsSnapshot) {
+			return computeCustomSurveyResults(
+				builderResultsSnapshot.surveyResponses,
+				encoding,
+				averagesRows,
+				models,
+				{ insightMode: 'builder' }
+			);
+		}
+		if (!showResults) return null;
+
+		const mode = resultsInsightMode ?? 'quiz';
+
+		if (mode === 'quiz' && allAnswered) {
+			return computeQuizResults(answers, archetypeResponseMatrix, encoding, averagesRows, models);
+		}
+
+		if (mode === 'builder') {
+			const survey = $customIdeologyResponses;
+			if (!survey || !Object.keys(survey).length) return null;
+			return computeCustomSurveyResults(survey, encoding, averagesRows, models, {
+				insightMode: 'builder'
+			});
+		}
+
+		return null;
 	});
 
-	/** @param {Record<string, 'A' | 'B'> | null | undefined} saved */
-	function isCompleteQuizAnswers(saved) {
-		if (!saved || !questions.length) return false;
-		return questions.every((q) => saved[q.id] === 'A' || saved[q.id] === 'B');
-	}
+	const showingResults = $derived(Boolean(results));
 
 	$effect(() => {
 		if (!open) {
 			quizOpened = false;
+			builderResultsSnapshot = null;
+			resultsInsightMode = null;
 			return;
 		}
 		if (quizOpened) return;
 		quizOpened = true;
 
+		if (externalResults?.surveyResponses) {
+			builderResultsSnapshot = {
+				surveyResponses: { ...externalResults.surveyResponses },
+				quizAnswers: externalResults.quizAnswers ? { ...externalResults.quizAnswers } : null
+			};
+			answers = externalResults.quizAnswers ? { ...externalResults.quizAnswers } : {};
+			resultsInsightMode = 'builder';
+			showResults = true;
+			onExternalResultsConsumed?.();
+			return;
+		}
+
 		const saved = $customIdeologyQuizAnswers;
 		if (isCompleteQuizAnswers(saved)) {
 			answers = { ...saved };
+			resultsInsightMode = $customIdeologySource === 'quiz' ? 'quiz' : 'builder';
 			showResults = true;
 			step = Math.max(0, questions.length - 1);
 			return;
 		}
 		step = 0;
 		answers = {};
+		resultsInsightMode = null;
 		showResults = false;
 	});
 
 	/** @param {Record<string, 'A' | 'B'>} nextAnswers */
 	function finishQuiz(nextAnswers) {
 		answers = nextAnswers;
+		resultsInsightMode = 'quiz';
 		showResults = true;
 		const computed = computeQuizResults(
 			nextAnswers,
@@ -113,9 +170,18 @@
 
 	function retakeQuiz() {
 		clearIdeologyQuizAnswers();
+		builderResultsSnapshot = null;
+		resultsInsightMode = null;
 		step = 0;
 		answers = {};
 		showResults = false;
+	}
+
+	function handleEditBuilder() {
+		builderResultsSnapshot = null;
+		showResults = false;
+		onClose?.();
+		onEditBuilder?.();
 	}
 </script>
 
@@ -136,39 +202,39 @@
 			aria-modal="true"
 			aria-labelledby="ideology-quiz-title"
 		>
-			<header class="shrink-0 border-b border-white/10 px-5 pb-4 pt-5 md:px-8 md:pt-6">
-				<div class="flex items-center justify-between gap-4">
-					<div class="min-w-0 flex-1 pr-2">
-						<h2 id="ideology-quiz-title" class="text-lg font-bold text-white md:text-xl">
-							{showResults ? 'Your ideology results' : 'Which AI Model Aligns With You?'}
-						</h2>
-						{#if !showResults}
-							<p class="mt-2 text-xs leading-relaxed text-white/70 md:text-sm">
-								Choose the option that best matches your view on each scenario.
-							</p>
-						{/if}
-					</div>
-					<div class="flex shrink-0 items-center gap-3">
-						{#if showResults && results}
-							<button
-								type="button"
-								class="translate-y-px text-xs font-medium leading-none text-white/65 underline-offset-2 hover:text-white hover:underline"
-								onclick={handleRefine}
-							>
-								Refine in builder
-							</button>
-						{/if}
+			<header class="relative shrink-0 border-b border-white/10 px-5 pb-4 pt-5 md:px-8 md:pt-6">
+				<div
+					class={showingResults ? 'pr-44 md:pr-52' : 'pr-10 md:pr-12'}
+				>
+					<h2 id="ideology-quiz-title" class="text-lg font-bold text-white md:text-xl">
+						{showingResults ? 'Your ideology results' : 'Which AI Model Aligns With You?'}
+					</h2>
+					{#if !showingResults}
+						<p class="mt-2 text-xs leading-relaxed text-white/70 md:text-sm">
+							Choose the option that best matches your view on each scenario.
+						</p>
+					{/if}
+				</div>
+				<div class="absolute right-5 top-5 flex items-center gap-2 md:right-8 md:top-6">
+					{#if showingResults && results}
 						<button
 							type="button"
-							class="text-2xl leading-none text-white/60 hover:text-white"
-							aria-label="Close quiz"
-							onclick={() => onClose?.()}
+							class="translate-y-px text-xs font-medium leading-none text-white/65 underline-offset-2 hover:text-white hover:underline"
+							onclick={handleRefine}
 						>
-							×
+							Refine in builder
 						</button>
-					</div>
+					{/if}
+					<button
+						type="button"
+						class="flex h-8 w-8 shrink-0 items-center justify-center text-2xl leading-none text-white/60 hover:text-white"
+						aria-label="Close quiz"
+						onclick={() => onClose?.()}
+					>
+						×
+					</button>
 				</div>
-				{#if !showResults && questions.length}
+				{#if !showingResults && questions.length}
 					<div class="mt-4 flex items-center gap-3">
 						<div
 							class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/15"
@@ -190,41 +256,19 @@
 			</header>
 
 			<div class="min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-8 md:py-6">
-				{#if showResults && results}
-					<div class="grid grid-cols-2 gap-3">
-						<section class="rounded-xl bg-white/10 px-4 py-4 ring-1 ring-white/15">
-							<p class="text-[10px] font-bold uppercase tracking-wider text-white/50">
-								Top match
-							</p>
-							<div class="mt-2 flex items-center gap-3">
-								<div
-									class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-									style={`background-color: ${modelColor(results.topMatch.model)};`}
-								>
-									{results.topMatch.similarityPct}%
-								</div>
-								<h3 class="text-[13px] font-bold text-white md:text-lg">{results.topMatch.model}</h3>
+				{#if showingResults && results}
+					<section class="w-full rounded-xl bg-white/10 px-4 py-4 ring-1 ring-white/15">
+						<p class="text-[10px] font-bold uppercase tracking-wider text-white/50">Top match</p>
+						<div class="mt-2 flex items-center gap-3">
+							<div
+								class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+								style={`background-color: ${modelColor(results.topMatch.model)};`}
+							>
+								{results.topMatch.similarityPct}%
 							</div>
-						</section>
-						{#if results.runnerUp}
-							<section class="rounded-xl bg-white/10 px-4 py-4 ring-1 ring-white/15">
-								<p class="text-[10px] font-bold uppercase tracking-wider text-white/45">
-									Runner-up
-								</p>
-								<div class="mt-2 flex items-center gap-3">
-									<div
-										class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-										style={`background-color: ${modelColor(results.runnerUp.model)};`}
-									>
-										{results.runnerUp.similarityPct}%
-									</div>
-									<h3 class="text-[13px] font-bold text-white md:text-lg">{results.runnerUp.model}</h3>
-								</div>
-							</section>
-						{:else}
-							<div aria-hidden="true"></div>
-						{/if}
-					</div>
+							<h3 class="text-[13px] font-bold text-white md:text-lg">{results.topMatch.model}</h3>
+						</div>
+					</section>
 
 					{#if results.strongestAgreement.length}
 						<section class="mt-5">
@@ -232,11 +276,14 @@
 								Areas of strongest agreement
 							</p>
 							<ul class="mt-3 space-y-2">
-								{#each results.strongestAgreement as item (item.itemId)}
-									<li
-										class="rounded-lg bg-white/5 px-3 py-2.5 text-sm leading-snug text-white/90"
-									>
-										{item.label}
+								{#each results.strongestAgreement as item (item.id)}
+									<li class="rounded-lg bg-white/5 px-3 py-2.5 text-sm leading-snug text-white/90">
+										<p class="font-medium text-white">{item.prompt}</p>
+										{#if item.userChoiceLabel}
+											<p class="mt-1 text-xs leading-snug text-white/60">
+												You chose: {item.userChoiceLabel}
+											</p>
+										{/if}
 									</li>
 								{/each}
 							</ul>
@@ -249,14 +296,32 @@
 								Areas of strongest disagreement
 							</p>
 							<ul class="mt-3 space-y-2">
-								{#each results.strongestDisagreement as item (item.itemId)}
-									<li
-										class="rounded-lg bg-white/5 px-3 py-2.5 text-sm leading-snug text-white/90"
-									>
-										{item.label}
+								{#each results.strongestDisagreement as item (item.id)}
+									<li class="rounded-lg bg-white/5 px-3 py-2.5 text-sm leading-snug text-white/90">
+										<p class="font-medium text-white">{item.prompt}</p>
+										{#if item.userChoiceLabel}
+											<p class="mt-1 text-xs leading-snug text-white/60">
+												You chose: {item.userChoiceLabel}
+											</p>
+										{/if}
 									</li>
 								{/each}
 							</ul>
+						</section>
+					{/if}
+
+					{#if results.runnerUp}
+						<section class="mt-10 w-full rounded-xl bg-white/10 px-3 py-2.5 ring-1 ring-white/15">
+							<p class="text-[9px] font-bold uppercase tracking-wider text-white/45">Runner-up</p>
+							<div class="mt-1.5 flex items-center gap-2.5">
+								<div
+									class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+									style={`background-color: ${modelColor(results.runnerUp.model)};`}
+								>
+									{results.runnerUp.similarityPct}%
+								</div>
+								<h3 class="text-xs font-semibold text-white md:text-sm">{results.runnerUp.model}</h3>
+							</div>
 						</section>
 					{/if}
 				{:else if currentQuestion}
@@ -299,15 +364,25 @@
 			</div>
 
 			<footer class="shrink-0 border-t border-white/10 px-5 py-4 md:px-8 md:py-5">
-				{#if showResults && results}
+				{#if showingResults && results}
 					<div class="flex items-stretch gap-2">
-						<button
-							type="button"
-							class="shrink-0 rounded-full border border-white/20 px-3 py-2.5 text-xs font-semibold text-white/80 hover:bg-white/10"
-							onclick={retakeQuiz}
-						>
-							Retake quiz
-						</button>
+						{#if canRetakeQuiz}
+							<button
+								type="button"
+								class="shrink-0 rounded-full border border-white/20 px-3 py-2.5 text-xs font-semibold text-white/80 hover:bg-white/10"
+								onclick={retakeQuiz}
+							>
+								Retake quiz
+							</button>
+						{:else}
+							<button
+								type="button"
+								class="shrink-0 rounded-full border border-white/20 px-3 py-2.5 text-xs font-semibold text-white/80 hover:bg-white/10"
+								onclick={handleEditBuilder}
+							>
+								Edit profile
+							</button>
+						{/if}
 						<button
 							type="button"
 							class="min-w-0 flex-1 rounded-full bg-white px-4 py-3 text-sm font-bold text-slate-900 hover:bg-slate-100"
